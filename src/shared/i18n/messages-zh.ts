@@ -211,6 +211,7 @@ export const zh: Messages = {
       sea: "大海",
       cherry: "樱花",
       mist: "薄雾",
+      sunset: "日落",
       plain: "纯色",
     },
   },

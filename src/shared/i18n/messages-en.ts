@@ -218,6 +218,7 @@ export const en = {
       sea: "Sea",
       cherry: "Cherry",
       mist: "Mist",
+      sunset: "Sunset",
       plain: "Plain",
     },
   },

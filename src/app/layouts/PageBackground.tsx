@@ -3,6 +3,7 @@ import { useSelector } from "@tanstack/react-store";
 import { backgroundAtom, type Background } from "@/shared/config/preferences.ts";
 import { FirefliesBackground } from "@/app/layouts/FirefliesBackground.tsx";
 import { MistBackground } from "@/app/layouts/MistBackground.tsx";
+import { SunsetBackground } from "@/app/layouts/SunsetBackground.tsx";
 import { SeaBackground } from "@/app/layouts/SeaBackground.tsx";
 import { CherryBackground } from "@/app/layouts/CherryBackground.tsx";
 
@@ -11,6 +12,7 @@ const BACKGROUND_COMPONENTS: Record<Background, ComponentType | null> = {
   sea: SeaBackground,
   cherry: CherryBackground,
   mist: MistBackground,
+  sunset: SunsetBackground,
   plain: null,
 };
 

@@ -219,6 +219,7 @@ export const sv: Messages = {
       sea: "Hav",
       cherry: "Körsbär",
       mist: "Dimma",
+      sunset: "Solnedgång",
       plain: "Enfärgad",
     },
   },
