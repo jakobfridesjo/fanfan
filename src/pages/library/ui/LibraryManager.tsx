@@ -311,7 +311,7 @@ function FolderCard({
         title={folder.name}
         className={cn(
           POSTER,
-          "flex w-full flex-col gap-2 bg-muted/70 p-2.5 text-left backdrop-blur-sm",
+          "flex w-full flex-col gap-2 bg-card p-2.5 text-left text-card-foreground",
           landing && LANDING
         )}
       >
@@ -334,7 +334,7 @@ function LibrarySkeleton() {
   return (
     <div className={SHELF} aria-hidden>
       {["first", "second", "third", "fourth"].map((key) => (
-        <Skeleton key={key} className="aspect-2/3 rounded-xl motion-reduce:animate-none" />
+        <Skeleton key={key} className="aspect-2/3 rounded-xl bg-card motion-reduce:animate-none" />
       ))}
     </div>
   );
