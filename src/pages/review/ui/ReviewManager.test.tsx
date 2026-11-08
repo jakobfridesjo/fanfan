@@ -1,7 +1,7 @@
 import { page as screen, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
-import type { StudyCard } from "@/shared/api/commands.ts";
-import { makeCard, makeReviewQueue } from "@/shared/test/fixtures.ts";
+import type { ReviewSnapshot, StudyCard } from "@/shared/api/commands.ts";
+import { makeCard, makeReviewQueue, makeReviewSnapshot } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
 import { dragHorizontally } from "@/shared/test/pointer.ts";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -13,6 +13,10 @@ function mockQueue(cards: StudyCard[]) {
     get_review_queue: () => makeReviewQueue(cards.filter((card) => !reviewed.has(card.word))),
     review_word: ({ word }) => {
       reviewed.add(word as string);
+      return makeReviewSnapshot(word as string);
+    },
+    undo_review: ({ snapshot }) => {
+      reviewed.delete((snapshot as ReviewSnapshot).word.word);
       return null;
     },
   });
@@ -29,13 +33,39 @@ describe("ReviewManager", () => {
     await renderPageInRouter(<ReviewManager />);
 
     await expect.element(screen.getByText("1 card due")).toBeVisible();
-    await expect.element(screen.getByRole("button", { name: "Good" })).not.toBeInTheDocument();
+    await expect.element(screen.getByRole("button", { name: /^Good/ })).not.toBeInTheDocument();
 
     await screen.getByRole("button", { name: "Show answer" }).click();
     await expect.element(screen.getByText("xué xí")).toBeVisible();
-    for (const rating of ["Again", "Hard", "Good", "Easy"]) {
-      await expect.element(screen.getByRole("button", { name: rating })).toBeVisible();
+    for (const [rating, interval] of [
+      ["Again", "10 min"],
+      ["Hard", "1 day"],
+      ["Good", "3 days"],
+      ["Easy", "8 days"],
+    ]) {
+      await expect
+        .element(screen.getByRole("button", { name: `${rating} ${interval}` }))
+        .toBeVisible();
     }
+  });
+
+  it("undoes the last rating and asks for that card again", async () => {
+    const calls = mockQueue([makeCard("学习"), makeCard("中文")]);
+    await renderPageInRouter(<ReviewManager />);
+
+    const undo = screen.getByRole("button", { name: "Undo last rating" });
+    await expect.element(undo).toBeDisabled();
+
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard("3");
+    await expect.element(screen.getByText("中文", { exact: true }).first()).toBeVisible();
+    await userEvent.keyboard(" ");
+    await userEvent.keyboard("{Backspace}");
+
+    await expect.element(screen.getByText("学习", { exact: true }).first()).toBeVisible();
+    await expect.element(screen.getByRole("button", { name: "Show answer" })).toBeVisible();
+    await expect.element(undo).toBeDisabled();
+    expect(callsTo(calls, "undo_review")).toEqual([{ snapshot: makeReviewSnapshot("学习") }]);
   });
 
   it("rates cards with buttons and keys until the queue is empty", async () => {
@@ -43,7 +73,7 @@ describe("ReviewManager", () => {
     await renderPageInRouter(<ReviewManager />);
 
     await screen.getByRole("button", { name: "Show answer" }).click();
-    await screen.getByRole("button", { name: "Easy" }).click();
+    await screen.getByRole("button", { name: /^Easy/ }).click();
     await expect.element(screen.getByText("中文", { exact: true }).first()).toBeVisible();
 
     // Rating keys do nothing until the answer shows.
@@ -111,7 +141,7 @@ describe("ReviewManager", () => {
     await renderPageInRouter(<ReviewManager />);
 
     await userEvent.keyboard(" ");
-    await screen.getByRole("button", { name: "Good" }).click();
+    await screen.getByRole("button", { name: /^Good/ }).click();
     await expect.element(screen.getByText('"学习" is not being learned')).toBeVisible();
     await expect.element(screen.getByRole("button", { name: "Show answer" })).toBeVisible();
   });

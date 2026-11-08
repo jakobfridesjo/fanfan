@@ -106,9 +106,18 @@ pub struct SpokenPhrase {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewQueue {
-    pub cards: Vec<StudyCard>,
+    pub cards: Vec<ReviewCard>,
     pub due_count: u32,
     pub next_due_at: Option<i64>,
+}
+
+/// A due word, with how far each rating, again to easy, would put off its next review (ms).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewCard {
+    #[serde(flatten)]
+    pub card: StudyCard,
+    pub intervals: [i64; 4],
 }
 
 /// A known or learning word as the word list shows it.
@@ -341,7 +350,10 @@ pub fn review_queue(source: ReviewSource, dictionary: &Dictionary, script: Scrip
         .into_iter()
         .map(|due| {
             let example = due.example.unwrap_or_default();
-            study_card(dictionary, script, due.word, &example, None)
+            ReviewCard {
+                card: study_card(dictionary, script, due.word, &example, None),
+                intervals: due.intervals,
+            }
         })
         .collect();
     ReviewQueue {
@@ -581,12 +593,12 @@ mod tests {
         let queue = queue_in(Script::Simplified);
         assert_eq!(queue.due_count, 1);
         assert_eq!(queue.next_due_at, Some(now().timestamp_millis()));
-        assert_eq!(queue.cards[0].word, "中文");
-        assert_eq!(queue.cards[0].example, "我们学习中文。");
-        assert_eq!(queue.cards[0].count, None);
+        assert_eq!(queue.cards[0].card.word, "中文");
+        assert_eq!(queue.cards[0].card.example, "我们学习中文。");
+        assert_eq!(queue.cards[0].card.count, None);
 
         let traditional = queue_in(Script::Traditional);
-        let card = &traditional.cards[0];
+        let card = &traditional.cards[0].card;
         assert_eq!(
             (
                 card.word.as_str(),
@@ -654,9 +666,31 @@ mod tests {
             keys(serde_json::to_value(snapshot).unwrap()),
             ["previous", "word"]
         );
+        let queue = serde_json::to_value(review_queue(
+            review_source(&store, now(), 5).unwrap(),
+            &language.dictionary,
+            Script::Simplified,
+        ))
+        .unwrap();
+        assert_eq!(
+            keys(queue["cards"][0].clone()),
+            [
+                "count",
+                "displayWord",
+                "example",
+                "intervals",
+                "readings",
+                "word"
+            ]
+        );
+        let reviewed = store.review("中文", 3, now()).unwrap();
+        assert_eq!(
+            keys(serde_json::to_value(reviewed.snapshot).unwrap()),
+            ["reviewId", "word"]
+        );
         assert_eq!(
             serde_json::to_value(store.counts(now()).unwrap()).unwrap(),
-            serde_json::json!({ "known": 0, "learning": 1, "due": 1 })
+            serde_json::json!({ "known": 0, "learning": 1, "due": 0 })
         );
         let statistics =
             serde_json::to_value(crate::statistics::statistics(&store, now(), 1).unwrap()).unwrap();

@@ -288,7 +288,7 @@ mod tests {
         learning(&mut store, "老", now() - Duration::days(4));
         learning(&mut store, "今", now());
         learning(&mut store, "远", now());
-        let due_far = store.review("远", 4, now().to_utc()).unwrap();
+        let due_far = store.review("远", 4, now().to_utc()).unwrap().due_at;
 
         let statistics = statistics(&store, now(), 7).unwrap();
 

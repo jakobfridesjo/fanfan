@@ -27,7 +27,6 @@ export const en = {
   word: {
     playPronunciation: "Play pronunciation",
     playFailed: (word: string) => `Could not play “${word}”`,
-    showMeaning: "Show meaning",
     noEntry: "No dictionary entry",
     name: "Name",
     countInBook: (count: number) =>
@@ -141,6 +140,9 @@ export const en = {
     goToLibrary: "Go to library",
     loadFailed: "Failed to load your reviews",
     saveFailed: "Could not save the review",
+    undo: "Undo last rating",
+    undoTooltip: "Undo (Backspace)",
+    undoFailed: "Could not undo",
   },
   knownWords: {
     title: "Known words",

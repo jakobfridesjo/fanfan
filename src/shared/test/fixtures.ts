@@ -3,7 +3,9 @@ import type {
   DocumentSummary,
   ReaderSection,
   ReaderToken,
+  ReviewCard,
   ReviewQueue,
+  ReviewSnapshot,
   Statistics,
   StudyCard,
   WordCounts,
@@ -48,11 +50,27 @@ export function makeDeck(cards: StudyCard[], overrides: Partial<Deck> = {}): Dec
   return { document: makeDocument(), wordsTo95: 40, wordsTo98: 120, cards, ...overrides };
 }
 
+const MINUTE = 60_000;
+const DAY = 24 * 60 * MINUTE;
+
+/** Cards without their own `intervals` get 10 minutes, 1, 3 and 8 days. */
 export function makeReviewQueue(
-  cards: StudyCard[],
+  cards: (StudyCard | ReviewCard)[],
   overrides: Partial<ReviewQueue> = {}
 ): ReviewQueue {
-  return { cards, dueCount: cards.length, nextDueAt: null, ...overrides };
+  return {
+    cards: cards.map((card) => ({
+      intervals: [10 * MINUTE, DAY, 3 * DAY, 8 * DAY],
+      ...card,
+    })),
+    dueCount: cards.length,
+    nextDueAt: null,
+    ...overrides,
+  };
+}
+
+export function makeReviewSnapshot(word: string, reviewId = 1): ReviewSnapshot {
+  return { word: { word, previous: null }, reviewId };
 }
 
 export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}): WordEntry {

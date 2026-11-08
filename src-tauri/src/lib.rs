@@ -67,6 +67,7 @@ pub fn run() {
             commands::restore_word,
             commands::get_review_queue,
             commands::review_word,
+            commands::undo_review,
             commands::import_known_words,
             commands::list_words,
             commands::get_word_counts,

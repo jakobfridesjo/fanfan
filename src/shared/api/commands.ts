@@ -83,14 +83,25 @@ export interface SpokenPhrase {
   text: string;
 }
 
+export interface ReviewCard extends StudyCard {
+  /** How far each rating, again to easy, would put off the next review, in milliseconds. */
+  intervals: [number, number, number, number];
+}
+
 export interface ReviewQueue {
-  cards: StudyCard[];
+  cards: ReviewCard[];
   dueCount: number;
   /** Unix milliseconds of the earliest learning card, due or not. */
   nextDueAt: number | null;
 }
 
 export type WordStatus = "known" | "learning";
+
+/** A review and the word's state before it; pass it back to `undoReview` to take it back. */
+export interface ReviewSnapshot {
+  word: WordSnapshot;
+  reviewId: number;
+}
 
 /** A word's state before a change; pass it back to `restoreWord` to undo. */
 export interface WordSnapshot {
@@ -222,7 +233,10 @@ export const commands = {
   getReviewQueue: (limit: number, script: Script) =>
     invoke<ReviewQueue>("get_review_queue", { limit, script }),
 
-  reviewWord: (word: string, rating: Rating) => invoke<null>("review_word", { word, rating }),
+  reviewWord: (word: string, rating: Rating) =>
+    invoke<ReviewSnapshot>("review_word", { word, rating }),
+
+  undoReview: (snapshot: ReviewSnapshot) => invoke<null>("undo_review", { snapshot }),
 
   importKnownWords: (text: string) => invoke<KnownWordsImport>("import_known_words", { text }),
 
@@ -257,6 +271,7 @@ export type CommandName =
   | "restore_word"
   | "get_review_queue"
   | "review_word"
+  | "undo_review"
   | "import_known_words"
   | "list_words"
   | "get_word_counts"

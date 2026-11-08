@@ -25,7 +25,6 @@ export const zh: Messages = {
   word: {
     playPronunciation: "播放发音",
     playFailed: (word) => `无法播放“${word}”`,
-    showMeaning: "显示释义",
     noEntry: "词典中没有这个词",
     name: "专名",
     countInBook: (count) => `在本书中出现 ${formatInteger(count)} 次`,
@@ -136,6 +135,9 @@ export const zh: Messages = {
     goToLibrary: "前往书库",
     loadFailed: "无法加载复习内容",
     saveFailed: "无法保存复习结果",
+    undo: "撤销上一个评分",
+    undoTooltip: "撤销（退格键）",
+    undoFailed: "无法撤销",
   },
   knownWords: {
     title: "已认识的词",

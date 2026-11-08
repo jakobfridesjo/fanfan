@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
-import { commandErrorMessage, commands, type Rating } from "@/shared/api/commands.ts";
+import {
+  commandErrorMessage,
+  commands,
+  type Rating,
+  type ReviewSnapshot,
+} from "@/shared/api/commands.ts";
 import { invalidateStudyData, reviewQueueQuery } from "@/shared/api/queries.ts";
 import { scriptAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -26,6 +31,7 @@ export function useReviewManager() {
 
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const [revealed, setRevealed] = useState(false);
+  const [undoStack, setUndoStack] = useState<ReviewSnapshot[]>([]);
 
   const reviewMutation = useMutation({
     mutationFn: ({ word, rating }: { word: string; rating: Rating }) =>
@@ -34,6 +40,7 @@ export function useReviewManager() {
       setPending((words) => new Set(words).add(word));
       setRevealed(false);
     },
+    onSuccess: (snapshot) => setUndoStack((stack) => [...stack, snapshot]),
     onError: (error) => reviewToast.error(commandErrorMessage(error, m.review.saveFailed)),
     onSettled: async (_result, _error, { word }) => {
       await invalidateStudyData(queryClient);
@@ -45,6 +52,20 @@ export function useReviewManager() {
     },
   });
 
+  // The undone word was the most overdue, so the refetched queue shows it first again.
+  const undoMutation = useMutation({
+    mutationFn: commands.undoReview,
+    onMutate: (snapshot) => {
+      setUndoStack((stack) => stack.filter((entry) => entry !== snapshot));
+      setRevealed(false);
+    },
+    onError: (error, snapshot) => {
+      setUndoStack((stack) => [...stack, snapshot]);
+      reviewToast.error(commandErrorMessage(error, m.review.undoFailed));
+    },
+    onSettled: () => invalidateStudyData(queryClient),
+  });
+
   const cards = (queue.data?.cards ?? []).filter((card) => !pending.has(card.word));
   const current = cards.at(0) ?? null;
 
@@ -53,6 +74,12 @@ export function useReviewManager() {
   };
 
   const reveal = () => setRevealed(true);
+
+  const lastReview = undoStack.at(-1) ?? null;
+  const undo = () => {
+    if (!lastReview || undoMutation.isPending) return;
+    undoMutation.mutate(lastReview);
+  };
 
   const swipe = (direction: SwipeDirection) => rate(SWIPE_RATING[direction]);
 
@@ -65,6 +92,8 @@ export function useReviewManager() {
     "4": () => rate(4),
     ArrowLeft: () => rate(1),
     ArrowRight: () => rate(3),
+    Backspace: undo,
+    z: undo,
   });
 
   return {
@@ -78,5 +107,7 @@ export function useReviewManager() {
     reveal,
     rate,
     swipe,
+    canUndo: lastReview !== null && !undoMutation.isPending,
+    undo,
   };
 }

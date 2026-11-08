@@ -2,6 +2,7 @@ import { LoaderCircle, Volume2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StudyCard } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
+import { cn } from "@/shared/lib/class-names.ts";
 import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
@@ -11,13 +12,12 @@ const MAX_DEFINITIONS = 4;
 
 interface WordCardProps {
   card: StudyCard;
-  /** Hides pinyin and meanings until `onReveal`, for recall practice. */
+  /** Hides pinyin and meanings for recall practice, keeping their space so revealing them moves nothing. */
   hidden?: boolean;
-  onReveal?: () => void;
   footer?: ReactNode;
 }
 
-export function WordCard({ card, hidden = false, onReveal, footer }: WordCardProps) {
+export function WordCard({ card, hidden = false, footer }: WordCardProps) {
   const m = useMessages();
   return (
     <Card className="min-h-96 w-full justify-between">
@@ -40,18 +40,9 @@ export function WordCard({ card, hidden = false, onReveal, footer }: WordCardPro
           </p>
         )}
 
-        {hidden ? (
-          <button
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={onReveal}
-            className="rounded-md px-3 py-2 text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            {m.word.showMeaning}
-          </button>
-        ) : (
+        <div inert={hidden} className={cn("flex w-full justify-center", hidden && "invisible")}>
           <Readings card={card} />
-        )}
+        </div>
       </CardContent>
       {footer && <div className="px-(--card-spacing)">{footer}</div>}
     </Card>

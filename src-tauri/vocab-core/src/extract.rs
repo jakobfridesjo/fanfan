@@ -6,7 +6,7 @@ use epub::doc::{EpubDoc, NavPoint};
 use scraper::{ElementRef, Html, Node};
 
 use crate::error::{Error, Result};
-use crate::text::{contains_han, decode, normalize};
+use crate::text::{contains_han, decode, is_han, normalize};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Extracted {
@@ -330,6 +330,16 @@ fn reflow(text: &str) -> String {
                 && trimmed.chars().count() < full_width)
     };
 
+    let lines: Vec<String> = lines
+        .iter()
+        .map(|line| {
+            if is_chapter_heading(line) {
+                (*line).to_owned()
+            } else {
+                close_spaced_han(line)
+            }
+        })
+        .collect();
     let mut text = String::new();
     for (index, line) in lines.iter().enumerate() {
         let Some(next) = lines.get(index + 1) else {
@@ -349,6 +359,24 @@ fn reflow(text: &str) -> String {
         }
     }
     text
+}
+
+/// PDF text extraction can put a space between two glyphs of a word (告 诉);
+/// Chinese never spaces Han characters apart, so such spaces are dropped.
+fn close_spaced_han(line: &str) -> String {
+    let chars: Vec<char> = line.chars().collect();
+    let mut closed = String::with_capacity(line.len());
+    for (index, &c) in chars.iter().enumerate() {
+        if c == ' ' {
+            let before = chars[..index].iter().rev().find(|&&c| c != ' ');
+            let after = chars[index + 1..].iter().find(|&&c| c != ' ');
+            if before.is_some_and(|&c| is_han(c)) && after.is_some_and(|&c| is_han(c)) {
+                continue;
+            }
+        }
+        closed.push(c);
+    }
+    closed
 }
 
 /// Sentence ends, with the closing quotes and brackets that can follow them.
@@ -631,7 +659,7 @@ mod tests {
             "子，熄灭了寻友的篝火。",
             "　　自以为历尽沧桑，其实刚刚蹒跚学步，",
             "还远没有竞争的资格。他说的是 PDF",
-            "file 吗？对。",
+            "file 吗？请你也告 诉我。",
             "12",
             "真正的星际战争没人见过，也不可能见到，因",
             "为战争的方式和武器已经远远超出人类的想",
@@ -643,7 +671,7 @@ mod tests {
             [
                 "第一章 开始",
                 "与三体文明的战争使人类第一次看到了宇宙暗黑的真相，地球文明像一个恐惧的孩子，熄灭了寻友的篝火。",
-                "　　自以为历尽沧桑，其实刚刚蹒跚学步，还远没有竞争的资格。他说的是 PDF file 吗？对。",
+                "　　自以为历尽沧桑，其实刚刚蹒跚学步，还远没有竞争的资格。他说的是 PDF file 吗？请你也告诉我。",
                 "12",
                 "真正的星际战争没人见过，也不可能见到，因为战争的方式和武器已经远远超出人类的想象，目睹战场之时，就是灭亡之时。",
             ]

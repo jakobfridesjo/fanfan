@@ -2,7 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { render as renderInPage } from "vitest-browser-react";
 import { page } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { makeCard, silentOpus } from "@/shared/test/fixtures.ts";
 import { createTestQueryClient } from "@/shared/test/query.tsx";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -50,13 +50,10 @@ describe("WordCard", () => {
     await expect.element(page.getByText(/in this book/)).not.toBeInTheDocument();
   });
 
-  it("hides the meaning for recall until asked", async () => {
-    const onReveal = vi.fn();
-    await render(<WordCard card={makeCard("学习")} hidden onReveal={onReveal} />);
+  it("hides the meaning for recall", async () => {
+    await render(<WordCard card={makeCard("学习")} hidden />);
 
-    await expect.element(page.getByText("学习-pinyin")).not.toBeInTheDocument();
-    await page.getByRole("button", { name: "Show meaning" }).click();
-    expect(onReveal).toHaveBeenCalledOnce();
+    await expect.element(page.getByText("学习-pinyin")).not.toBeVisible();
   });
 
   it("speaks the word, synthesizing it only once", async () => {

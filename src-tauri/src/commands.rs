@@ -13,7 +13,9 @@ use vocab_core::service::{
 };
 use vocab_core::speech::{SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
-use vocab_core::store::{DocumentSummary, Folder, Store, WordCounts, WordSnapshot, WordStatus};
+use vocab_core::store::{
+    DocumentSummary, Folder, ReviewSnapshot, Store, WordCounts, WordSnapshot, WordStatus,
+};
 use vocab_core::text::parse_word_list;
 
 use crate::picked_file::PickedFile;
@@ -349,10 +351,21 @@ pub async fn get_review_queue(
 }
 
 #[tauri::command]
-pub async fn review_word(app: AppHandle, word: String, rating: u8) -> CommandResult<()> {
+pub async fn review_word(
+    app: AppHandle,
+    word: String,
+    rating: u8,
+) -> CommandResult<ReviewSnapshot> {
     blocking(app, move |state| {
-        state.writer()?.review(&word, rating, Utc::now())?;
-        Ok(())
+        Ok(state.writer()?.review(&word, rating, Utc::now())?.snapshot)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn undo_review(app: AppHandle, snapshot: ReviewSnapshot) -> CommandResult<()> {
+    blocking(app, move |state| {
+        Ok(state.writer()?.undo_review(&snapshot)?)
     })
     .await
 }

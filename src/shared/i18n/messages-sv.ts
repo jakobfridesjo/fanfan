@@ -27,7 +27,6 @@ export const sv: Messages = {
   word: {
     playPronunciation: "Spela upp uttal",
     playFailed: (word) => `Kunde inte spela upp ”${word}”`,
-    showMeaning: "Visa betydelse",
     noEntry: "Finns inte i ordboken",
     name: "Namn",
     countInBook: (count) =>
@@ -142,6 +141,9 @@ export const sv: Messages = {
     goToLibrary: "Gå till biblioteket",
     loadFailed: "Kunde inte ladda dina repetitioner",
     saveFailed: "Kunde inte spara repetitionen",
+    undo: "Ångra senaste betyget",
+    undoTooltip: "Ångra (Backsteg)",
+    undoFailed: "Kunde inte ångra",
   },
   knownWords: {
     title: "Kända ord",

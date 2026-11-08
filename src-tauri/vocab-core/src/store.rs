@@ -157,6 +157,8 @@ pub struct Folder {
 pub struct DueWord {
     pub word: String,
     pub example: Option<String>,
+    /// How far each rating, again to easy, would put off the next review, in milliseconds.
+    pub intervals: [i64; 4],
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -164,6 +166,55 @@ pub struct DocumentWord {
     pub word: String,
     pub count: u32,
     pub example: String,
+}
+
+/// A review and the word's row before it, so [`Store::undo_review`] can take it back.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewSnapshot {
+    pub word: WordSnapshot,
+    pub review_id: i64,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Reviewed {
+    pub due_at: i64,
+    pub snapshot: ReviewSnapshot,
+}
+
+const RATINGS: [Rating; 4] = [Rating::Again, Rating::Hard, Rating::Good, Rating::Easy];
+
+/// A stored FSRS card, or a new one due now for a word that has never been scheduled.
+fn fsrs_card(json: Option<&str>, now: DateTime<Utc>) -> Result<Card> {
+    Ok(match json {
+        Some(json) => serde_json::from_str(json)?,
+        None => Card {
+            due: now,
+            ..Card::new()
+        },
+    })
+}
+
+fn restore_row(connection: &Connection, snapshot: &WordSnapshot) -> Result<()> {
+    match &snapshot.previous {
+        None => {
+            connection.execute("DELETE FROM words WHERE word = ?1", [&snapshot.word])?;
+        }
+        Some(stored) => {
+            connection.execute(
+                "INSERT OR REPLACE INTO words (word, status, card, due_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    snapshot.word,
+                    stored.status.as_str(),
+                    stored.card,
+                    stored.due_at,
+                    stored.updated_at
+                ],
+            )?;
+        }
+    }
+    Ok(())
 }
 
 /// A word's row before a change, so the change can be undone.
@@ -590,25 +641,15 @@ impl Store {
     }
 
     pub fn restore(&mut self, snapshot: &WordSnapshot) -> Result<()> {
-        match &snapshot.previous {
-            None => {
-                self.connection
-                    .execute("DELETE FROM words WHERE word = ?1", [&snapshot.word])?;
-            }
-            Some(stored) => {
-                self.connection.execute(
-                    "INSERT OR REPLACE INTO words (word, status, card, due_at, updated_at)
-                     VALUES (?1, ?2, ?3, ?4, ?5)",
-                    params![
-                        snapshot.word,
-                        stored.status.as_str(),
-                        stored.card,
-                        stored.due_at,
-                        stored.updated_at
-                    ],
-                )?;
-            }
-        }
+        restore_row(&self.connection, snapshot)
+    }
+
+    /// Takes back a review: the word is scheduled as before and the review leaves the history.
+    pub fn undo_review(&mut self, snapshot: &ReviewSnapshot) -> Result<()> {
+        let transaction = self.connection.transaction()?;
+        restore_row(&transaction, &snapshot.word)?;
+        transaction.execute("DELETE FROM reviews WHERE id = ?1", [snapshot.review_id])?;
+        transaction.commit()?;
         Ok(())
     }
 
@@ -616,19 +657,31 @@ impl Store {
     pub fn due_words(&self, now: DateTime<Utc>, limit: u32) -> Result<Vec<DueWord>> {
         let mut statement = self.connection.prepare(
             "SELECT w.word, (SELECT dw.example FROM document_words dw
-                             WHERE dw.word = w.word ORDER BY dw.document_id LIMIT 1)
+                             WHERE dw.word = w.word ORDER BY dw.document_id LIMIT 1), w.card
              FROM words w WHERE w.status = 'learning' AND w.due_at <= ?1
              ORDER BY w.due_at, w.word LIMIT ?2",
         )?;
-        let words = statement
+        let rows = statement
             .query_map(params![now.timestamp_millis(), limit], |row| {
-                Ok(DueWord {
-                    word: row.get(0)?,
-                    example: row.get(1)?,
-                })
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
             })?
-            .collect::<rusqlite::Result<_>>()?;
-        Ok(words)
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+        let fsrs = FSRS::default();
+        rows.into_iter()
+            .map(|(word, example, card)| {
+                let outcomes = fsrs.repeat(fsrs_card(card.as_deref(), now)?, now);
+                Ok(DueWord {
+                    word,
+                    example,
+                    intervals: RATINGS
+                        .map(|rating| (outcomes[&rating].card.due - now).num_milliseconds()),
+                })
+            })
+            .collect()
     }
 
     pub fn next_due_at(&self) -> Result<Option<i64>> {
@@ -640,7 +693,7 @@ impl Store {
     }
 
     /// Schedules a learning word's next review. `rating` is 1 (again) to 4 (easy).
-    pub fn review(&mut self, word: &str, rating: u8, now: DateTime<Utc>) -> Result<i64> {
+    pub fn review(&mut self, word: &str, rating: u8, now: DateTime<Utc>) -> Result<Reviewed> {
         let rating = match rating {
             1 => Rating::Again,
             2 => Rating::Hard,
@@ -652,13 +705,7 @@ impl Store {
             .stored_word(word)?
             .filter(|stored| stored.status == WordStatus::Learning)
             .ok_or_else(|| Error::NotLearning(word.to_owned()))?;
-        let card: Card = match &stored.card {
-            Some(json) => serde_json::from_str(json)?,
-            None => Card {
-                due: now,
-                ..Card::new()
-            },
-        };
+        let card = fsrs_card(stored.card.as_deref(), now)?;
         let next = FSRS::default().next(card, now, rating).card;
         let due_at = next.due.timestamp_millis();
 
@@ -676,8 +723,18 @@ impl Store {
             "INSERT INTO reviews (word, rating, reviewed_at) VALUES (?1, ?2, ?3)",
             params![word, rating as u8, now.timestamp_millis()],
         )?;
+        let review_id = transaction.last_insert_rowid();
         transaction.commit()?;
-        Ok(due_at)
+        Ok(Reviewed {
+            due_at,
+            snapshot: ReviewSnapshot {
+                word: WordSnapshot {
+                    word: word.to_owned(),
+                    previous: Some(stored),
+                },
+                review_id,
+            },
+        })
     }
 
     /// Every known or learning word, most recently changed first.
@@ -717,7 +774,6 @@ impl Store {
         Ok(added)
     }
 
-    /// Every review as (reviewed_at in ms, rating), oldest first.
     /// Each review's time and rating from `from` (Unix milliseconds) on, oldest first.
     pub fn reviews_since(&self, from: i64) -> Result<Vec<(i64, u8)>> {
         let mut statement = self.connection.prepare(
@@ -1142,8 +1198,8 @@ mod tests {
             .unwrap();
         assert_eq!(due(&store, now()), ["中文", "学习"]);
 
-        let again = store.review("中文", 1, now()).unwrap();
-        let good = store.review("学习", 3, now()).unwrap();
+        let again = store.review("中文", 1, now()).unwrap().due_at;
+        let good = store.review("学习", 3, now()).unwrap().due_at;
         assert!(again > now().timestamp_millis());
         assert!(good > again);
         assert!(due(&store, now()).is_empty());
@@ -1158,6 +1214,24 @@ mod tests {
                 due: 1
             }
         );
+    }
+
+    #[test]
+    fn previews_each_rating_and_undoes_a_review() {
+        let (mut store, _) = store_with_document();
+        store
+            .set_status("中文", WordStatus::Learning, now())
+            .unwrap();
+        let [again, hard, good, easy] = store.due_words(now(), 10).unwrap()[0].intervals;
+        assert!(0 < again && again <= hard && hard <= good && good < easy);
+
+        let reviewed = store.review("中文", 3, now()).unwrap();
+        assert_eq!(reviewed.due_at, now().timestamp_millis() + good);
+        assert!(due(&store, now()).is_empty());
+
+        store.undo_review(&reviewed.snapshot).unwrap();
+        assert_eq!(due(&store, now()), ["中文"]);
+        assert!(store.reviews_since(0).unwrap().is_empty());
     }
 
     #[test]

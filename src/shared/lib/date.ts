@@ -36,6 +36,24 @@ export function formatShortDateTime(value: string): string {
   return date ? format(date, DATE_TIME_OPTIONS) : value;
 }
 
+const DURATION_UNITS = [
+  { unit: "year", ms: 365 * 24 * 3_600_000 },
+  { unit: "month", ms: 30 * 24 * 3_600_000 },
+  { unit: "day", ms: 24 * 3_600_000 },
+  { unit: "hour", ms: 3_600_000 },
+  { unit: "minute", ms: 60_000 },
+] as const;
+
+/** A duration in its largest whole unit, such as "10 min" or "3 days"; at least a minute. */
+export function formatDuration(ms: number): string {
+  const { unit, ms: unitMs } =
+    DURATION_UNITS.find((candidate) => ms >= candidate.ms) ?? DURATION_UNITS[4];
+  const amount = Math.max(Math.round(ms / unitMs), 1);
+  return new Intl.NumberFormat(appLocale(), { style: "unit", unit, unitDisplay: "short" }).format(
+    amount
+  );
+}
+
 export function formatLocalTime(date: Date): string {
   return format(date, TIME_OPTIONS);
 }
