@@ -227,52 +227,14 @@
   }
 }
 
-.firefly {
+/* Fireflies: the scene's colours, read by its WebGL canvas. */
+.fireflies {
   --firefly-color: oklch(0.78 0.2 128);
-  position: absolute;
-  width: var(--firefly-size);
-  height: var(--firefly-size);
-  border-radius: 9999px;
-  background: radial-gradient(circle, oklch(0.98 0.08 120), var(--firefly-color));
-  box-shadow:
-    0 0 calc(var(--firefly-size) * 2.5) calc(var(--firefly-size) * 0.8) var(--firefly-color),
-    0 0 calc(var(--firefly-size) * 8) calc(var(--firefly-size) * 2)
-      color-mix(in oklch, var(--firefly-color) 45%, transparent);
-  filter: blur(0.5px);
-  animation-name: firefly-drift, firefly-glow;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-  will-change: transform, opacity;
+  --firefly-core: oklch(0.98 0.08 120);
 }
 
-.dark .firefly {
+.dark .fireflies {
   --firefly-color: oklch(0.9 0.21 125);
-}
-
-@keyframes firefly-drift {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  33% {
-    transform: translate3d(var(--firefly-x1), var(--firefly-y1), 0);
-  }
-  66% {
-    transform: translate3d(var(--firefly-x2), var(--firefly-y2), 0);
-  }
-  100% {
-    transform: translate3d(var(--firefly-x3), var(--firefly-y3), 0);
-  }
-}
-
-@keyframes firefly-glow {
-  0%,
-  30% {
-    opacity: 0.12;
-  }
-  100% {
-    opacity: 1;
-  }
 }
 
 /* Cherry: a blush sky in daylight, a plum dusk in the dark, warmer where the blossom glows. */
@@ -280,6 +242,8 @@
   --cherry-top: oklch(0.95 0.025 350);
   --cherry-bottom: oklch(0.92 0.04 10);
   --cherry-glow: oklch(0.9 0.07 355 / 0.5);
+  --petal-light: oklch(0.93 0.045 355 / 0.75);
+  --petal-deep: oklch(0.8 0.1 355 / 0.75);
   background:
     radial-gradient(ellipse 50% 40% at 85% 15%, var(--cherry-glow), transparent 70%),
     radial-gradient(ellipse 60% 35% at 10% 90%, var(--cherry-glow), transparent 70%),
@@ -290,43 +254,8 @@
   --cherry-top: oklch(0.19 0.035 330);
   --cherry-bottom: oklch(0.25 0.05 355);
   --cherry-glow: oklch(0.55 0.1 355 / 0.15);
-}
-
-.petal-fall {
-  position: absolute;
-  top: -5%;
-  animation: petal-fall linear infinite;
-  will-change: transform;
-}
-
-.petal {
-  display: block;
-  width: var(--petal-size);
-  height: calc(var(--petal-size) * 0.7);
-  border-radius: 100% 0 100% 0;
-  background: linear-gradient(135deg, oklch(0.93 0.045 355), oklch(0.8 0.1 355));
-  opacity: 0.75;
-  animation: petal-sway ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-.dark .petal {
-  opacity: 0.4;
-}
-
-@keyframes petal-fall {
-  to {
-    transform: translateY(110vh);
-  }
-}
-
-@keyframes petal-sway {
-  from {
-    transform: translateX(calc(var(--petal-sway) * -1)) rotate(0deg);
-  }
-  to {
-    transform: translateX(var(--petal-sway)) rotate(var(--petal-spin));
-  }
+  --petal-light: oklch(0.93 0.045 355 / 0.4);
+  --petal-deep: oklch(0.8 0.1 355 / 0.4);
 }
 
 /* Mist: an overcast grey with paler banks of fog rolling across it. */
@@ -341,25 +270,6 @@
   --mist-top: oklch(0.19 0.004 250);
   --mist-bottom: oklch(0.25 0.005 250);
   --mist-fog: oklch(0.6 0.005 250 / 0.22);
-}
-
-.mist {
-  position: absolute;
-  width: var(--mist-size);
-  height: var(--mist-size);
-  border-radius: 9999px;
-  background: radial-gradient(circle, var(--mist-fog), transparent 65%);
-  animation: mist-drift ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-@keyframes mist-drift {
-  from {
-    transform: translate3d(-6vmin, -4vmin, 0) scale(1);
-  }
-  to {
-    transform: translate3d(8vmin, 6vmin, 0) scale(1.15);
-  }
 }
 
 /*
@@ -378,7 +288,6 @@
 
   [data-slot="sidebar-inset"] {
     background: var(--shell-card);
-    backdrop-filter: blur(2px);
     box-shadow: 0 0 0 1px var(--sidebar-border);
   }
 
@@ -430,59 +339,6 @@
   --sea-moon: oklch(1 0 0 / 0.4);
   --sea-halo: oklch(0.68 0.12 220);
   --sea-core: oklch(0.97 0.03 210);
-}
-
-.sea-rise {
-  position: absolute;
-  top: 105%;
-  animation: sea-rise linear infinite;
-  will-change: transform;
-}
-
-.sea-light {
-  display: block;
-  width: var(--sea-size);
-  height: var(--sea-size);
-  border-radius: 9999px;
-  background: radial-gradient(circle, var(--sea-core) 30%, var(--sea-halo));
-  box-shadow:
-    0 0 calc(var(--sea-size) * 1.5) calc(var(--sea-size) * 0.4) var(--sea-halo),
-    0 0 calc(var(--sea-size) * 5) calc(var(--sea-size) * 1.2)
-      color-mix(in oklch, var(--sea-halo) 30%, transparent);
-  filter: blur(var(--sea-blur));
-  animation-name: sea-wobble, sea-flicker;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  animation-direction: alternate;
-  will-change: transform, opacity;
-}
-
-.dark .sea > * {
-  mix-blend-mode: screen;
-}
-
-@keyframes sea-rise {
-  to {
-    transform: translateY(-120vh);
-  }
-}
-
-@keyframes sea-wobble {
-  from {
-    transform: translate3d(calc(var(--sea-wobble) * -1), 0, 0);
-  }
-  to {
-    transform: translate3d(var(--sea-wobble), 0, 0);
-  }
-}
-
-@keyframes sea-flicker {
-  from {
-    opacity: calc(var(--sea-peak) * 0.4);
-  }
-  to {
-    opacity: var(--sea-peak);
-  }
 }
 
 /* TanStack Charts: the SVG is the tab stop and its ChartCard paints the focus ring. */

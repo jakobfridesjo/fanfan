@@ -77,15 +77,15 @@ describe("routes", () => {
         ]),
     });
     const { container, router } = await renderRoute("/library");
-    expect(container.querySelector(".firefly")).not.toBeNull();
+    expect(container.querySelector(".fireflies canvas")).not.toBeNull();
 
     await screen.getByRole("button", { name: "Settings" }).click();
     await screen.getByRole("menuitem", { name: "All settings" }).click();
     expect(router.state.location.pathname).toBe("/settings");
     await screen.getByRole("button", { name: "Traditional" }).click();
     await screen.getByRole("button", { name: "Cherry" }).click();
-    await expect.poll(() => container.querySelector(".petal")).not.toBeNull();
-    expect(container.querySelector(".firefly")).toBeNull();
+    await expect.poll(() => container.querySelector(".cherry canvas")).not.toBeNull();
+    expect(container.querySelector(".fireflies")).toBeNull();
 
     await screen.getByRole("link", { name: "Review" }).click();
     await expect.element(screen.getByText("學習", { exact: true }).first()).toBeVisible();
