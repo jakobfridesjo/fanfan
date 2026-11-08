@@ -1,117 +1,221 @@
-import { useRef } from "react";
-import { FileText } from "lucide-react";
-import type { WordCounts } from "@/shared/api/commands.ts";
+import { useMemo, useRef } from "react";
+import { BookCheck, GraduationCap, LoaderCircle, Upload } from "lucide-react";
+import type { WordEntry, WordStatus } from "@/shared/api/commands.ts";
+import { SpeakButton } from "@/entities/word/ui/WordCard.tsx";
+import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
+import { formatShortDate } from "@/shared/lib/date.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
+import { type DataTableColumnDef, useDataTable } from "@/shared/lib/table.ts";
+import { DataTableFacetedFilter } from "@/shared/ui/data-table/DataTableFacetedFilter.tsx";
+import { DataTablePanel } from "@/shared/ui/data-table/DataTablePanel.tsx";
+import { DebouncedSearchInput } from "@/shared/ui/DebouncedSearchInput.tsx";
+import { EmptyCell } from "@/shared/ui/data-table/EmptyCell.tsx";
+import { RowActionButton, RowActions } from "@/shared/ui/data-table/RowActions.tsx";
+import { UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { StatusBadge } from "@/shared/ui/StatusBadge.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/ui/shadcn/card.tsx";
-import { FieldGroup } from "@/shared/ui/shadcn/field.tsx";
 import { Spinner } from "@/shared/ui/shadcn/spinner.tsx";
+import { matchesWordSearch } from "@/pages/known-words/model/word-search.ts";
 import { useKnownWordsManager } from "@/pages/known-words/model/use-known-words-manager.ts";
 
 function KnownWordsManager() {
   const m = useMessages();
-  const { counts, form, canSubmit, pending, loadFile } = useKnownWordsManager();
+  const manager = useKnownWordsManager();
   const fileInput = useRef<HTMLInputElement>(null);
+  const { setStatus, changingWord } = manager;
+
+  const columns = useMemo(
+    () => wordColumns(m, setStatus, changingWord),
+    [m, setStatus, changingWord]
+  );
+  const table = useDataTable({
+    data: manager.words,
+    columns,
+    ...manager.viewState,
+    getRowId: (entry) => entry.word,
+    globalFilterFn: (row, _columnId, query) => matchesWordSearch(row.original, String(query)),
+  });
 
   return (
     <>
-      <PageHeader title={m.knownWords.title} />
+      <PageHeader
+        title={m.knownWords.title}
+        center={
+          <>
+            <DebouncedSearchInput
+              aria-label={m.knownWords.search}
+              placeholder={m.knownWords.search}
+              value={typeof table.state.globalFilter === "string" ? table.state.globalFilter : ""}
+              onValueChange={(value) => table.setGlobalFilter(value)}
+              className="w-full sm:w-72"
+            />
+            <DataTableFacetedFilter
+              column={table.getColumn("status")}
+              title={m.knownWords.status}
+              options={[
+                {
+                  value: "known",
+                  label: `${m.knownWords.known} (${formatInteger(manager.counts.known)})`,
+                },
+                {
+                  value: "learning",
+                  label: `${m.knownWords.learning} (${formatInteger(manager.counts.learning)})`,
+                },
+              ]}
+            />
+          </>
+        }
+      >
+        <Button
+          type="button"
+          title={m.knownWords.loadFileTooltip}
+          onClick={() => fileInput.current?.click()}
+          disabled={manager.importing}
+        >
+          {manager.importing ? (
+            <Spinner data-icon="inline-start" />
+          ) : (
+            <Upload data-icon="inline-start" />
+          )}
+          {m.knownWords.loadFile}
+        </Button>
+      </PageHeader>
+      {/* Outside the header, which moves its actions into a menu on narrow screens. */}
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".txt,.csv,.tsv,text/plain"
+        className="hidden"
+        aria-label={m.knownWords.file}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) manager.importFile(file);
+          event.target.value = "";
+        }}
+      />
 
-      <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1">
-        <WordCountCards counts={counts} />
-
-        <Card className="shrink-0">
-          <CardHeader>
-            <CardTitle>{m.knownWords.addTitle}</CardTitle>
-            <CardDescription>{m.knownWords.addDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              className="flex flex-col gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void form.handleSubmit();
-              }}
-            >
-              <FieldGroup>
-                <form.Field name="text">
-                  {(field) => (
-                    <field.TextareaField
-                      id="known-words-text"
-                      label={m.knownWords.words}
-                      lang="zh"
-                      rows={10}
-                      className="min-h-48"
-                      placeholder={"你好\n学习\n中文"}
-                      disabled={pending}
-                    />
-                  )}
-                </form.Field>
-              </FieldGroup>
-              <div className="flex flex-wrap justify-end gap-2">
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept=".txt,.csv,.tsv,text/plain"
-                  className="hidden"
-                  aria-label={m.knownWords.file}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void loadFile(file);
-                    event.target.value = "";
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => fileInput.current?.click()}
-                  disabled={pending}
-                >
-                  <FileText data-icon="inline-start" />
-                  {m.knownWords.loadFile}
-                </Button>
-                <Button type="submit" disabled={!canSubmit || pending}>
-                  {pending && <Spinner data-icon="inline-start" />}
-                  {m.knownWords.markKnown}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+      <DataTablePanel
+        table={table}
+        surface="page"
+        isLoading={manager.isLoading}
+        skeletonRowCount={8}
+        emptyStateMessage={manager.words.length === 0 ? m.knownWords.empty : m.knownWords.noMatches}
+        fallback={
+          manager.loadFailed ? (
+            <UnavailableState description={m.knownWords.loadFailed} onRetry={manager.retry} />
+          ) : undefined
+        }
+      />
     </>
   );
 }
 
-function WordCountCards({ counts }: { counts: WordCounts | undefined }) {
-  const m = useMessages();
-  const items = [
-    { label: m.knownWords.known, value: counts?.known },
-    { label: m.knownWords.learning, value: counts?.learning },
-    { label: m.knownWords.due, value: counts?.due },
+function wordColumns(
+  m: Messages,
+  setStatus: (change: { entry: WordEntry; status: WordStatus }) => void,
+  changingWord: string | null
+): DataTableColumnDef<WordEntry>[] {
+  return [
+    {
+      id: "word",
+      accessorFn: (entry) => entry.displayWord,
+      header: m.knownWords.word,
+      meta: { primary: true },
+      cell: ({ row }) => (
+        <span lang="zh" className="text-lg">
+          {row.original.displayWord}
+        </span>
+      ),
+    },
+    {
+      id: "pinyin",
+      accessorFn: (entry) => entry.readings[0]?.pinyin ?? "",
+      header: m.knownWords.pinyin,
+      cell: ({ row }) => row.original.readings[0]?.pinyin ?? <EmptyCell />,
+    },
+    {
+      id: "meaning",
+      accessorFn: (entry) => entry.readings[0]?.definitions.join("; ") ?? "",
+      header: m.knownWords.meaning,
+      enableSorting: false,
+      meta: { mobileFullWidth: true },
+      cell: ({ row }) => {
+        const meaning = row.original.readings[0]?.definitions.join("; ");
+        return meaning ? (
+          <span className="line-clamp-2 max-w-md whitespace-normal" title={meaning}>
+            {meaning}
+          </span>
+        ) : (
+          <EmptyCell />
+        );
+      },
+    },
+    {
+      accessorKey: "status",
+      header: m.knownWords.status,
+      filterFn: "arrIncludes",
+      cell: ({ row }) =>
+        row.original.status === "known" ? (
+          <StatusBadge tone="success">{m.knownWords.known}</StatusBadge>
+        ) : (
+          <StatusBadge tone="warning">{m.knownWords.learning}</StatusBadge>
+        ),
+    },
+    {
+      id: "nextReview",
+      accessorFn: (entry) => entry.dueAt ?? Number.MAX_SAFE_INTEGER,
+      header: m.knownWords.nextReview,
+      cell: ({ row }) => {
+        const { dueAt } = row.original;
+        if (dueAt === null) return <EmptyCell />;
+        return dueAt <= Date.now()
+          ? m.knownWords.dueNow
+          : formatShortDate(new Date(dueAt).toISOString());
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: m.knownWords.changed,
+      cell: ({ row }) => formatShortDate(new Date(row.original.updatedAt).toISOString()),
+    },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      meta: { actions: true },
+      cell: ({ row }) => {
+        const entry = row.original;
+        const busy = changingWord === entry.word;
+        const busyIcon = <LoaderCircle className="animate-spin motion-reduce:animate-none" />;
+        return (
+          <RowActions>
+            <SpeakButton word={entry.word} />
+            {entry.status === "known" ? (
+              <RowActionButton
+                label={`${m.knownWords.startLearning}: ${entry.displayWord}`}
+                tooltip={m.knownWords.startLearning}
+                disabled={busy}
+                onClick={() => setStatus({ entry, status: "learning" })}
+              >
+                {busy ? busyIcon : <GraduationCap />}
+              </RowActionButton>
+            ) : (
+              <RowActionButton
+                label={`${m.knownWords.markKnown}: ${entry.displayWord}`}
+                tooltip={m.knownWords.markKnown}
+                disabled={busy}
+                onClick={() => setStatus({ entry, status: "known" })}
+              >
+                {busy ? busyIcon : <BookCheck />}
+              </RowActionButton>
+            )}
+          </RowActions>
+        );
+      },
+    },
   ];
-  return (
-    <div className="grid shrink-0 gap-4 sm:grid-cols-3">
-      {items.map(({ label, value }) => (
-        <Card key={label} size="sm">
-          <CardContent className="flex flex-col gap-1">
-            <span className="text-sm text-muted-foreground">{label}</span>
-            <span className="text-2xl font-semibold tabular-nums">
-              {value === undefined ? "–" : formatInteger(value)}
-            </span>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
 }
 
 export default KnownWordsManager;

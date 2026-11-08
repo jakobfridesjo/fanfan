@@ -17,6 +17,7 @@ export const queryKeys = {
     ["word-statuses", documentId, position] as const,
   wordCard: (word: string, script: Script) => ["word-card", word, script] as const,
   reviewQueue: (script: Script) => ["review-queue", script] as const,
+  wordList: (script: Script) => ["word-list", script] as const,
   wordCounts: ["word-counts"] as const,
   statistics: (days: number) => ["statistics", days] as const,
   speech: (text: string) => ["speech", text] as const,
@@ -76,6 +77,12 @@ export const reviewQueueQuery = (script: Script) =>
     queryFn: () => commands.getReviewQueue(CARD_BATCH, script),
     // Cards come due on their own; a minute late is soon enough.
     refetchInterval: 60_000,
+  });
+
+export const wordListQuery = (script: Script) =>
+  queryOptions({
+    queryKey: queryKeys.wordList(script),
+    queryFn: () => commands.listWords(script),
   });
 
 export const wordCountsQuery = () =>

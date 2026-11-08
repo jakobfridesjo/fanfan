@@ -44,6 +44,8 @@ interface PageHeaderProps {
   /** Renders a back arrow to the left of the title. */
   onBack?: () => void;
   backLabel?: string;
+  /** Centered between the title and the actions, e.g. a search box; below the title on phones. */
+  center?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -62,6 +64,7 @@ function BackButton({ onBack, backLabel }: { onBack: () => void; backLabel: stri
 function useActionsFit(enabled: boolean) {
   const rowRef = React.useRef<HTMLDivElement>(null);
   const titleRef = React.useRef<HTMLDivElement>(null);
+  const centerRef = React.useRef<HTMLDivElement>(null);
   const actionsRef = React.useRef<HTMLDivElement>(null);
   const actionsWidth = React.useRef(0);
   const [fits, setFits] = React.useState(true);
@@ -74,7 +77,10 @@ function useActionsFit(enabled: boolean) {
     const measure = () => {
       if (actionsRef.current) actionsWidth.current = actionsRef.current.offsetWidth;
       const gap = Number.parseFloat(getComputedStyle(row).columnGap) || 0;
-      const room = row.clientWidth - title.offsetWidth - gap;
+      const center = centerRef.current;
+      const room = center
+        ? (row.clientWidth - center.offsetWidth) / 2 - gap
+        : row.clientWidth - title.offsetWidth - gap;
       setFits(actionsWidth.current <= room);
     };
 
@@ -82,11 +88,12 @@ function useActionsFit(enabled: boolean) {
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     observer.observe(title);
+    if (centerRef.current) observer.observe(centerRef.current);
     if (actionsRef.current) observer.observe(actionsRef.current);
     return () => observer.disconnect();
   }, [enabled, fits]);
 
-  return { rowRef, titleRef, actionsRef, fits };
+  return { rowRef, titleRef, centerRef, actionsRef, fits };
 }
 
 function ActionsMenu({ children }: { children: React.ReactNode }) {
@@ -106,12 +113,13 @@ function ActionsMenu({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function PageHeader({ title, onBack, backLabel, children }: PageHeaderProps) {
+export function PageHeader({ title, onBack, backLabel, center, children }: PageHeaderProps) {
   const m = useMessages();
   const isMobile = useIsMobile();
   const hasActions = Boolean(children);
-  const { rowRef, titleRef, actionsRef, fits } = useActionsFit(hasActions && !isMobile);
+  const { rowRef, titleRef, centerRef, actionsRef, fits } = useActionsFit(hasActions && !isMobile);
   const collapsed = isMobile || !fits;
+  const centered = Boolean(center) && !isMobile;
 
   return (
     <div className="mb-1.5 flex shrink-0 flex-col gap-3 sm:min-h-10 sm:justify-center">
@@ -120,6 +128,7 @@ export function PageHeader({ title, onBack, backLabel, children }: PageHeaderPro
         style={headerColor ? ({ "--header-color": headerColor } as React.CSSProperties) : undefined}
         className={cn(
           "flex min-h-10 items-center justify-between gap-3",
+          centered && "grid grid-cols-[1fr_auto_1fr]",
           headerText &&
             "rounded-2xl bg-[color-mix(in_oklch,var(--header-color,var(--warning))_15%,transparent)] px-1.5"
         )}
@@ -130,9 +139,16 @@ export function PageHeader({ title, onBack, backLabel, children }: PageHeaderPro
           <div className="min-w-0 text-lg font-medium">{title}</div>
           {headerText && <HeaderLabel />}
         </div>
+        {centered && (
+          <div ref={centerRef} className="flex items-center gap-2">
+            {center}
+          </div>
+        )}
         {hasActions &&
           (collapsed ? (
-            <ActionsMenu>{children}</ActionsMenu>
+            <div className="flex justify-end">
+              <ActionsMenu>{children}</ActionsMenu>
+            </div>
           ) : (
             <div className="flex min-w-0 justify-end">
               <div ref={actionsRef} className="flex w-max shrink-0 items-center gap-2">
@@ -141,6 +157,7 @@ export function PageHeader({ title, onBack, backLabel, children }: PageHeaderPro
             </div>
           ))}
       </div>
+      {center && !centered && <div className="flex flex-wrap items-center gap-2">{center}</div>}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import type {
   Statistics,
   StudyCard,
   WordCounts,
+  WordEntry,
 } from "@/shared/api/commands.ts";
 
 // Builders for command results; override only the fields a test reads.
@@ -52,6 +53,20 @@ export function makeReviewQueue(
   overrides: Partial<ReviewQueue> = {}
 ): ReviewQueue {
   return { cards, dueCount: cards.length, nextDueAt: null, ...overrides };
+}
+
+export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}): WordEntry {
+  return {
+    word,
+    displayWord: word,
+    readings: [
+      { pinyin: `${word}-pinyin`, definitions: [`meaning of ${word}`], properNoun: false },
+    ],
+    status: "known",
+    dueAt: null,
+    updatedAt: Date.UTC(2026, 0, 1),
+    ...overrides,
+  };
 }
 
 export function makeWordCounts(overrides: Partial<WordCounts> = {}): WordCounts {

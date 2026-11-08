@@ -98,6 +98,21 @@ export interface WordSnapshot {
   previous: unknown;
 }
 
+/** A known or learning word, as the known words table lists it. */
+export interface WordEntry {
+  /** The word as stored: the key for status commands. */
+  word: string;
+  /** `word` in the chosen script. */
+  displayWord: string;
+  /** Most likely reading first; empty when CC-CEDICT lacks the word. */
+  readings: Reading[];
+  status: WordStatus;
+  /** Unix milliseconds a learning word is next due; null for a known word. */
+  dueAt: number | null;
+  /** Unix milliseconds of the last status change or review. */
+  updatedAt: number;
+}
+
 export interface WordCounts {
   known: number;
   learning: number;
@@ -211,6 +226,9 @@ export const commands = {
 
   importKnownWords: (text: string) => invoke<KnownWordsImport>("import_known_words", { text }),
 
+  /** Every known or learning word, most recently changed first. */
+  listWords: (script: Script) => invoke<WordEntry[]>("list_words", { script }),
+
   getWordCounts: () => invoke<WordCounts>("get_word_counts"),
 
   getStatistics: (days: number) => invoke<Statistics>("get_statistics", { days }),
@@ -240,6 +258,7 @@ export type CommandName =
   | "get_review_queue"
   | "review_word"
   | "import_known_words"
+  | "list_words"
   | "get_word_counts"
   | "get_statistics"
   | "speak";

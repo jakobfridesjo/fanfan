@@ -9,7 +9,7 @@ use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Manager};
 use vocab_core::dictionary::Script;
 use vocab_core::service::{
-    self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard,
+    self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard, WordEntry,
 };
 use vocab_core::speech::{SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
@@ -366,6 +366,20 @@ pub async fn import_known_words(app: AppHandle, text: String) -> CommandResult<K
             found: words.len() as u32,
             added,
         })
+    })
+    .await
+}
+
+/// Every known or learning word, most recently changed first.
+#[tauri::command]
+pub async fn list_words(app: AppHandle, script: Script) -> CommandResult<Vec<WordEntry>> {
+    blocking(app, move |state| {
+        let words = state.reader()?.tracked_words()?;
+        Ok(service::word_list(
+            words,
+            &state.language()?.dictionary,
+            script,
+        ))
     })
     .await
 }

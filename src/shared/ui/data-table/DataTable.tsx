@@ -31,6 +31,8 @@ interface DataTableProps<TData extends RowData> {
   getRowClassName?: (row: TData) => string;
   /** Needs `getRowCanExpand` on the table and a cell that calls `row.getToggleExpandedHandler()`. */
   renderSubRow?: (row: TData) => React.ReactNode;
+  /** On a card the header sticks, painted like the card; on the page it scrolls with the rows. */
+  surface?: "card" | "page";
 }
 
 export function DataTable<TData extends RowData>({
@@ -42,6 +44,7 @@ export function DataTable<TData extends RowData>({
   onRowClick,
   getRowClassName,
   renderSubRow,
+  surface = "card",
 }: DataTableProps<TData>) {
   const isMobile = useIsMobile();
   const useCardLayout = layout === "cards" || isMobile;
@@ -73,7 +76,9 @@ export function DataTable<TData extends RowData>({
   return (
     <div className="*:data-[slot=table-container]:overflow-visible">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-card backdrop-blur-md">
+        <TableHeader
+          className={cn(surface === "card" && "sticky top-0 z-10 bg-card backdrop-blur-md")}
+        >
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {

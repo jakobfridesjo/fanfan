@@ -68,6 +68,7 @@ pub fn run() {
             commands::get_review_queue,
             commands::review_word,
             commands::import_known_words,
+            commands::list_words,
             commands::get_word_counts,
             commands::get_statistics,
             commands::speak,

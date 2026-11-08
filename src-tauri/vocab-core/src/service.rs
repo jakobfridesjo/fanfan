@@ -10,7 +10,9 @@ use crate::analysis::{Analysis, Piece, analyze, tokenize};
 use crate::dictionary::{Dictionary, Entry, Script};
 use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
-use crate::store::{DocumentSummary, DocumentWord, DueWord, NewDocument, Store};
+use crate::store::{
+    DocumentSummary, DocumentWord, DueWord, NewDocument, Store, TrackedWord, WordStatus,
+};
 
 /// Readings shown per card; CC-CEDICT lists rare ones and names after common ones.
 const MAX_READINGS: usize = 3;
@@ -107,6 +109,20 @@ pub struct ReviewQueue {
     pub cards: Vec<StudyCard>,
     pub due_count: u32,
     pub next_due_at: Option<i64>,
+}
+
+/// A known or learning word as the word list shows it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WordEntry {
+    /// The word as the store knows it: the key for status commands.
+    pub word: String,
+    /// `word` in the script the learner reads.
+    pub display_word: String,
+    pub readings: Vec<Entry>,
+    pub status: WordStatus,
+    pub due_at: Option<i64>,
+    pub updated_at: i64,
 }
 
 /// The SHA-256 of the file's bytes, which tells a re-import of the same file apart.
@@ -345,6 +361,33 @@ pub fn word_card(
     study_card(dictionary, script, word, &example.unwrap_or_default(), None)
 }
 
+pub fn word_list(
+    words: Vec<TrackedWord>,
+    dictionary: &Dictionary,
+    script: Script,
+) -> Vec<WordEntry> {
+    words
+        .into_iter()
+        .map(|tracked| WordEntry {
+            display_word: dictionary.write_in(&tracked.word, script),
+            readings: readings(dictionary, &tracked.word),
+            word: tracked.word,
+            status: tracked.status,
+            due_at: tracked.due_at,
+            updated_at: tracked.updated_at,
+        })
+        .collect()
+}
+
+fn readings(dictionary: &Dictionary, word: &str) -> Vec<Entry> {
+    dictionary
+        .lookup(word)
+        .iter()
+        .take(MAX_READINGS)
+        .cloned()
+        .collect()
+}
+
 fn study_card(
     dictionary: &Dictionary,
     script: Script,
@@ -354,12 +397,7 @@ fn study_card(
 ) -> StudyCard {
     StudyCard {
         display_word: dictionary.write_in(&word, script),
-        readings: dictionary
-            .lookup(&word)
-            .iter()
-            .take(MAX_READINGS)
-            .cloned()
-            .collect(),
+        readings: readings(dictionary, &word),
         example: dictionary.write_in(example, script),
         word,
         count,
@@ -370,7 +408,6 @@ fn study_card(
 mod tests {
     use super::*;
     use crate::dictionary::tests::SAMPLE;
-    use crate::store::WordStatus;
     use chrono::TimeZone;
 
     fn language() -> Language {
@@ -661,6 +698,22 @@ mod tests {
             "analyzing"
         );
         assert_eq!(serde_json::to_value(WordStatus::Known).unwrap(), "known");
+        let list = word_list(
+            store.tracked_words().unwrap(),
+            &language.dictionary,
+            Script::Simplified,
+        );
+        assert_eq!(
+            keys(serde_json::to_value(&list[0]).unwrap()),
+            [
+                "displayWord",
+                "dueAt",
+                "readings",
+                "status",
+                "updatedAt",
+                "word"
+            ]
+        );
         let section = reader_section(
             store.section(summary.id, 0).unwrap(),
             &language,

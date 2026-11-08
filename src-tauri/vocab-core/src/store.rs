@@ -183,6 +183,16 @@ pub struct StoredWord {
     pub updated_at: i64,
 }
 
+/// A word the learner knows or is learning.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrackedWord {
+    pub word: String,
+    pub status: WordStatus,
+    /// When a learning word is next due; `None` for a known word.
+    pub due_at: Option<i64>,
+    pub updated_at: i64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WordCounts {
@@ -670,6 +680,24 @@ impl Store {
         Ok(due_at)
     }
 
+    /// Every known or learning word, most recently changed first.
+    pub fn tracked_words(&self) -> Result<Vec<TrackedWord>> {
+        let mut statement = self.connection.prepare(
+            "SELECT word, status, due_at, updated_at FROM words ORDER BY updated_at DESC, word",
+        )?;
+        let words = statement
+            .query_map([], |row| {
+                Ok(TrackedWord {
+                    word: row.get(0)?,
+                    status: WordStatus::parse(&row.get::<_, String>(1)?)?,
+                    due_at: row.get(2)?,
+                    updated_at: row.get(3)?,
+                })
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(words)
+    }
+
     /// Marks every word known; returns how many were not known before.
     pub fn import_known(&mut self, words: &[String], now: DateTime<Utc>) -> Result<u32> {
         let transaction = self.connection.transaction()?;
@@ -961,6 +989,33 @@ mod tests {
         assert_eq!((summary.learning_tokens, summary.unseen_words), (15, 2));
         assert_eq!(store.documents().unwrap(), [summary]);
         assert_eq!(unseen(&store, id), ["我们", "中文"]);
+    }
+
+    #[test]
+    fn lists_tracked_words_most_recently_changed_first() {
+        let mut store = Store::open_in_memory().unwrap();
+        store.import_known(&["的".to_owned()], now()).unwrap();
+        let later = now() + chrono::Duration::hours(1);
+        store
+            .set_status("学习", WordStatus::Learning, later)
+            .unwrap();
+        assert_eq!(
+            store.tracked_words().unwrap(),
+            [
+                TrackedWord {
+                    word: "学习".into(),
+                    status: WordStatus::Learning,
+                    due_at: Some(later.timestamp_millis()),
+                    updated_at: later.timestamp_millis(),
+                },
+                TrackedWord {
+                    word: "的".into(),
+                    status: WordStatus::Known,
+                    due_at: None,
+                    updated_at: now().timestamp_millis(),
+                },
+            ]
+        );
     }
 
     #[test]

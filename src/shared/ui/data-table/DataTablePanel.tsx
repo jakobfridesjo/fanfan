@@ -25,6 +25,11 @@ interface DataTablePanelProps<TData extends RowData> {
   pageSizeOptions?: number[];
   /** Draws the panel as a card. Disable when a parent card already frames it. */
   bordered?: boolean;
+  /**
+   * `page` sets the table straight on the page card, unframed, so it is not a card on a card;
+   * a toolbar is better placed in the `PageHeader` then.
+   */
+  surface?: "card" | "page";
 }
 
 export function DataTablePanel<TData extends RowData>({
@@ -43,10 +48,12 @@ export function DataTablePanel<TData extends RowData>({
   renderSubRow,
   pageSizeOptions,
   bordered = true,
+  surface = "card",
 }: DataTablePanelProps<TData>) {
   const hasToolbar = !!(searchPlaceholder || filters || actions || children);
+  const onPage = surface === "page";
 
-  const Panel = bordered ? Card : "div";
+  const Panel = bordered && !onPage ? Card : "div";
 
   return (
     <Panel className="flex min-h-0 grow flex-col gap-0 overflow-hidden py-0">
@@ -73,10 +80,17 @@ export function DataTablePanel<TData extends RowData>({
             onRowClick={onRowClick}
             getRowClassName={getRowClassName}
             renderSubRow={renderSubRow}
+            surface={surface}
           />
         )}
       </div>
-      {!fallback && <DataTablePagination table={table} pageSizeOptions={pageSizeOptions} />}
+      {!fallback && (
+        <DataTablePagination
+          table={table}
+          pageSizeOptions={pageSizeOptions}
+          className={onPage ? "px-0 pb-0" : undefined}
+        />
+      )}
     </Panel>
   );
 }

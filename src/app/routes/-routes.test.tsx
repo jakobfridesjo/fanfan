@@ -6,7 +6,7 @@ import {
   makeDocument,
   makeReviewQueue,
   makeSection,
-  makeWordCounts,
+  makeWordEntry,
 } from "@/shared/test/fixtures.ts";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
 import { renderRoute } from "@/app/testing/router.tsx";
@@ -58,13 +58,13 @@ describe("routes", () => {
   it("renders the review and known-words pages", async () => {
     mockCommands({
       get_review_queue: () => makeReviewQueue([]),
-      get_word_counts: () => makeWordCounts({ known: 1234 }),
+      list_words: () => [makeWordEntry("学习")],
     });
     const { router } = await renderRoute("/review");
     await expect.element(screen.getByText("Nothing to review")).toBeVisible();
 
     await router.navigate({ to: "/known-words" });
-    await expect.element(screen.getByText("1,234")).toBeVisible();
+    await expect.element(screen.getByText("学习", { exact: true })).toBeVisible();
   });
 
   it("opens settings from the sidebar and applies the script and background", async () => {
