@@ -1,0 +1,5 @@
+# Local, uncommitted mise overrides for this repo. Copy to mise.local.toml —
+# `mise env:init` does that for you — then uncomment what you need.
+# mise.local.toml is gitignored; keep secrets here, never in mise.toml.
+
+[env]

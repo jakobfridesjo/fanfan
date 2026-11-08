@@ -1,0 +1,14 @@
+allowBuilds:
+  esbuild: false
+blockExoticSubdeps: true
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - playwright@1.65.0
+  - playwright-core@1.65.0
+registrySupportsTimeField: false
+resolutionMode: highest
+
+# steiger-rust is a bin-less meta-package; the executable lives in the
+# platform-specific optional dependency, so hoist it to get `steiger` on PATH.
+publicHoistPattern:
+  - steiger-rust-*

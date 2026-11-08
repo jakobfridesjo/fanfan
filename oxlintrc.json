@@ -1,0 +1,116 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "unicorn", "typescript", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "perf": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "rules": {
+    "no-console": "error",
+    "no-await-in-loop": "off",
+    "oxc/no-map-spread": "off",
+    "eqeqeq": ["error", "always"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-unused-vars": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "zod",
+            "message": "Import from zod/mini: classic zod pulls the chainable runtime into the bundle"
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["../**"],
+            "message": "Use @/ alias imports instead of upward-relative paths"
+          },
+          {
+            "group": ["@/entities/*/index.ts", "@/features/*/index.ts"],
+            "message": "Slices have no barrel. Import the concrete module (@/entities/<slice>/api/<file>.ts)"
+          }
+        ]
+      }
+    ],
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": [
+      "error",
+      {
+        "allowConstantExport": true,
+        "customHOCs": ["bindComponent"]
+      }
+    ],
+    "no-fallthrough": "error",
+    "no-empty": "error",
+    "no-prototype-builtins": "error",
+    "no-case-declarations": "error",
+    "typescript/no-array-constructor": "error",
+    "typescript/no-deprecated": "error",
+    "react/no-unstable-nested-components": [
+      "error",
+      {
+        "propNamePattern": "{render*,cell,header,footer,tick}"
+      }
+    ],
+    "react/jsx-no-constructed-context-values": "error",
+    "react/no-array-index-key": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/only-throw-error": [
+      "error",
+      {
+        "allow": [
+          {
+            "from": "package",
+            "package": "@tanstack/router-core",
+            "name": ["Redirect", "NotFoundError"]
+          }
+        ]
+      }
+    ],
+    "typescript/switch-exhaustiveness-check": [
+      "error",
+      {
+        "considerDefaultExhaustiveForUnions": true
+      }
+    ],
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/require-await": "error",
+    "typescript/restrict-plus-operands": "error"
+  },
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "*.min.js",
+    "src/app/routeTree.gen.ts",
+    "src/shared/ui/shadcn/**"
+  ],
+  "overrides": [
+    {
+      "files": ["src/app/routes/**"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ]
+}

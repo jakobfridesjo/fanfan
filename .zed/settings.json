@@ -1,0 +1,83 @@
+{
+  "lsp": {
+    "oxlint": {
+      "binary": {
+        "path": "node",
+        "arguments": ["node_modules/oxlint/bin/oxlint", "--lsp"],
+        "env": {
+          "OXLINT_TSGOLINT_PATH": "node_modules/.bin/tsgolint"
+        }
+      },
+      "initialization_options": {
+        "settings": {
+          "configPath": "oxlintrc.json",
+          "typeAware": true,
+          "run": "onType",
+          "fixKind": "safe_fix"
+        }
+      }
+    },
+    "oxfmt": {
+      "binary": {
+        "path": "node",
+        "arguments": ["node_modules/oxfmt/bin/oxfmt", "--lsp"]
+      },
+      "initialization_options": {
+        "settings": {
+          "fmt.configPath": ".oxfmtrc.json"
+        }
+      }
+    },
+    "tailwindcss-language-server": {
+      "settings": {
+        "files": {
+          "exclude": [
+            "**/.git/**",
+            "**/node_modules/**",
+            "**/.hg/**",
+            "**/.svn/**",
+            "src/components/ui/*.js",
+            "src/components/ui/*.jsx",
+            "src/components/ui/*.ts",
+            "src/components/ui/*.tsx"
+          ]
+        }
+      }
+    }
+  },
+  "languages": {
+    "JavaScript": {
+      "language_servers": ["!eslint", "!typescript-language-server", "..."],
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "TypeScript": {
+      "language_servers": ["!eslint", "!typescript-language-server", "..."],
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "TSX": {
+      "language_servers": ["!eslint", "!typescript-language-server", "..."],
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "JSON": {
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "JSONC": {
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    },
+    "CSS": {
+      "prettier": { "allowed": false },
+      "format_on_save": "on",
+      "formatter": [{ "language_server": { "name": "oxfmt" } }]
+    }
+  }
+}

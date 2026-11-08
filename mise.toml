@@ -1,0 +1,219 @@
+[settings]
+experimental = true
+lockfile = true
+minimum_release_age = "3d"
+
+[tools]
+node = "26.13.0"
+pnpm = "12.16.1"
+rust = { version = "1.99.1", components = "rustfmt,clippy", targets = "aarch64-linux-android" }
+# The Android build (`mise android:*`): Gradle needs a JDK, Tauri the SDK and NDK.
+java = "temurin-21.0.13+9.0.LTS"
+android-sdk = "20.0"
+
+hk = "2.11.1"
+pkl = "0.32.2"
+
+[env]
+HK_MISE = 1
+# Tauri finds the NDK through NDK_HOME; `mise android:sdk` installs this version.
+NDK_HOME = { value = "{{env.ANDROID_HOME}}/ndk/29.0.14206865", tools = true }
+
+[deps.web]
+auto = true
+description = "Install web dependencies"
+sources = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+outputs = ["node_modules/"]
+run = "pnpm install --frozen-lockfile"
+
+[deps.dictionary]
+auto = true
+description = "Download CC-CEDICT, which the desktop app bundles"
+outputs = ["src-tauri/resources/cedict.txt.gz"]
+run = "mise run --no-deps dictionary:fetch"
+
+[deps.voice]
+auto = true
+description = "Download the Mandarin text-to-speech model, which the desktop app bundles"
+outputs = ["src-tauri/resources/voice/moss_tts_nano_lm.safetensors"]
+run = "mise run --no-deps voice:fetch"
+
+# The rest of `mise setup`. Without `auto`, these run only on `mise deps`, not
+# before every task; `--no-deps` keeps their tasks from re-entering `mise deps`.
+[deps.env]
+description = "Create local env files"
+outputs = [".env.local", "mise.local.toml"]
+run = "mise run --no-deps env:init"
+
+[deps.skills]
+description = "Restore project skills and link the active tools' skills"
+sources = ["skills-lock.json", "mise.lock"]
+outputs = [".agents/skills/"]
+run = "mise run --no-deps skills:install"
+
+[deps.hooks]
+description = "Install hk Git hooks"
+outputs = [".git/hooks/pre-commit", ".git/hooks/pre-push"]
+run = "mise run --no-deps hooks:install"
+
+[deps.browsers]
+description = "Install Chromium for frontend tests"
+depends = ["web"]
+# The lockfile pins Playwright, which pins the browser build.
+sources = ["pnpm-lock.yaml"]
+run = "mise run --no-deps test:web:browsers"
+
+[tasks."desktop"]
+description = "Start the Tauri desktop app with the Vite dev server"
+env = { _.file = { path = ".env.local", redact = true } }
+run = "pnpm tauri:dev"
+
+[tasks."desktop:build"]
+description = "Build the Tauri desktop app and its installers (src-tauri/target/release/bundle/)"
+run = "pnpm tauri:build"
+
+[tasks."android:sdk"]
+description = "Install the Android NDK and platform tools into the mise Android SDK"
+run = """
+set -e
+[ -d "$NDK_HOME" ] && [ -d "$ANDROID_HOME/platform-tools" ] && exit 0
+yes | sdkmanager --licenses > /dev/null
+sdkmanager --install platform-tools "ndk;${NDK_HOME##*/}"
+"""
+
+[tasks."android:keystore"]
+description = "Create the key that signs release APKs, kept in ~/.android outside the repo"
+dir = "src-tauri/gen/android"
+run = """
+set -e
+[ -f keystore.properties ] && exit 0
+umask 077
+store="$HOME/.android/app-template-release.jks"
+mkdir -p "$(dirname "$store")"
+export KEYSTORE_PASSWORD="$(head -c 24 /dev/urandom | base64 | tr -d '/+=')"
+keytool -genkeypair -keystore "$store" -alias release -keyalg RSA -keysize 4096 -validity 10000 \
+  -storepass:env KEYSTORE_PASSWORD -keypass:env KEYSTORE_PASSWORD -dname "CN=App Template"
+printf 'password=%s\\nkeyAlias=release\\nstoreFile=%s\\n' "$KEYSTORE_PASSWORD" "$store" > keystore.properties
+"""
+
+[tasks."android:build"]
+description = "Build a signed release APK for arm64 phones"
+depends = ["android:sdk", "android:keystore"]
+run = """
+# OpenSSL's vendored build looks for `<target>-ranlib`; the NDK ships only the LLVM one.
+export RANLIB_aarch64_linux_android="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
+# CMake (SentencePiece, Opus) finds the NDK by this name.
+export ANDROID_NDK_ROOT="$NDK_HOME"
+pnpm tauri android build --apk --target aarch64 --config src-tauri/tauri.build.conf.json
+"""
+
+[tasks."android:install"]
+description = "Install the release APK on the phone adb is connected to (pair over Wi-Fi with `adb pair`)"
+dir = "src-tauri/gen/android/app/build/outputs/apk"
+run = "adb install -r universal/release/app-universal-release.apk"
+
+[tasks."dictionary:fetch"]
+description = "Download the latest CC-CEDICT (CC BY-SA 4.0) into the Tauri resources"
+dir = "src-tauri"
+run = """
+mkdir -p resources
+curl -fsSL -o resources/cedict.txt.gz.part https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz
+gzip -t resources/cedict.txt.gz.part
+mv resources/cedict.txt.gz.part resources/cedict.txt.gz
+"""
+
+[tasks."voice:fetch"]
+description = "Download MOSS-TTS-Nano (Apache-2.0) and its Mandarin reference voice into the Tauri resources"
+dir = "src-tauri"
+run = """
+set -e
+models=https://github.com/ramishi/moss-tts-nano-rust-candle/releases/download/v0.1.0-models
+upstream=https://raw.githubusercontent.com/OpenMOSS/MOSS-TTS-Nano/8b7bcc9341b3b4ef3a3a58ba1338a7d85ff133eb
+rm -rf resources/voice.part
+mkdir -p resources/voice.part
+cd resources/voice.part
+for file in moss_tts_nano_lm.safetensors moss_audio_tokenizer.safetensors tokenizer.model config.json moss_audio_tokenizer_config.json; do
+  curl -fsSL -o "$file" "$models/$file"
+done
+curl -fsSL -o reference.flac "$upstream/assets/audio/zh_1.wav"
+curl -fsSL -o LICENSE "$upstream/LICENSE"
+sha256sum -c --quiet <<'SUMS'
+43d1f7d5fb21bb98ce0bb371a0acb06932e02baa942c2dbd15ef939ebb4d193d  moss_tts_nano_lm.safetensors
+794efedddb7b69efc62e21ee26fe7af4505b2895bbe9a9769868d0dba6082ff1  moss_audio_tokenizer.safetensors
+c353ee1479b536bf414c1b247f5542b6607fb8ae91320e5af1781fee200fddff  tokenizer.model
+ba36b08c80d4ae0805a2bab32b6ac90ec0d1815d01d3854ba42811db1d5bde99  config.json
+b38892f8ba00efc18af2ad9eca999c7603f871548c2e7f99258cb1cefc70ee06  moss_audio_tokenizer_config.json
+SUMS
+cd ../..
+rm -rf resources/voice
+mv resources/voice.part resources/voice
+"""
+
+[tasks."env:init"]
+description = "Create local env files if missing"
+run = """
+[ -f .env.local ] || cp .env.example .env.local
+# Holds tokens, so create it unreadable to anyone else from the start.
+[ -f mise.local.toml ] || { cp mise.local.toml.example mise.local.toml && chmod 600 mise.local.toml; }
+"""
+
+[tasks."setup"]
+description = "Run every stale `[deps]` provider (env files, dependencies, skills, git hooks, test browser)"
+run = "mise deps"
+
+[tasks."hooks:install"]
+description = "Install hk Git hooks for pre-commit and pre-push"
+# `--legacy --force`: on Git 2.54+ hk defaults to config-based hooks that leave
+# `.git/hooks` untouched, so leftover shims there would keep firing alongside.
+run = "hk install --mise --legacy --force"
+
+[tasks."skills:install"]
+description = "Install project skills from skills-lock.json and link the active tools' skills"
+dir = "{{config_root}}"
+run = ["pnpx skills experimental_install -y", "mise skills sync"]
+
+# `skills update` skips a skill whose upstream still matches the lock, even when
+# the copy on disk differs; `--force` reinstalls every locked skill from upstream.
+[tasks."skills:update"]
+description = "Reinstall project skills from upstream and record their new hashes in skills-lock.json"
+dir = "{{config_root}}"
+run = ["pnpx skills experimental_install -y --force", "mise skills sync"]
+
+[tasks."audit"]
+description = "Audit production web dependencies (fails on high/critical)"
+run = "pnpm audit --prod --audit-level high"
+
+[tasks."test:web:browsers"]
+description = "Install Chromium for frontend tests (pass --with-deps on fresh Linux/WSL)"
+run = "pnpm exec playwright install chromium"
+
+[tasks."test"]
+description = "Run Rust core tests, then frontend tests with coverage"
+depends = ["test:rust"]
+run = "pnpm test:coverage"
+
+[tasks."test:web"]
+description = "Run frontend tests with coverage"
+run = "pnpm test:coverage"
+
+# Only the core crate: it has no webview dependency, so it builds outside the Tauri toolchain too.
+[tasks."test:rust"]
+description = "Run the Rust core tests (text extraction, segmentation, dictionary, storage, scheduling)"
+dir = "src-tauri"
+run = "cargo test -p vocab-core"
+
+[tasks."fsd"]
+description = "Check Feature-Sliced Design structure"
+run = "pnpm exec steiger ./src"
+
+[tasks."check"]
+description = "Run lint, format, and typecheck checks via hk"
+run = "hk check --all"
+
+[tasks."fix"]
+description = "Auto-fix lint and formatting issues via hk"
+run = "hk fix --all"
+
+[tasks."check:push"]
+description = "Run the pre-push checks on everything this branch adds over origin/main, without pushing"
+run = ["git fetch --quiet origin main", "hk run pre-push --pr"]

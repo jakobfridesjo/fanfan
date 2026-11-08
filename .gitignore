@@ -1,0 +1,52 @@
+# Environment
+# Local developer env lives in .env.local; .env is reserved for build-time injection.
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+outputs/
+
+# Tooling
+mise.local.toml
+mise.local.lock
+.claude/*
+!.claude/settings.json
+!.claude/skills
+!.claude/agents
+.opencode/
+.agents/
+.codex
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# Caches
+.tmp
+.cache/
+.turbo/
+.tanstack/
+
+# Test output
+coverage/
+__screenshots__/
+test-results/
+
+# Logs
+*.log

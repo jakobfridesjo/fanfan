@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/shared/**/*.{ts,tsx}"],
+  "tanstack-router": {
+    "entry": ["src/app/routeTree.gen.ts"]
+  },
+  "ignoreDependencies": ["oxfmt", "oxlint", "oxlint-tsgolint", "steiger-rust"],
+  "ignoreBinaries": ["steiger"]
+}

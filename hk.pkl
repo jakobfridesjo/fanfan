@@ -1,0 +1,91 @@
+amends "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Config.pkl"
+
+import "package://github.com/jdx/hk/releases/download/v2.11.1/hk@2.11.1#/Builtins.pkl"
+
+// Enforced from 2.5.0 on: a stale binary fails loudly instead of misreading the config.
+min_hk_version = "2.5.0"
+
+// What `--pr` and a new-branch pre-push diff against.
+default_branch = "origin/main"
+
+// Kept byte-for-byte: exported artwork and static assets.
+local verbatimFiles = List("**/public/**", "**/*.svg")
+
+local generatedFiles =
+  Regex(
+    #"^(dist/|coverage/|pnpm-lock\.yaml$|src/app/routeTree\.gen\.ts$|src/shared/ui/shadcn/|src-tauri/(target|gen)/)"#,
+  )
+
+// Not `steps`: a local by that name resolves to Config's empty `steps` property.
+local projectSteps = new Mapping<String, Step> {
+  ["newlines"] = (Builtins.newlines) { exclude = verbatimFiles }
+  ["trailing-whitespace"] = (Builtins.trailing_whitespace) { exclude = verbatimFiles }
+  ["check-merge-conflict"] = Builtins.check_merge_conflict
+  ["detect-private-key"] = Builtins.detect_private_key
+  ["check-case-conflict"] = Builtins.check_case_conflict
+  ["mise"] = Builtins.mise
+  ["pkl"] = Builtins.pkl
+  ["pkl-format"] = Builtins.pkl_format
+  // Not `prefix`: the builtin denies warnings, and without
+  // --no-error-on-unmatched-pattern a commit of only ignored files fails.
+  ["oxlint"] = (Builtins.ox_lint) {
+    exclude = generatedFiles
+    check = new CommandSpec {
+      command = "pnpm exec oxlint -c oxlintrc.json --no-error-on-unmatched-pattern {{files}}"
+      effect = "read"
+    }
+    fix = new CommandSpec {
+      command = "pnpm exec oxlint -c oxlintrc.json --fix --no-error-on-unmatched-pattern {{files}}"
+      effect = "write"
+    }
+  }
+  ["oxfmt"] = (Builtins.oxfmt) {
+    exclude = generatedFiles
+    prefix = List("pnpm", "exec")
+  }
+  // tsc and steiger check the whole project regardless of {{files}}.
+  ["tsc"] {
+    glob = Builtins.ox_lint.glob
+    exclude = generatedFiles
+    check = new CommandSpec {
+      command = "pnpm exec tsc --noEmit"
+      effect = "read"
+    }
+  }
+  // Check-only: `knip --fix` rewrites package.json and files outside the commit.
+  ["knip"] = (Builtins.knip) {
+    exclude = generatedFiles
+    check = new CommandSpec {
+      command = "pnpm exec knip --no-progress --directory ."
+      effect = "read"
+    }
+    fix = null
+  }
+  ["cargo-fmt"] = Builtins.cargo_fmt
+  ["steiger"] {
+    glob = Builtins.ox_lint.glob
+    exclude = generatedFiles
+    check = new CommandSpec {
+      command = "pnpm exec steiger ./src"
+      effect = "read"
+    }
+  }
+}
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = "git"
+    steps = projectSteps
+  }
+  ["pre-push"] {
+    steps = projectSteps
+  }
+  ["fix"] {
+    fix = true
+    steps = projectSteps
+  }
+  ["check"] {
+    steps = projectSteps
+  }
+}

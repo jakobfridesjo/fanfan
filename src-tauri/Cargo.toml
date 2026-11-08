@@ -1,0 +1,40 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "Desktop shell for the web app"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[workspace]
+members = ["vocab-core"]
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-dialog = "2"
+chrono = "0.4"
+vocab-core = { path = "vocab-core" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+# Reads APK assets and the content:// URIs the file picker returns.
+tauri-plugin-fs = "2"
+percent-encoding = "2.3"
+# The speech crate links OpenSSL through hf-hub and ureq, which it uses only to
+# download models; the NDK has no OpenSSL, so build it from source.
+openssl = { version = "0.10", features = ["vendored"] }
+
+# MOSS-TTS-Nano runs its neural network in Candle, which is far too slow to
+# speak a word unoptimized; dependencies build optimized even in `mise desktop`.
+[profile.dev.package."*"]
+opt-level = 3

@@ -1,0 +1,39 @@
+[package]
+name = "vocab-core"
+version = "0.1.0"
+description = "Turns a Chinese document into a frequency-ranked study deck"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.22"
+candle-core = "0.8"
+chardetng = "1.0"
+chrono = "0.4"
+encoding_rs = "0.8"
+epub = "2.1"
+flate2 = "1.1"
+jieba-rs = "0.11"
+# Not on crates.io; pinned to the commit the `mise voice:fetch` weights are for.
+moss-tts-nano-rust-candle = { git = "https://github.com/ramishi/moss-tts-nano-rust-candle", rev = "f4d3fcf4de9b4118ee664087f88495f4174836e1" }
+ogg = "0.9"
+# libopus, built from source and linked statically (needs cmake).
+opus = "0.4"
+# `rendering` draws a PDF's first page as its cover.
+pdf_oxide = { version = "0.3", features = ["rendering"] }
+rs-fsrs = { version = "1.2", features = ["serde"] }
+# rusqlite_migration 2.6 is built against rusqlite 0.40.
+rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite_migration = "2.6"
+scraper = "0.29"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "2.0"
+unicode-normalization = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+zip = "9"
