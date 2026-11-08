@@ -21,6 +21,7 @@ export const sv: Messages = {
     settings: "Inställningar",
     theme: "Utseende",
     allSettings: "Alla inställningar",
+    about: "Om",
     themes: { light: "Ljust", dark: "Mörkt", auto: "Automatiskt" },
   },
   word: {
@@ -219,6 +220,21 @@ export const sv: Messages = {
       cherry: "Körsbär",
       mist: "Dimma",
       plain: "Enfärgad",
+    },
+  },
+  about: {
+    title: "Om",
+    tagline: "Lär dig orden i en kinesisk bok innan och medan du läser den.",
+    author: (name: string) => `Av ${name}`,
+    version: (version: string) => `Version ${version}`,
+    built: (date: string) => `Byggd ${date}`,
+    creditsTitle: "Tack till",
+    creditsDescription: "翻翻 fungerar offline tack vare dessa öppna data och bibliotek.",
+    credits: {
+      dictionary: "Ordbok",
+      speech: "Tal",
+      segmentation: "Ordsegmentering",
+      scheduling: "Schemaläggning av repetitioner",
     },
   },
   fallback: {

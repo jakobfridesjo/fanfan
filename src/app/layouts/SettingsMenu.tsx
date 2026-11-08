@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Moon, Settings, SlidersHorizontal, Sun, SunMoon } from "lucide-react";
+import { Info, Moon, Settings, SlidersHorizontal, Sun, SunMoon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,17 @@ export function SettingsMenu() {
         >
           <SlidersHorizontal />
           {m.nav.allSettings}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          render={<Link to="/about" />}
+          onClick={() => {
+            if (isMobile) {
+              setOpenMobile(false);
+            }
+          }}
+        >
+          <Info />
+          {m.nav.about}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

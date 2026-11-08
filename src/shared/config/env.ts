@@ -21,3 +21,9 @@ export const headerText = appEnv.VITE_HEADER_TEXT.trim();
 
 /** Hex background color of the header banner; empty uses the warning color. */
 export const headerColor = appEnv.VITE_HEADER_COLOR;
+
+/** The version in package.json, which Tauri also stamps on the bundle. */
+export const appVersion = appEnv.VITE_APP_VERSION;
+
+/** ISO timestamp of the build, or "unknown". */
+export const buildTime = appEnv.VITE_BUILD_TIME;

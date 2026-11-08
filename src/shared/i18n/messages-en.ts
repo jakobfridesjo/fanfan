@@ -21,6 +21,7 @@ export const en = {
     settings: "Settings",
     theme: "Appearance",
     allSettings: "All settings",
+    about: "About",
     themes: { light: "Light", dark: "Dark", auto: "Automatic" },
   },
   word: {
@@ -218,6 +219,21 @@ export const en = {
       cherry: "Cherry",
       mist: "Mist",
       plain: "Plain",
+    },
+  },
+  about: {
+    title: "About",
+    tagline: "Learn a Chinese book's words before and while you read it.",
+    author: (name: string) => `By ${name}`,
+    version: (version: string) => `Version ${version}`,
+    built: (date: string) => `Built ${date}`,
+    creditsTitle: "Acknowledgements",
+    creditsDescription: "翻翻 runs offline on these open data sets and libraries.",
+    credits: {
+      dictionary: "Dictionary",
+      speech: "Speech",
+      segmentation: "Word segmentation",
+      scheduling: "Review scheduling",
     },
   },
   fallback: {

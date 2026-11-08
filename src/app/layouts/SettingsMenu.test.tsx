@@ -30,4 +30,17 @@ describe("SettingsMenu", () => {
 
     expect(router.state.location.pathname).toBe("/settings");
   });
+
+  it("opens the about page", async () => {
+    const { router } = await renderPageInRouter(
+      <ThemePreferenceProvider>
+        <SettingsMenu />
+      </ThemePreferenceProvider>
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "About" }));
+
+    expect(router.state.location.pathname).toBe("/about");
+  });
 });

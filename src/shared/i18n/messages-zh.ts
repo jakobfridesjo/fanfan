@@ -19,6 +19,7 @@ export const zh: Messages = {
     settings: "设置",
     theme: "外观",
     allSettings: "全部设置",
+    about: "关于",
     themes: { light: "浅色", dark: "深色", auto: "自动" },
   },
   word: {
@@ -211,6 +212,21 @@ export const zh: Messages = {
       cherry: "樱花",
       mist: "薄雾",
       plain: "纯色",
+    },
+  },
+  about: {
+    title: "关于",
+    tagline: "在阅读之前和阅读之中，学会一本中文书里的词语。",
+    author: (name: string) => `作者：${name}`,
+    version: (version: string) => `版本 ${version}`,
+    built: (date: string) => `构建于 ${date}`,
+    creditsTitle: "致谢",
+    creditsDescription: "翻翻依靠以下开放数据和程序库离线运行。",
+    credits: {
+      dictionary: "词典",
+      speech: "语音",
+      segmentation: "分词",
+      scheduling: "复习排程",
     },
   },
   fallback: {

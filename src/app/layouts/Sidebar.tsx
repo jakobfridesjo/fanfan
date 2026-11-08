@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation, useMatchRoute, type LinkProps } from "@tanstack/react-router";
-import { AppLogo } from "@/app/layouts/AppLogo.tsx";
+import { AppLogo } from "@/shared/ui/AppLogo.tsx";
 import { ChartColumn, GraduationCap, Library, ListChecks, type LucideIcon } from "lucide-react";
 import {
   Sidebar,
@@ -20,7 +20,10 @@ import { useMessages } from "@/shared/i18n/messages.ts";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { SettingsMenu } from "@/app/layouts/SettingsMenu.tsx";
 
-type NavLabel = Exclude<keyof Messages["nav"], "settings" | "theme" | "allSettings" | "themes">;
+type NavLabel = Exclude<
+  keyof Messages["nav"],
+  "settings" | "theme" | "allSettings" | "about" | "themes"
+>;
 
 interface NavItem {
   label: NavLabel;
@@ -90,7 +93,7 @@ export function AppSidebar() {
                 <AppLogo className="size-5 shrink-0 group-data-[collapsible=icon]:group-has-[[data-sidebar=trigger]:is(:hover,:focus-visible)]/logo:opacity-0" />
               </div>
               <span className="flex-1 -translate-y-px truncate text-[0.9375rem] font-semibold group-data-[collapsible=icon]:hidden">
-                App Template
+                翻翻
               </span>
               <SidebarTrigger className="shrink-0 group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:inset-0 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:transition-none group-data-[collapsible=icon]:hover:opacity-100 group-data-[collapsible=icon]:focus-visible:opacity-100" />
             </div>
