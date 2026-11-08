@@ -72,6 +72,16 @@ run = "pnpm tauri:dev"
 description = "Build the Tauri desktop app and its installers (src-tauri/target/release/bundle/)"
 run = "pnpm tauri:build"
 
+[tasks."desktop:build:mac"]
+description = "Build the macOS app and DMG on a Mac, ad-hoc signed (src-tauri/target/release/bundle/)"
+run = """
+set -e
+[ "$(uname)" = Darwin ] || { echo "Tauri builds macOS apps only on a Mac." >&2; exit 1; }
+xcode-select -p > /dev/null 2>&1 || { echo "Install the Xcode Command Line Tools: xcode-select --install" >&2; exit 1; }
+command -v cmake > /dev/null || { echo "Install CMake (brew install cmake): SentencePiece and Opus build with it." >&2; exit 1; }
+pnpm tauri build --bundles app,dmg --config src-tauri/tauri.build.conf.json
+"""
+
 [tasks."android:sdk"]
 description = "Install the Android NDK and platform tools into the mise Android SDK"
 run = """
@@ -137,7 +147,9 @@ for file in moss_tts_nano_lm.safetensors moss_audio_tokenizer.safetensors tokeni
 done
 curl -fsSL -o reference.flac "$upstream/assets/audio/zh_1.wav"
 curl -fsSL -o LICENSE "$upstream/LICENSE"
-sha256sum -c --quiet <<'SUMS'
+# macOS has shasum but not always sha256sum; Fedora the other way round.
+if command -v sha256sum > /dev/null; then check="sha256sum"; else check="shasum -a 256"; fi
+$check -c --quiet <<'SUMS'
 43d1f7d5fb21bb98ce0bb371a0acb06932e02baa942c2dbd15ef939ebb4d193d  moss_tts_nano_lm.safetensors
 794efedddb7b69efc62e21ee26fe7af4505b2895bbe9a9769868d0dba6082ff1  moss_audio_tokenizer.safetensors
 c353ee1479b536bf414c1b247f5542b6607fb8ae91320e5af1781fee200fddff  tokenizer.model

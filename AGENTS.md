@@ -7,6 +7,7 @@
 - Run everything as mise tasks from the repo root: `mise <task>`. On this Silverblue host all Rust (`mise desktop`, `mise test:rust`, any `cargo`) builds only inside the `fedora-toolbox-45` toolbox: the speech model compiles SentencePiece (C++, `cmake` and `gcc-c++`)
 - CC-CEDICT (CC BY-SA 4.0) is downloaded by `mise dictionary:fetch` into `src-tauri/resources/` and bundled; MOSS-TTS-Nano (Apache-2.0, weights for the pinned `moss-tts-nano-rust-candle` commit) and its reference voice likewise by `mise voice:fetch` into `src-tauri/resources/voice/`; bump the git `rev` and the weights together. Both are gitignored. The webview's `speechSynthesis` has no Chinese voice on Linux (WebKitGTK uses Flite)
 - Android: `mise android:build` installs the NDK (`android:sdk`), creates the release key in `~/.android` (`android:keystore`), and builds a signed arm64 APK; `mise android:install` puts it on the adb-connected phone. Android-only crates (fs plugin for `content://` URIs, vendored OpenSSL) are under `cfg(target_os = "android")` in `src-tauri/Cargo.toml`
+- macOS: `mise desktop:build:mac` builds the `.app` and `.dmg` on a Mac only (Xcode Command Line Tools and `cmake` needed). `src-tauri/tauri.macos.conf.json` signs ad-hoc; set `APPLE_SIGNING_IDENTITY` (and the notarization variables) to sign for distribution
 - `speaks_simplified_and_traditional_words` needs the real voice, so it is `#[ignore]`d: run it with `cargo test -p vocab-core -- --ignored`
 - Clear code beats comments
 - Edit only `AGENTS.md`; each `CLAUDE.md` is a symlink to it
