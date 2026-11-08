@@ -73,7 +73,7 @@ export function DataTable<TData extends RowData>({
   return (
     <div className="*:data-[slot=table-container]:overflow-visible">
       <Table>
-        <TableHeader className="sticky top-0 z-10 bg-card">
+        <TableHeader className="sticky top-0 z-10 bg-card backdrop-blur-md">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {

@@ -16,7 +16,8 @@
   --canvas: oklch(0.96 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  /* Cards on the page: a step more solid than it and tinted the same, so the scene still shows. */
+  --card: oklch(0.995 calc(0.004 * var(--theme-chroma)) var(--theme-hue) / 0.72);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -66,6 +67,7 @@
 :root[data-background="plain"] {
   --theme-chroma: 0;
   --shell-card: var(--background);
+  --card: oklch(1 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --primary-text: oklch(0.205 0 0);
@@ -76,6 +78,7 @@
 }
 
 :root.dark[data-background="plain"] {
+  --card: oklch(0.205 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --primary-text: oklch(0.922 0 0);
@@ -101,7 +104,7 @@
   --canvas: oklch(0.18 0 0);
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.26 calc(0.018 * var(--theme-chroma)) var(--theme-hue) / 0.55);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.245 0 0);
   --popover-foreground: oklch(0.985 0 0);
@@ -385,6 +388,23 @@
       margin-left: 0;
     }
   }
+}
+
+/*
+ * shadcn's "default-translucent" menu colour (`cn-menu-translucent` in its style CSS). The CLI bakes
+ * it into components at install time; the vendored ones predate it, so it is applied here instead.
+ */
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="select-content"],
+[data-slot="combobox-content"] {
+  @apply relative animate-none! bg-popover/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
+}
+
+/* Toggles mark the chosen option like the sidebar marks the current page: a wash of the accent. */
+[data-slot="toggle"],
+[data-slot="toggle-group-item"] {
+  @apply hover:bg-foreground/5 aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
 }
 
 /* Sea: deep blue-teal water lit from below by crystals, with lights rising through it. */
