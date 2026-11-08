@@ -100,6 +100,10 @@
   --theme-hue: 45;
 }
 
+:root[data-background="pyreflies"] {
+  --theme-hue: 225;
+}
+
 :root[data-background="sea"] {
   --theme-hue: 225;
 }
@@ -297,6 +301,34 @@
   --sunset-bottom: oklch(0.32 0.09 35);
   --sunset-glow: oklch(0.62 0.17 45 / 0.5);
   --sunset-ray: oklch(0.75 0.13 60 / 0.22);
+}
+
+/* Pyreflies: a blue-green night with a cold teal haze over the middle; misty and pale in daylight. */
+.pyreflies {
+  --pyreflies-top: oklch(0.8 0.027 240);
+  --pyreflies-middle: oklch(0.88 0.027 220);
+  --pyreflies-bottom: oklch(0.76 0.03 235);
+  --pyreflies-haze: oklch(0.95 0.022 215 / 0.6);
+  --pyreflies-cloud: oklch(1 0 0 / 0.4);
+  --pyrefly-core: oklch(1 0 0);
+  --pyrefly-glow: oklch(0.95 0.05 340 / 0.8);
+  background:
+    radial-gradient(ellipse 70% 35% at 55% 40%, var(--pyreflies-haze), transparent 70%),
+    linear-gradient(
+      to bottom,
+      var(--pyreflies-top),
+      var(--pyreflies-middle) 45%,
+      var(--pyreflies-bottom)
+    );
+}
+
+.dark .pyreflies {
+  --pyreflies-top: oklch(0.13 0.022 250);
+  --pyreflies-middle: oklch(0.22 0.034 230);
+  --pyreflies-bottom: oklch(0.12 0.022 245);
+  --pyreflies-haze: oklch(0.45 0.052 220 / 0.25);
+  --pyreflies-cloud: oklch(0.85 0.02 230 / 0.22);
+  --pyrefly-glow: oklch(0.85 0.09 340 / 0.7);
 }
 
 /*

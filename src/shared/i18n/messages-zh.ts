@@ -212,6 +212,7 @@ export const zh: Messages = {
       cherry: "樱花",
       mist: "薄雾",
       sunset: "日落",
+      pyreflies: "幻光虫",
       plain: "纯色",
     },
   },

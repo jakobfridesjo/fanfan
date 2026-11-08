@@ -219,6 +219,7 @@ export const en = {
       cherry: "Cherry",
       mist: "Mist",
       sunset: "Sunset",
+      pyreflies: "Pyreflies",
       plain: "Plain",
     },
   },

@@ -220,6 +220,7 @@ export const sv: Messages = {
       cherry: "Körsbär",
       mist: "Dimma",
       sunset: "Solnedgång",
+      pyreflies: "Pyreflugor",
       plain: "Enfärgad",
     },
   },

@@ -4,7 +4,15 @@ import { persistedString } from "@/shared/lib/persisted-value.ts";
 
 export const LANGUAGES = ["en", "sv", "zh"] as const;
 export const SCRIPTS = ["simplified", "traditional"] as const;
-export const BACKGROUNDS = ["fireflies", "sea", "cherry", "mist", "sunset", "plain"] as const;
+export const BACKGROUNDS = [
+  "fireflies",
+  "sea",
+  "cherry",
+  "mist",
+  "sunset",
+  "pyreflies",
+  "plain",
+] as const;
 
 export type Language = (typeof LANGUAGES)[number];
 /** The characters Chinese words are shown in; Rust converts them. */
