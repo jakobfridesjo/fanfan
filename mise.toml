@@ -69,7 +69,7 @@ env = { _.file = { path = ".env.local", redact = true } }
 run = "pnpm tauri:dev"
 
 [tasks."desktop:build"]
-description = "Build the Tauri desktop app and its installers (src-tauri/target/release/bundle/)"
+description = "Build the Tauri desktop app and its installers (.deb and .rpm on Linux, in src-tauri/target/release/bundle/)"
 run = "pnpm tauri:build"
 
 [tasks."desktop:build:mac"]
