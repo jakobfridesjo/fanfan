@@ -354,6 +354,11 @@
   @apply relative animate-none! bg-popover/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
 }
 
+/* An empty state's icon takes the same accent wash, so it reads as the theme's colour, not grey. */
+[data-slot="empty-icon"][data-variant="icon"] {
+  @apply bg-sidebar-primary/18 text-primary-text;
+}
+
 /* Toggles mark the chosen option like the sidebar marks the current page: a wash of the accent. */
 [data-slot="toggle"],
 [data-slot="toggle-group-item"] {
