@@ -21,6 +21,13 @@ import { cn } from "@/shared/lib/class-names.ts";
 
 const ESTIMATED_ROW_HEIGHT = 49;
 const ESTIMATED_CARD_HEIGHT = 150;
+const MIN_FLEXIBLE_COLUMN_WIDTH = "12rem";
+
+/** Room for every fixed column plus a minimum for each column without a width. */
+function tableMinWidth(widths: (string | undefined)[]) {
+  const terms = widths.map((width) => width ?? MIN_FLEXIBLE_COLUMN_WIDTH);
+  return `calc(${terms.join(" + ")})`;
+}
 
 interface DataTableProps<TData extends RowData> {
   table: DataTableInstance<TData>;
@@ -153,7 +160,13 @@ function DataTableGrid<TData extends RowData>({
       ref={scrollRef}
       className={cn("overflow-auto *:data-[slot=table-container]:overflow-visible", className)}
     >
-      <Table>
+      {/* Fixed layout: widths come from the header, not from whichever rows are rendered. */}
+      <Table
+        className="table-fixed"
+        style={{
+          minWidth: tableMinWidth(visibleColumns.map((column) => column.columnDef.meta?.width)),
+        }}
+      >
         <TableHeader
           className={cn(surface === "card" && "sticky top-0 z-10 bg-card backdrop-blur-md")}
         >
@@ -175,10 +188,8 @@ function DataTableGrid<TData extends RowData>({
                   <TableHead
                     key={header.id}
                     colSpan={header.colSpan}
-                    className={cn(
-                      meta?.align === "center" && "text-center",
-                      meta?.actions && "w-0"
-                    )}
+                    style={{ width: meta?.width }}
+                    className={cn(meta?.align === "center" && "text-center")}
                   >
                     {content && meta?.tooltip ? (
                       <Tooltip>
@@ -233,6 +244,7 @@ function DataTableGrid<TData extends RowData>({
                       key={cell.id}
                       className={cn(
                         "h-12",
+                        !cell.column.columnDef.meta?.actions && "truncate",
                         cell.column.columnDef.meta?.primary && "font-medium",
                         cell.column.columnDef.meta?.align === "center" && "text-center"
                       )}

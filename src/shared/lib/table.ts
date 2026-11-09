@@ -41,6 +41,8 @@ interface DataTableColumnMeta {
   mobileHidden?: boolean;
   actions?: boolean;
   mobileFullWidth?: boolean;
+  /** A CSS width; columns without one share the rest of the table. */
+  width?: string;
 }
 
 const dataTableFeatures = tableFeatures({

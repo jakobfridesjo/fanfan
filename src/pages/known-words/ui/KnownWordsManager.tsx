@@ -122,7 +122,7 @@ function wordColumns(
       id: "word",
       accessorFn: (entry) => entry.displayWord,
       header: m.knownWords.word,
-      meta: { primary: true },
+      meta: { primary: true, width: "8rem" },
       cell: ({ row }) => (
         <span lang="zh" className="text-lg">
           {row.original.displayWord}
@@ -133,6 +133,7 @@ function wordColumns(
       id: "pinyin",
       accessorFn: (entry) => entry.readings[0]?.pinyin ?? "",
       header: m.knownWords.pinyin,
+      meta: { width: "9rem" },
       cell: ({ row }) => row.original.readings[0]?.pinyin ?? <EmptyCell />,
     },
     {
@@ -144,7 +145,7 @@ function wordColumns(
       cell: ({ row }) => {
         const meaning = row.original.readings[0]?.definitions.join("; ");
         return meaning ? (
-          <span className="line-clamp-2 max-w-md whitespace-normal" title={meaning}>
+          <span className="line-clamp-2 whitespace-normal" title={meaning}>
             {meaning}
           </span>
         ) : (
@@ -155,6 +156,7 @@ function wordColumns(
     {
       accessorKey: "status",
       header: m.knownWords.status,
+      meta: { width: "7rem" },
       filterFn: "arrIncludes",
       cell: ({ row }) =>
         row.original.status === "known" ? (
@@ -167,6 +169,7 @@ function wordColumns(
       id: "nextReview",
       accessorFn: (entry) => entry.dueAt ?? Number.MAX_SAFE_INTEGER,
       header: m.knownWords.nextReview,
+      meta: { width: "11rem" },
       cell: ({ row }) => {
         const { dueAt } = row.original;
         if (dueAt === null) return <EmptyCell />;
@@ -178,13 +181,14 @@ function wordColumns(
     {
       accessorKey: "updatedAt",
       header: m.knownWords.changed,
+      meta: { width: "7rem" },
       cell: ({ row }) => formatShortDate(new Date(row.original.updatedAt).toISOString()),
     },
     {
       id: "actions",
       header: "",
       enableSorting: false,
-      meta: { actions: true },
+      meta: { actions: true, width: "6rem" },
       cell: ({ row }) => {
         const entry = row.original;
         const busy = changingWord === entry.word;
