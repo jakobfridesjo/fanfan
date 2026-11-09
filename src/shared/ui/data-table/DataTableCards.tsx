@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import { flexRender, type RowData } from "@tanstack/react-table";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { clickableRowProps, type DataTableRow } from "@/shared/lib/table.ts";
@@ -35,12 +35,17 @@ export function DataTableCardSkeletons({ rowCount }: { rowCount: number }) {
   );
 }
 
-function DataTableCard<TData extends RowData>({
+export function DataTableCard<TData extends RowData>({
+  ref,
+  index,
   row,
   onRowClick,
   getRowClassName,
   renderSubRow,
 }: {
+  ref?: Ref<HTMLDivElement>;
+  /** The row's position in the virtualized list, read by `measureElement`. */
+  index?: number;
   row: DataTableRow<TData>;
   onRowClick?: (row: TData) => void;
   getRowClassName?: (row: TData) => string;
@@ -57,6 +62,8 @@ function DataTableCard<TData extends RowData>({
 
   return (
     <div
+      ref={ref}
+      data-index={index}
       data-state={row.getIsSelected() && "selected"}
       {...clickableRowProps(onRowClick, row.original)}
       className={cn(
@@ -119,32 +126,6 @@ function DataTableCard<TData extends RowData>({
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-export function DataTableCards<TData extends RowData>({
-  rows,
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
-}: {
-  rows: DataTableRow<TData>[];
-  onRowClick?: (row: TData) => void;
-  getRowClassName?: (row: TData) => string;
-  renderSubRow?: (row: TData) => ReactNode;
-}) {
-  return (
-    <div>
-      {rows.map((row) => (
-        <DataTableCard
-          key={row.id}
-          row={row}
-          onRowClick={onRowClick}
-          getRowClassName={getRowClassName}
-          renderSubRow={renderSubRow}
-        />
-      ))}
     </div>
   );
 }

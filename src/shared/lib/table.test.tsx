@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/config/search.ts";
 import type { SortingState } from "@tanstack/react-table";
 import { DataTable } from "@/shared/ui/data-table/DataTable.tsx";
-import { DataTablePagination } from "@/shared/ui/data-table/DataTablePagination.tsx";
 import { DataTableToolbar } from "@/shared/ui/data-table/DataTableToolbar.tsx";
 import { useDataTable, type DataTableColumnDef } from "@/shared/lib/table.ts";
 interface Widget {
@@ -32,7 +31,6 @@ function Harness() {
     state: { sorting, globalFilter },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    initialState: { pagination: { pageIndex: 0, pageSize: 2 } },
     globalFilterFn: "auto",
   });
 
@@ -43,7 +41,6 @@ function Harness() {
         Filter to bravo
       </button>
       <DataTable table={table} />
-      <DataTablePagination table={table} />
       <output data-testid="facets">
         {[...table.getColumn("kind")!.getFacetedUniqueValues().keys()]
           .map(String)
@@ -62,6 +59,20 @@ function UncontrolledHarness() {
 
   return <DataTable table={table} />;
 }
+const manyWidgets: Widget[] = Array.from({ length: 1000 }, (_, index) => ({
+  id: `${index}`,
+  name: `Widget ${index}`,
+  kind: "beta",
+}));
+function ScrollingHarness() {
+  const table = useDataTable({ data: manyWidgets, columns });
+
+  return (
+    <div style={{ height: 300, display: "flex", flexDirection: "column" }}>
+      <DataTable table={table} className="min-h-0 grow" />
+    </div>
+  );
+}
 function bodyRowNames() {
   const rows = screen.getByRole("table").first().getByRole("row").all().slice(1);
   return rows.map((row) => row.getByRole("cell").first().element().textContent);
@@ -69,18 +80,17 @@ function bodyRowNames() {
 describe("shared data table features", () => {
   beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
   afterEach(() => vi.useRealTimers());
-  it("paginates, sorts, filters and facets through the registered features", async () => {
+  it("sorts, filters and facets through the registered features", async () => {
     await render(<Harness />);
 
-    // paginatedRowModel: pageSize 2 of 3 rows
-    expect(bodyRowNames()).toEqual(["Charlie", "alpha"]);
+    expect(bodyRowNames()).toEqual(["Charlie", "alpha", "Bravo"]);
 
     // facetedUniqueValues via columnFacetingFeature
     expect(screen.getByTestId("facets").element().textContent).toBe("beta,gamma");
 
     // sortedRowModel + registered sortFns (text/alphanumeric auto resolution)
     await screen.getByRole("button", { name: /Name/ }).click();
-    expect(bodyRowNames()).toEqual(["alpha", "Bravo"]);
+    expect(bodyRowNames()).toEqual(["alpha", "Bravo", "Charlie"]);
 
     // filteredRowModel + globalFilterFn: "auto" (includesString)
     await screen.getByRole("button", { name: "Filter to bravo" }).click();
@@ -89,9 +99,9 @@ describe("shared data table features", () => {
   it("renders string header titles as sortable column headers", async () => {
     await render(<Harness />);
     await screen.getByRole("button", { name: /Sort ascending by Kind/ }).click();
-    expect(bodyRowNames()).toEqual(["Charlie", "alpha"]);
+    expect(bodyRowNames()).toEqual(["Charlie", "alpha", "Bravo"]);
     await screen.getByRole("button", { name: /Sort descending by Kind/ }).click();
-    expect(bodyRowNames()).toEqual(["Bravo", "Charlie"]);
+    expect(bodyRowNames()).toEqual(["Bravo", "Charlie", "alpha"]);
   });
   it("manages sorting internally when only initialState.sorting is given", async () => {
     await render(<UncontrolledHarness />);
@@ -108,5 +118,15 @@ describe("shared data table features", () => {
     await screen.getByPlaceholder("Search").fill("bravo");
     vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
     await expect.poll(bodyRowNames).toEqual(["Bravo"]);
+  });
+  it("renders only the rows near view and more as it scrolls", async () => {
+    await render(<ScrollingHarness />);
+    await expect.poll(() => bodyRowNames()[0]).toBe("Widget 0");
+    expect(bodyRowNames().length).toBeLessThan(50);
+
+    const scroller = screen.getByRole("table").element().closest(".overflow-auto")!;
+    scroller.scrollTop = scroller.scrollHeight;
+    await expect.poll(() => bodyRowNames().at(-1)).toBe("Widget 999");
+    expect(bodyRowNames().length).toBeLessThan(50);
   });
 });

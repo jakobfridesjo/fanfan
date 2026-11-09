@@ -10,7 +10,6 @@ import {
   createFacetedUniqueValues,
   createFilteredRowModel,
   createExpandedRowModel,
-  createPaginatedRowModel,
   createSortedRowModel,
   filterFn_arrIncludes,
   filterFn_equals,
@@ -24,7 +23,6 @@ import {
   type Row,
   type RowData,
   rowExpandingFeature,
-  rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
   sortFn_alphanumeric,
@@ -51,14 +49,12 @@ const dataTableFeatures = tableFeatures({
   columnVisibilityFeature,
   globalFilteringFeature,
   rowExpandingFeature,
-  rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
   expandedRowModel: createExpandedRowModel(),
   facetedRowModel: createFacetedRowModel(),
   facetedUniqueValues: createFacetedUniqueValues(),
   filteredRowModel: createFilteredRowModel(),
-  paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
   filterFns: {
     arrIncludes: filterFn_arrIncludes,
@@ -93,31 +89,15 @@ export type DataTableRow<TData extends RowData> = Row<DataTableFeatures, TData>;
 
 export type DataTableInstance<TData extends RowData> = ReactTable<DataTableFeatures, TData>;
 
-export const DEFAULT_PAGE_SIZE = 100;
-
 export type DataTableOptions<TData extends RowData> = Omit<
   TableOptions<DataTableFeatures, TData>,
   "features"
 >;
 
-/**
- * Builds a table on the shared feature set, defaulting pagination so callers
- * only spell out an initial page size when they need a different one.
- */
 export function useDataTable<TData extends RowData>(
   options: DataTableOptions<TData>
 ): DataTableInstance<TData> {
-  return useTable<DataTableFeatures, TData>({
-    features: dataTableFeatures,
-    ...options,
-    initialState: {
-      ...options.initialState,
-      pagination: options.initialState?.pagination ?? {
-        pageIndex: 0,
-        pageSize: DEFAULT_PAGE_SIZE,
-      },
-    },
-  });
+  return useTable<DataTableFeatures, TData>({ features: dataTableFeatures, ...options });
 }
 
 export function clickableRowProps<TData>(

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { RowData } from "@tanstack/react-table";
 import { DataTable } from "@/shared/ui/data-table/DataTable.tsx";
-import { DataTablePagination } from "@/shared/ui/data-table/DataTablePagination.tsx";
 import { DataTableToolbar } from "@/shared/ui/data-table/DataTableToolbar.tsx";
 import type { DataTableInstance } from "@/shared/lib/table.ts";
 import { Card } from "@/shared/ui/shadcn/card.tsx";
@@ -22,7 +21,6 @@ interface DataTablePanelProps<TData extends RowData> {
   onRowClick?: (row: TData) => void;
   getRowClassName?: (row: TData) => string;
   renderSubRow?: (row: TData) => ReactNode;
-  pageSizeOptions?: number[];
   /** Draws the panel as a card. Disable when a parent card already frames it. */
   bordered?: boolean;
   /**
@@ -46,7 +44,6 @@ export function DataTablePanel<TData extends RowData>({
   onRowClick,
   getRowClassName,
   renderSubRow,
-  pageSizeOptions,
   bordered = true,
   surface = "card",
 }: DataTablePanelProps<TData>) {
@@ -68,27 +65,19 @@ export function DataTablePanel<TData extends RowData>({
           {children}
         </DataTableToolbar>
       )}
-      <div className="min-h-0 grow overflow-auto">
-        {fallback ? (
-          <CenteredEmpty className="h-full">{fallback}</CenteredEmpty>
-        ) : (
-          <DataTable
-            table={table}
-            isLoading={isLoading}
-            skeletonRowCount={skeletonRowCount}
-            emptyStateMessage={emptyStateMessage}
-            onRowClick={onRowClick}
-            getRowClassName={getRowClassName}
-            renderSubRow={renderSubRow}
-            surface={surface}
-          />
-        )}
-      </div>
-      {!fallback && (
-        <DataTablePagination
+      {fallback ? (
+        <CenteredEmpty className="min-h-0 grow">{fallback}</CenteredEmpty>
+      ) : (
+        <DataTable
+          className="min-h-0 grow"
           table={table}
-          pageSizeOptions={pageSizeOptions}
-          className={onPage ? "px-0 pb-0" : undefined}
+          isLoading={isLoading}
+          skeletonRowCount={skeletonRowCount}
+          emptyStateMessage={emptyStateMessage}
+          onRowClick={onRowClick}
+          getRowClassName={getRowClassName}
+          renderSubRow={renderSubRow}
+          surface={surface}
         />
       )}
     </Panel>

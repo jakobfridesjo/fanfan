@@ -1,28 +1,31 @@
 import * as React from "react";
 import { flexRender, type RowData } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/ui/shadcn/table.tsx";
+import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/shadcn/table.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/shadcn/tooltip.tsx";
 import { DataTableColumnHeader } from "@/shared/ui/data-table/DataTableColumnHeader.tsx";
 import {
   CLICKABLE_ROW_CLASSNAME,
-  DataTableCards,
+  DataTableCard,
   DataTableCardSkeletons,
 } from "@/shared/ui/data-table/DataTableCards.tsx";
 import { useIsMobile } from "@/shared/lib/use-mobile.ts";
-import { clickableRowProps, type DataTableInstance } from "@/shared/lib/table.ts";
+import {
+  clickableRowProps,
+  type DataTableInstance,
+  type DataTableRow,
+} from "@/shared/lib/table.ts";
 import { cn } from "@/shared/lib/class-names.ts";
+
+const ESTIMATED_ROW_HEIGHT = 49;
+const ESTIMATED_CARD_HEIGHT = 150;
 
 interface DataTableProps<TData extends RowData> {
   table: DataTableInstance<TData>;
+  /** The table scrolls itself, rendering only the rows in view: give it a bounded height. */
+  className?: string;
   layout?: "table" | "cards";
   isLoading?: boolean;
   skeletonRowCount?: number;
@@ -35,9 +38,94 @@ interface DataTableProps<TData extends RowData> {
   surface?: "card" | "page";
 }
 
-export function DataTable<TData extends RowData>({
+/** The rows in and near view of `scrollRef`, with the space taken by those above and below. */
+function useVirtualRows<TData extends RowData>(
+  rows: DataTableRow<TData>[],
+  estimatedHeight: number
+) {
+  "use no memo";
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  // oxlint-disable-next-line react/incompatible-library -- "use no memo" above, and callers get only fresh values and the stable measureElement
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => estimatedHeight,
+    getItemKey: (index) => rows[index]?.id ?? index,
+    overscan: 10,
+    useFlushSync: false,
+  });
+  const items = virtualizer.getVirtualItems();
+  const last = items.at(-1);
+
+  return {
+    scrollRef,
+    measureElement: virtualizer.measureElement,
+    visible: items.flatMap((item) => {
+      const row = rows[item.index];
+      return row ? [{ index: item.index, row }] : [];
+    }),
+    spaceBefore: items[0]?.start ?? 0,
+    spaceAfter: last ? virtualizer.getTotalSize() - last.end : 0,
+  };
+}
+
+export function DataTable<TData extends RowData>(props: DataTableProps<TData>) {
+  const isMobile = useIsMobile();
+  return props.layout === "cards" || isMobile ? (
+    <DataTableCardList {...props} />
+  ) : (
+    <DataTableGrid {...props} />
+  );
+}
+
+function DataTableCardList<TData extends RowData>({
   table,
-  layout = "table",
+  className,
+  isLoading = false,
+  skeletonRowCount = 20,
+  emptyStateMessage = "No results.",
+  onRowClick,
+  getRowClassName,
+  renderSubRow,
+}: DataTableProps<TData>) {
+  const rows = table.getRowModel().rows;
+  const { scrollRef, measureElement, visible, spaceBefore, spaceAfter } = useVirtualRows(
+    rows,
+    ESTIMATED_CARD_HEIGHT
+  );
+
+  return (
+    <div ref={scrollRef} className={cn("overflow-auto", className)}>
+      {isLoading ? (
+        <DataTableCardSkeletons rowCount={skeletonRowCount} />
+      ) : rows.length === 0 ? (
+        <div className="flex min-h-24 items-center justify-center px-2 py-6 text-center text-muted-foreground">
+          {emptyStateMessage}
+        </div>
+      ) : (
+        <div>
+          {spaceBefore > 0 && <div aria-hidden style={{ height: spaceBefore }} />}
+          {visible.map(({ index, row }) => (
+            <DataTableCard
+              key={row.id}
+              ref={measureElement}
+              index={index}
+              row={row}
+              onRowClick={onRowClick}
+              getRowClassName={getRowClassName}
+              renderSubRow={renderSubRow}
+            />
+          ))}
+          {spaceAfter > 0 && <div aria-hidden style={{ height: spaceAfter }} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DataTableGrid<TData extends RowData>({
+  table,
+  className,
   isLoading = false,
   skeletonRowCount = 20,
   emptyStateMessage = "No results.",
@@ -46,35 +134,25 @@ export function DataTable<TData extends RowData>({
   renderSubRow,
   surface = "card",
 }: DataTableProps<TData>) {
-  const isMobile = useIsMobile();
-  const useCardLayout = layout === "cards" || isMobile;
   const rows = table.getRowModel().rows;
-  const isEmpty = rows.length === 0;
   const visibleColumns = table.getVisibleLeafColumns();
+  const { scrollRef, measureElement, visible, spaceBefore, spaceAfter } = useVirtualRows(
+    rows,
+    ESTIMATED_ROW_HEIGHT
+  );
 
-  if (useCardLayout) {
-    return (
-      <div className="overflow-hidden">
-        {isLoading ? (
-          <DataTableCardSkeletons rowCount={skeletonRowCount} />
-        ) : isEmpty ? (
-          <div className="flex min-h-24 items-center justify-center px-2 py-6 text-center text-muted-foreground">
-            {emptyStateMessage}
-          </div>
-        ) : (
-          <DataTableCards
-            rows={rows}
-            onRowClick={onRowClick}
-            getRowClassName={getRowClassName}
-            renderSubRow={renderSubRow}
-          />
-        )}
-      </div>
+  const spacer = (height: number) =>
+    height > 0 && (
+      <tbody aria-hidden>
+        <tr style={{ height }} />
+      </tbody>
     );
-  }
 
   return (
-    <div className="*:data-[slot=table-container]:overflow-visible">
+    <div
+      ref={scrollRef}
+      className={cn("overflow-auto *:data-[slot=table-container]:overflow-visible", className)}
+    >
       <Table>
         <TableHeader
           className={cn(surface === "card" && "sticky top-0 z-10 bg-card backdrop-blur-md")}
@@ -118,9 +196,9 @@ export function DataTable<TData extends RowData>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            Array.from({ length: skeletonRowCount }).map((_, i) => (
+        {isLoading ? (
+          <tbody>
+            {Array.from({ length: skeletonRowCount }).map((_, i) => (
               // oxlint-disable-next-line react/no-array-index-key -- static placeholders, never reordered
               <TableRow key={`skeleton-${i}`}>
                 {visibleColumns.map((column) => (
@@ -129,10 +207,19 @@ export function DataTable<TData extends RowData>({
                   </TableCell>
                 ))}
               </TableRow>
-            ))
-          ) : rows.length ? (
-            rows.map((row) => (
-              <React.Fragment key={row.id}>
+            ))}
+          </tbody>
+        ) : rows.length ? (
+          <>
+            {spacer(spaceBefore)}
+            {visible.map(({ index, row }) => (
+              // One body per row, so `measureElement` counts an expanded sub-row too.
+              <tbody
+                key={row.id}
+                ref={measureElement}
+                data-index={index}
+                className="last:[&>tr:last-child]:border-0"
+              >
                 <TableRow
                   data-state={row.getIsSelected() && "selected"}
                   {...clickableRowProps(onRowClick, row.original)}
@@ -161,10 +248,13 @@ export function DataTable<TData extends RowData>({
                     </TableCell>
                   </TableRow>
                 )}
-              </React.Fragment>
-            ))
-          ) : (
-            <TableRow>
+              </tbody>
+            ))}
+            {spacer(spaceAfter)}
+          </>
+        ) : (
+          <tbody>
+            <TableRow className="border-0">
               <TableCell
                 colSpan={visibleColumns.length}
                 className="h-24 text-center text-muted-foreground"
@@ -172,8 +262,8 @@ export function DataTable<TData extends RowData>({
                 {emptyStateMessage}
               </TableCell>
             </TableRow>
-          )}
-        </TableBody>
+          </tbody>
+        )}
       </Table>
     </div>
   );
