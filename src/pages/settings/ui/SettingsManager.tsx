@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { BACKGROUNDS, EXAMS, LANGUAGES, NOTATIONS, SCRIPTS } from "@/shared/config/preferences.ts";
+import { Link } from "@tanstack/react-router";
+import { Info } from "lucide-react";
+import {
+  BACKGROUNDS,
+  EXAMS,
+  LANGUAGES,
+  NOTATIONS,
+  SCRIPTS,
+  THEMES,
+} from "@/shared/config/preferences.ts";
 import { LANGUAGE_NAMES, useMessages } from "@/shared/i18n/messages.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import {
@@ -9,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/shadcn/card.tsx";
+import { buttonVariants } from "@/shared/ui/shadcn/button.tsx";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
 
@@ -30,6 +40,8 @@ function SettingsManager() {
     setScript,
     shownNotations,
     setShownNotations,
+    theme,
+    setTheme,
     background,
     setBackground,
     shownExams,
@@ -85,6 +97,16 @@ function SettingsManager() {
           />
         </SettingCard>
 
+        <SettingCard title={m.settings.appearance} description={m.settings.appearanceDescription}>
+          <Choices
+            label={m.settings.appearance}
+            options={THEMES}
+            value={theme}
+            onChange={setTheme}
+            render={(option) => m.settings.appearances[option]}
+          />
+        </SettingCard>
+
         <SettingCard title={m.settings.background} description={m.settings.backgroundDescription}>
           <Choices
             label={m.settings.background}
@@ -104,6 +126,11 @@ function SettingsManager() {
             render={(exam) => m.settings.exams[exam]}
           />
         </SettingCard>
+
+        <Link to="/about" className={buttonVariants({ variant: "ghost" })}>
+          <Info data-icon="inline-start" />
+          {m.settings.about}
+        </Link>
       </div>
     </>
   );

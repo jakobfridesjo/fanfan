@@ -1,12 +1,14 @@
 const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
-const mousePointer = (type: string, x: number, y: number) =>
+type PointerType = "mouse" | "touch";
+
+const pointer = (type: string, x: number, y: number, pointerType: PointerType = "mouse") =>
   new PointerEvent(type, {
     bubbles: true,
     cancelable: true,
     isPrimary: true,
     pointerId: 1,
-    pointerType: "mouse",
+    pointerType,
     button: 0,
     buttons: type === "pointerup" ? 0 : 1,
     clientX: x,
@@ -18,13 +20,26 @@ const centerOf = (element: Element) => {
   return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
 };
 
+interface DragOptions {
+  pointerType?: PointerType;
+  /** How long to rest on `element` before moving. */
+  holdMs?: number;
+}
+
 /**
- * Presses the mouse on `element`, moves it to `end` in `steps` moves one
- * animation frame apart, as motion's drag gesture expects, then releases it.
+ * Presses on `element`, moves to `end` in `steps` moves one animation frame
+ * apart, as motion's drag gesture expects, then releases.
  */
-async function drag(element: Element, end: { x: number; y: number }, steps: number) {
+async function drag(
+  element: Element,
+  end: { x: number; y: number },
+  steps: number,
+  { pointerType = "mouse", holdMs = 0 }: DragOptions = {}
+) {
   const start = centerOf(element);
+  const mousePointer = (type: string, x: number, y: number) => pointer(type, x, y, pointerType);
   element.dispatchEvent(mousePointer("pointerdown", start.x, start.y));
+  if (holdMs > 0) await new Promise((resolve) => setTimeout(resolve, holdMs));
   for (let step = 1; step <= steps; step++) {
     await nextFrame();
     const x = start.x + ((end.x - start.x) * step) / steps;
@@ -42,6 +57,10 @@ export async function dragHorizontally(element: Element, deltaX: number, steps =
 }
 
 /** Drags `element` onto the middle of `target` and releases it there. */
-export async function dragOnto(element: Element, target: Element, steps = 8) {
-  await drag(element, centerOf(target), steps);
+export async function dragOnto(
+  element: Element,
+  target: Element,
+  options: DragOptions & { steps?: number } = {}
+) {
+  await drag(element, centerOf(target), options.steps ?? 8, options);
 }

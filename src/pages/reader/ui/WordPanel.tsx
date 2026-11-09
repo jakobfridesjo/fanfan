@@ -9,7 +9,14 @@ import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { Headword, Readings, SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import type { ReaderWordStatus } from "@/pages/reader/model/use-reader-manager.ts";
 
-interface WordPanelProps {
+/** Solid, in the colour the word has in the text, so it stands apart from the tinted exam levels. */
+const STATUS_BADGE_CLASS: Record<NonNullable<ReaderWordStatus>, string> = {
+  unseen: "bg-primary text-primary-foreground",
+  learning: "bg-warning text-warning-foreground",
+  known: "bg-success text-success-foreground",
+};
+
+export interface WordPanelProps {
   word: string | null;
   card: StudyCard | undefined;
   loading: boolean;
@@ -18,57 +25,72 @@ interface WordPanelProps {
   onSetStatus: (word: string, status: WordStatus) => void;
 }
 
-export function WordPanel({ word, card, loading, failed, status, onSetStatus }: WordPanelProps) {
+export function WordPanel({ word, ...details }: WordPanelProps) {
   const m = useMessages();
-  if (!word) {
-    return (
-      <Card size="sm">
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{m.reader.pickWord}</p>
-        </CardContent>
-      </Card>
-    );
-  }
   return (
-    <Card size="sm" aria-label={word}>
+    <Card size="sm" aria-label={word ?? undefined}>
       <CardContent className="flex flex-col gap-4">
-        {loading ? (
-          <Skeleton className="h-32 w-full motion-reduce:animate-none" />
-        ) : failed || !card ? (
-          <p className="text-sm text-muted-foreground">{m.reader.wordFailed}</p>
+        {word ? (
+          <WordDetails word={word} {...details} />
         ) : (
-          <>
-            <div className="flex items-center gap-2">
-              <Headword card={card} className="text-4xl" />
-              <div className="ml-auto flex items-center gap-2">
-                {status && <Badge variant="outline">{m.reader.statuses[status]}</Badge>}
-                <SpeakButton word={card.word} />
-              </div>
-            </div>
-            <ExamLevels levels={card} />
-            <CangjieCodes card={card} />
-            <Readings card={card} />
-          </>
+          <p className="text-sm text-muted-foreground">{m.reader.pickWord}</p>
         )}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant={status === "learning" ? "default" : "outline"}
-            disabled={status === "learning"}
-            onClick={() => onSetStatus(word, "learning")}
-          >
-            {m.reader.learnIt}
-          </Button>
-          <Button
-            type="button"
-            variant={status === "known" ? "default" : "outline"}
-            disabled={status === "known"}
-            onClick={() => onSetStatus(word, "known")}
-          >
-            {m.reader.knowIt}
-          </Button>
-        </div>
       </CardContent>
     </Card>
+  );
+}
+
+type WordDetailsProps = WordPanelProps & { word: string };
+
+export function WordDetails({
+  word,
+  card,
+  loading,
+  failed,
+  status,
+  onSetStatus,
+}: WordDetailsProps) {
+  const m = useMessages();
+  return (
+    <>
+      {loading ? (
+        <Skeleton className="h-32 w-full motion-reduce:animate-none" />
+      ) : failed || !card ? (
+        <p className="text-sm text-muted-foreground">{m.reader.wordFailed}</p>
+      ) : (
+        <>
+          <div className="flex items-center gap-2">
+            <Headword card={card} className="text-4xl" />
+            <SpeakButton word={card.word} className="ml-auto" />
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 empty:hidden">
+            {status && (
+              <Badge className={STATUS_BADGE_CLASS[status]}>{m.reader.statuses[status]}</Badge>
+            )}
+            <ExamLevels levels={card} />
+          </div>
+          <CangjieCodes card={card} />
+          <Readings card={card} />
+        </>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          type="button"
+          variant={status === "learning" ? "default" : "outline"}
+          disabled={status === "learning"}
+          onClick={() => onSetStatus(word, "learning")}
+        >
+          {m.reader.learnIt}
+        </Button>
+        <Button
+          type="button"
+          variant={status === "known" ? "default" : "outline"}
+          disabled={status === "known"}
+          onClick={() => onSetStatus(word, "known")}
+        >
+          {m.reader.knowIt}
+        </Button>
+      </div>
+    </>
   );
 }

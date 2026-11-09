@@ -80,8 +80,7 @@ describe("routes", () => {
     const { container, router } = await renderRoute("/library");
     expect(container.querySelector(".fireflies canvas")).not.toBeNull();
 
-    await screen.getByRole("button", { name: "Settings" }).click();
-    await screen.getByRole("menuitem", { name: "All settings" }).click();
+    await screen.getByRole("link", { name: "Settings" }).click();
     expect(router.state.location.pathname).toBe("/settings");
     await screen.getByRole("button", { name: "Traditional" }).click();
     await screen.getByRole("button", { name: "Cherry" }).click();

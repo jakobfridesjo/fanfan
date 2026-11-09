@@ -2,6 +2,7 @@ import { BookOpen, FileUp, Pencil, Plus } from "lucide-react";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { ConfirmationDialog } from "@/shared/ui/ConfirmationDialog.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import {
@@ -70,7 +71,22 @@ function LibraryManager() {
           </Button>
         </PageHeader>
       ) : (
-        <PageHeader title={m.library.title} />
+        <PageHeader
+          title={m.library.title}
+          action={
+            documents.length > 0 && (
+              <TooltipIconButton
+                label={m.library.importBook}
+                variant="outline"
+                size="icon"
+                onClick={() => void chooseFile()}
+                disabled={importing}
+              >
+                <Plus />
+              </TooltipIconButton>
+            )
+          }
+        />
       )}
 
       <div className="-m-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1">
@@ -98,7 +114,6 @@ function LibraryManager() {
           )
         ) : (
           <div className={SHELF}>
-            {!openFolder && <ImportSlot onClick={() => void chooseFile()} disabled={importing} />}
             {items.map((item) =>
               item.kind === "folder" ? (
                 <FolderCard
@@ -162,23 +177,6 @@ function ImportProgressCard({ progress }: { progress: ImportProgress }) {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-/** An empty spot on the shelf, waiting for the next book. */
-function ImportSlot({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
-  const m = useMessages();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={m.library.importBook}
-      title={m.library.importBook}
-      className="flex aspect-2/3 items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 text-muted-foreground transition-colors outline-none hover:border-muted-foreground/60 hover:bg-muted/50 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 motion-reduce:transition-none"
-    >
-      <Plus className="size-10" strokeWidth={1.5} />
-    </button>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ThirdPartyLicensesSheet } from "@/pages/about/ui/ThirdPartyLicensesSheet.tsx";
 import { appVersion, buildTime } from "@/shared/config/env.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -29,11 +30,12 @@ const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license
 
 function AboutPage() {
   const m = useMessages();
+  const navigate = useNavigate();
   const [licensesOpen, setLicensesOpen] = useState(false);
 
   return (
     <>
-      <PageHeader title={m.about.title} />
+      <PageHeader title={m.about.title} onBack={() => void navigate({ to: "/settings" })} />
 
       <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1">
         <Card className="w-full max-w-2xl shrink-0">

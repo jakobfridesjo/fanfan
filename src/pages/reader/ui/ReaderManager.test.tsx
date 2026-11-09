@@ -1,5 +1,5 @@
-import { page as screen } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { page, page as screen, userEvent } from "vitest/browser";
+import { afterEach, describe, expect, it } from "vitest";
 import type { WordStatus } from "@/shared/api/commands.ts";
 import { makeCard, makeDocument, makeSection, silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
@@ -42,10 +42,6 @@ function mockBook({ readingSection = 0, known = [] as string[], learning = [] as
       statuses.set(word as string, status as WordStatus);
       return { word, previous: null };
     },
-    mark_words_known: ({ words }) => {
-      for (const word of words as string[]) statuses.set(word, "known");
-      return (words as string[]).length;
-    },
     set_reading_position: () => null,
     // The last paragraph never finishes synthesizing, so playback stays on it.
     speak: ({ text }) => (text === "中文很好！" ? new Promise(() => {}) : silentOpus()),
@@ -57,6 +53,10 @@ const word = (text: string) => screen.getByRole("button", { name: text, exact: t
 
 const spoken = () =>
   [...document.querySelectorAll("[data-spoken]")].map((token) => token.textContent).join("");
+
+afterEach(async () => {
+  await page.viewport(1440, 900);
+});
 
 describe("ReaderManager", () => {
   it("reads aloud from the selected word's phrase, underlining what it speaks", async () => {
@@ -112,6 +112,9 @@ describe("ReaderManager", () => {
     await expect.element(screen.getByText(/Select a word in the text/)).toBeVisible();
     await word("中文").click();
     await expect.element(screen.getByText("Zhōng wén")).toBeVisible();
+    const instances = screen.getByRole("button", { name: "中文", exact: true });
+    await expect.element(instances.nth(0)).toHaveAttribute("aria-pressed", "true");
+    await expect.element(instances.nth(1)).toHaveAttribute("aria-pressed", "false");
     await expect.element(screen.getByText("Chinese language")).toBeVisible();
 
     await screen.getByRole("button", { name: "Learn it" }).click();
@@ -120,18 +123,27 @@ describe("ReaderManager", () => {
     expect(callsTo(calls, "set_word_status")).toEqual([{ word: "中文", status: "learning" }]);
   });
 
-  it("marks the chapter's new words known after confirming", async () => {
-    const { calls } = mockBook({ readingSection: 1, known: ["我们", "很"] });
+  it("shows the selected word in a drawer over the text on phones", async () => {
+    await page.viewport(375, 800);
+    const { calls } = mockBook({ readingSection: 1 });
     await renderPageInRouter(<ReaderManager documentId={1} />);
 
-    await expect.element(word("学习")).toHaveAttribute("data-status", "unseen");
-    await screen.getByRole("button", { name: "Mark new words as known" }).click();
-    await expect.element(screen.getByText(/Mark the 3 new words in this chapter/)).toBeVisible();
-    await screen.getByRole("button", { name: "Mark as known" }).click();
+    await expect.element(word("中文")).toBeVisible();
+    await expect.element(screen.getByText(/Select a word in the text/)).not.toBeInTheDocument();
+    const chapter = screen.getByRole("combobox", { name: "Chapter" }).element();
+    const back = screen.getByRole("button", { name: "Back to library" }).element();
+    expect(chapter.getBoundingClientRect().top).toBeLessThan(back.getBoundingClientRect().bottom);
+    await word("中文").click();
+    const drawer = screen.getByRole("dialog", { name: "中文" });
+    await expect.element(drawer.getByText("Chinese language")).toBeVisible();
 
-    await expect.element(screen.getByText("Marked 3 words as known")).toBeVisible();
-    await expect.element(word("学习")).toHaveAttribute("data-status", "known");
-    expect(callsTo(calls, "mark_words_known")).toEqual([{ words: ["学习", "中文", "好"] }]);
+    await drawer.getByRole("button", { name: "I know it" }).click();
+    await expect.element(word("中文")).toHaveAttribute("data-status", "known");
+    expect(callsTo(calls, "set_word_status")).toEqual([{ word: "中文", status: "known" }]);
+
+    await userEvent.keyboard("{Escape}");
+    await expect.element(drawer).not.toBeInTheDocument();
+    await expect.element(word("中文")).toHaveAttribute("aria-pressed", "false");
   });
 
   it("moves to the next chapter and remembers it", async () => {

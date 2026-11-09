@@ -11,6 +11,7 @@ export function AppDevtools() {
 
   return (
     <TanStackDevtools
+      config={{ hideInAutomation: true }}
       plugins={[
         { name: "TanStack Query", render: <ReactQueryDevtoolsPanel client={queryClient} /> },
         { name: "TanStack Router", render: <TanStackRouterDevtoolsPanel router={router} /> },

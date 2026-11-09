@@ -19,10 +19,6 @@ export const sv: Messages = {
     knownWords: "Kända ord",
     statistics: "Statistik",
     settings: "Inställningar",
-    theme: "Utseende",
-    allSettings: "Alla inställningar",
-    about: "Om",
-    themes: { light: "Ljust", dark: "Mörkt", auto: "Automatiskt" },
   },
   word: {
     playPronunciation: "Spela upp uttal",
@@ -47,7 +43,7 @@ export const sv: Messages = {
     fileFilter: "Böcker",
     emptyTitle: "Inga böcker än",
     emptyDescription:
-      "Importera en .txt, .epub eller .pdf på kinesiska. Dess ord blir en kortlek, de vanligaste först, så att du kan lära dig dem innan du läser.",
+      "Importera en .txt, .epub eller .pdf på kinesiska och läs den med varje ord färgat efter hur väl du kan det. Dess ord blir också en kortlek, de vanligaste först, att lära dig före eller medan du läser.",
     deleteTitle: "Ta bort bok",
     deleteMessage: (title) =>
       `Ta bort ”${title}” från ditt bibliotek? Ord du kan eller håller på att lära dig påverkas inte.`,
@@ -116,13 +112,6 @@ export const sv: Messages = {
     learnIt: "Lär mig det",
     wordFailed: "Kunde inte slå upp ordet",
     saveFailed: "Kunde inte spara ordet",
-    markNewKnown: "Markera nya ord som kända",
-    markNewKnownTitle: "Markera nya ord som kända",
-    markNewKnownMessage: (count) =>
-      `Markera kapitlets ${words(count)} som du inte sorterat som kända? De försvinner ur alla kortlekar, och du kan fortfarande lära dig dem här senare.`,
-    markKnown: "Markera som kända",
-    markedKnown: (count) => `Markerade ${words(count)} som kända`,
-    markFailed: "Kunde inte markera orden",
     readAloud: "Läs upp från det valda ordet",
     pauseReading: "Pausa uppläsningen",
     resumeReading: "Fortsätt uppläsningen",
@@ -249,6 +238,10 @@ export const sv: Messages = {
     notationsDescription:
       "Visa valfri kombination av pinyin, zhuyin (bopomofo, som i Taiwan) och Cangjie-inmatningskoder vid varje ord.",
     notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
+    appearance: "Utseende",
+    appearanceDescription: "Ljust eller mörkt, eller som systemet.",
+    appearances: { light: "Ljust", dark: "Mörkt", auto: "Automatiskt" },
+    about: "Om 翻翻",
   },
   about: {
     title: "Om",

@@ -6,14 +6,15 @@ import {
   scriptAtom,
   shownExamsAtom,
   shownNotationsAtom,
+  themeAtom,
 } from "@/shared/config/preferences.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
-import { renderPage } from "@/shared/test/render.tsx";
+import { renderPageInRouter } from "@/shared/test/render.tsx";
 import SettingsManager from "@/pages/settings/ui/SettingsManager.tsx";
 
 describe("SettingsManager", () => {
   it("translates the interface and formats numbers for the chosen language", async () => {
-    await renderPage(<SettingsManager />);
+    await renderPageInRouter(<SettingsManager />);
 
     await screen.getByRole("button", { name: "Svenska" }).click();
 
@@ -28,7 +29,7 @@ describe("SettingsManager", () => {
   });
 
   it("keeps one script and one background chosen", async () => {
-    await renderPage(<SettingsManager />);
+    await renderPageInRouter(<SettingsManager />);
 
     const traditional = screen.getByRole("button", { name: "Traditional" });
     await traditional.click();
@@ -44,7 +45,7 @@ describe("SettingsManager", () => {
   });
 
   it("turns pinyin, zhuyin and Cangjie on and off on their own", async () => {
-    await renderPage(<SettingsManager />);
+    await renderPageInRouter(<SettingsManager />);
 
     const pinyin = screen.getByRole("button", { name: "Pinyin" });
     await expect.element(pinyin).toHaveAttribute("aria-pressed", "true");
@@ -60,7 +61,7 @@ describe("SettingsManager", () => {
   });
 
   it("turns each exam's levels on and off on their own", async () => {
-    await renderPage(<SettingsManager />);
+    await renderPageInRouter(<SettingsManager />);
 
     const hsk = screen.getByRole("button", { name: "HSK" });
     const tbcl = screen.getByRole("button", { name: "TBCL" });
@@ -75,5 +76,23 @@ describe("SettingsManager", () => {
     await tbcl.click();
     await expect.element(tbcl).toHaveAttribute("aria-pressed", "true");
     expect(shownExamsAtom.get()).toEqual(["tbcl"]);
+  });
+
+  it("saves the chosen appearance", async () => {
+    await renderPageInRouter(<SettingsManager />);
+
+    const dark = screen.getByRole("button", { name: "Dark" });
+    await dark.click();
+
+    await expect.element(dark).toHaveAttribute("aria-pressed", "true");
+    expect(themeAtom.get()).toBe("dark");
+  });
+
+  it("links to the about page", async () => {
+    const { router } = await renderPageInRouter(<SettingsManager />);
+
+    await screen.getByRole("link", { name: "About 翻翻" }).click();
+
+    expect(router.state.location.pathname).toBe("/about");
   });
 });

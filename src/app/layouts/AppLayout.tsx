@@ -3,6 +3,8 @@ import { SidebarInset, SidebarProvider } from "@/shared/ui/shadcn/sidebar.tsx";
 import { AppSidebar } from "@/app/layouts/Sidebar.tsx";
 import { getSidebarDefaultOpen } from "@/app/layouts/sidebar-default-open.ts";
 import { PageBackground } from "@/app/layouts/PageBackground.tsx";
+import { BottomNav } from "@/app/layouts/BottomNav.tsx";
+import { useIsMobile } from "@/shared/lib/use-mobile.ts";
 
 const SIDEBAR_STYLE = {
   "--sidebar-width": "13rem",
@@ -11,6 +13,7 @@ const SIDEBAR_STYLE = {
 
 function AppLayout({ children }: { children: ReactNode }) {
   const [defaultOpen] = useState(getSidebarDefaultOpen);
+  const isMobile = useIsMobile();
 
   return (
     <SidebarProvider
@@ -19,9 +22,10 @@ function AppLayout({ children }: { children: ReactNode }) {
       className="relative isolate h-svh"
     >
       <PageBackground />
-      <AppSidebar />
+      {!isMobile && <AppSidebar />}
       <SidebarInset className="relative z-0 min-h-0 min-w-0 overflow-hidden">
-        {children}
+        <div className="min-h-0 flex-1">{children}</div>
+        {isMobile && <BottomNav />}
       </SidebarInset>
     </SidebarProvider>
   );

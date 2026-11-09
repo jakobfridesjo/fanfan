@@ -19,10 +19,6 @@ export const en = {
     knownWords: "Known words",
     statistics: "Statistics",
     settings: "Settings",
-    theme: "Appearance",
-    allSettings: "All settings",
-    about: "About",
-    themes: { light: "Light", dark: "Dark", auto: "Automatic" },
   },
   word: {
     playPronunciation: "Play pronunciation",
@@ -47,7 +43,7 @@ export const en = {
     fileFilter: "Books",
     emptyTitle: "No books yet",
     emptyDescription:
-      "Import a .txt, .epub or .pdf in Chinese. Its words become a deck, most frequent first, so you can learn them before you read.",
+      "Import a .txt, .epub or .pdf in Chinese and read it with every word coloured by how well you know it. Its words also become a deck, most frequent first, to learn before or while you read.",
     deleteTitle: "Delete Book",
     deleteMessage: (title: string) =>
       `Delete “${title}” from your library? Words you know or are learning stay as they are.`,
@@ -115,13 +111,6 @@ export const en = {
     learnIt: "Learn it",
     wordFailed: "Could not look up the word",
     saveFailed: "Could not save the word",
-    markNewKnown: "Mark new words as known",
-    markNewKnownTitle: "Mark New Words as Known",
-    markNewKnownMessage: (count: number) =>
-      `Mark the ${words(count, "new word")} in this chapter as known? They leave every deck, and you can still learn any of them here later.`,
-    markKnown: "Mark as known",
-    markedKnown: (count: number) => `Marked ${words(count)} as known`,
-    markFailed: "Could not mark the words",
     readAloud: "Read aloud from the selected word",
     pauseReading: "Pause reading",
     resumeReading: "Resume reading",
@@ -248,6 +237,10 @@ export const en = {
     notationsDescription:
       "Show any combination of pinyin, zhuyin (bopomofo, as taught in Taiwan) and Cangjie input codes with each word.",
     notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
+    appearance: "Appearance",
+    appearanceDescription: "Light or dark, or follow the system.",
+    appearances: { light: "Light", dark: "Dark", auto: "Automatic" },
+    about: "About 翻翻",
   },
   about: {
     title: "About",

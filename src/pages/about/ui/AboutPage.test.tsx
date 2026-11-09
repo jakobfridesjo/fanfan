@@ -1,12 +1,12 @@
 import { page as screen, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { languageAtom } from "@/shared/config/preferences.ts";
-import { renderPage } from "@/shared/test/render.tsx";
+import { renderPageInRouter } from "@/shared/test/render.tsx";
 import AboutPage from "@/pages/about/ui/AboutPage.tsx";
 
 describe("AboutPage", () => {
   it("shows the version, credits the bundled data and lists third-party licences", async () => {
-    await renderPage(<AboutPage />);
+    await renderPageInRouter(<AboutPage />);
 
     await expect.element(screen.getByText(/^Version \d+\.\d+\.\d+/)).toBeVisible();
     await expect.element(screen.getByText("By Jakob Fridesjö")).toBeVisible();
@@ -21,5 +21,13 @@ describe("AboutPage", () => {
     languageAtom.set("zh");
     await expect.element(screen.getByText("致谢")).toBeVisible();
     await expect.element(screen.getByText("词典")).toBeVisible();
+  });
+
+  it("goes back to the settings", async () => {
+    const { router } = await renderPageInRouter(<AboutPage />, { initialPath: "/about" });
+
+    await screen.getByRole("button", { name: "Back" }).click();
+
+    expect(router.state.location.pathname).toBe("/settings");
   });
 });

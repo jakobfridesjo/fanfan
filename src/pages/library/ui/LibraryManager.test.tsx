@@ -17,7 +17,7 @@ describe("LibraryManager", () => {
     await expect.element(screen.getByRole("button", { name: "Import book" })).toBeVisible();
   });
 
-  it("shelves books as covers that open their decks", async () => {
+  it("shelves books as covers that open the reader, with a corner that opens the deck", async () => {
     const calls = mockCommands({
       list_documents: () => [
         makeDocument({
@@ -36,8 +36,8 @@ describe("LibraryManager", () => {
     });
     const { container } = await renderPageInRouter(<LibraryManager />);
 
-    const book = screen.getByRole("link", { name: "Study 三体" });
-    await expect.element(book).toHaveAttribute("href", "/library/3");
+    const book = screen.getByRole("link", { name: "Read 三体" });
+    await expect.element(book).toHaveAttribute("href", "/read/3");
     // Without a cover image, the title is the cover.
     await expect.element(book.getByText("三体")).toBeVisible();
     await expect
@@ -46,6 +46,10 @@ describe("LibraryManager", () => {
     await expect
       .element(book.getByRole("meter", { name: "Known words" }))
       .toHaveAttribute("aria-valuetext", "81% known, 5% learning");
+
+    await expect
+      .element(screen.getByRole("link", { name: "Study 三体" }))
+      .toHaveAttribute("href", "/library/3");
 
     await expect
       .poll(() => container.querySelector("img")?.getAttribute("src"))
@@ -61,8 +65,19 @@ describe("LibraryManager", () => {
     });
     const { router } = await renderPageInRouter(<LibraryManager />);
 
-    await screen.getByRole("button", { name: "Read 三体" }).click();
+    await screen.getByRole("link", { name: "Read 三体" }).click();
     await expect.poll(() => router.state.location.pathname).toBe("/read/3");
+  });
+
+  it("studies a book's words from its corner", async () => {
+    mockCommands({
+      list_documents: () => [makeDocument({ id: 3, title: "三体" })],
+      list_folders: () => [],
+    });
+    const { router } = await renderPageInRouter(<LibraryManager />);
+
+    await screen.getByRole("link", { name: "Study 三体" }).click();
+    await expect.poll(() => router.state.location.pathname).toBe("/library/3");
   });
 
   it("imports a chosen file, reports progress, then shelves the new book", async () => {
@@ -92,7 +107,7 @@ describe("LibraryManager", () => {
     result.resolve(imported);
 
     await expect.element(screen.getByText("Imported “西游记”")).toBeVisible();
-    await expect.element(screen.getByRole("link", { name: "Study 西游记" })).toBeVisible();
+    await expect.element(screen.getByRole("link", { name: "Read 西游记" })).toBeVisible();
     expect(router.state.location.pathname).toBe("/");
     expect(callsTo(calls, "import_document")[0]?.path).toBe("/home/me/books/西游记.epub");
   });
@@ -225,8 +240,8 @@ describe("LibraryManager", () => {
       const { router } = await renderPageInRouter(<LibraryManager />);
 
       await dragOnto(
-        screen.getByRole("link", { name: "Study 活着" }).element(),
-        screen.getByRole("link", { name: "Study 三体" }).element()
+        screen.getByRole("link", { name: "Read 活着" }).element(),
+        screen.getByRole("link", { name: "Read 三体" }).element()
       );
       const dialog = screen.getByRole("dialog", { name: "New Folder" });
       await expect.element(dialog).toBeVisible();
@@ -237,10 +252,23 @@ describe("LibraryManager", () => {
 
       const folder = screen.getByRole("button", { name: "Open folder 小说, 2 books" });
       await expect.element(folder).toBeVisible();
-      await expect
-        .element(screen.getByRole("link", { name: "Study 三体" }))
-        .not.toBeInTheDocument();
+      await expect.element(screen.getByRole("link", { name: "Read 三体" })).not.toBeInTheDocument();
       expect(callsTo(calls, "create_folder")).toEqual([{ name: "小说", documentIds: [1, 2] }]);
+    });
+
+    it("drags a book by touch only after a hold, so a swipe scrolls instead", async () => {
+      mockShelf([makeDocument({ id: 1, title: "三体" }), makeDocument({ id: 2, title: "活着" })]);
+      await renderPageInRouter(<LibraryManager />);
+      const dragged = screen.getByRole("link", { name: "Read 活着" }).element();
+      const target = screen.getByRole("link", { name: "Read 三体" }).element();
+
+      await dragOnto(dragged, target, { pointerType: "touch" });
+      await expect
+        .element(screen.getByRole("dialog", { name: "New Folder" }))
+        .not.toBeInTheDocument();
+
+      await dragOnto(dragged, target, { pointerType: "touch", holdMs: 600 });
+      await expect.element(screen.getByRole("dialog", { name: "New Folder" })).toBeVisible();
     });
 
     it("needs a name and makes no folder when cancelled", async () => {
@@ -251,8 +279,8 @@ describe("LibraryManager", () => {
       await renderPageInRouter(<LibraryManager />);
 
       await dragOnto(
-        screen.getByRole("link", { name: "Study 活着" }).element(),
-        screen.getByRole("link", { name: "Study 三体" }).element()
+        screen.getByRole("link", { name: "Read 活着" }).element(),
+        screen.getByRole("link", { name: "Read 三体" }).element()
       );
       const dialog = screen.getByRole("dialog", { name: "New Folder" });
       await dialog.getByRole("button", { name: "Create" }).click();
@@ -260,7 +288,7 @@ describe("LibraryManager", () => {
 
       await dialog.getByRole("button", { name: "Cancel" }).click();
       await expect.element(dialog).not.toBeInTheDocument();
-      await expect.element(screen.getByRole("link", { name: "Study 活着" })).toBeVisible();
+      await expect.element(screen.getByRole("link", { name: "Read 活着" })).toBeVisible();
       expect(callsTo(calls, "create_folder")).toEqual([]);
     });
 
@@ -276,7 +304,7 @@ describe("LibraryManager", () => {
       await renderPageInRouter(<LibraryManager />);
 
       await dragOnto(
-        screen.getByRole("link", { name: "Study 围城" }).element(),
+        screen.getByRole("link", { name: "Read 围城" }).element(),
         screen.getByRole("button", { name: "Open folder 小说, 2 books" }).element()
       );
 
@@ -299,10 +327,8 @@ describe("LibraryManager", () => {
       await renderPageInRouter(<LibraryManager />);
 
       await screen.getByRole("button", { name: "Open folder 小说, 2 books" }).click();
-      await expect.element(screen.getByRole("link", { name: "Study 三体" })).toBeVisible();
-      await expect
-        .element(screen.getByRole("link", { name: "Study 围城" }))
-        .not.toBeInTheDocument();
+      await expect.element(screen.getByRole("link", { name: "Read 三体" })).toBeVisible();
+      await expect.element(screen.getByRole("link", { name: "Read 围城" })).not.toBeInTheDocument();
       await expect
         .element(screen.getByRole("button", { name: "Import book" }))
         .not.toBeInTheDocument();
@@ -316,14 +342,12 @@ describe("LibraryManager", () => {
       expect(callsTo(calls, "rename_folder")).toEqual([{ id: 7, name: "科幻" }]);
 
       await screen.getByRole("button", { name: "Take 三体 out of the folder" }).click();
-      await expect
-        .element(screen.getByRole("link", { name: "Study 三体" }))
-        .not.toBeInTheDocument();
+      await expect.element(screen.getByRole("link", { name: "Read 三体" })).not.toBeInTheDocument();
 
       // Taking out the last book empties the folder, which leaves the shelf with loose books.
       await screen.getByRole("button", { name: "Take 活着 out of the folder" }).click();
-      await expect.element(screen.getByRole("link", { name: "Study 围城" })).toBeVisible();
-      await expect.element(screen.getByRole("link", { name: "Study 三体" })).toBeVisible();
+      await expect.element(screen.getByRole("link", { name: "Read 围城" })).toBeVisible();
+      await expect.element(screen.getByRole("link", { name: "Read 三体" })).toBeVisible();
       expect(callsTo(calls, "move_document")).toEqual([
         { documentId: 1, folderId: null },
         { documentId: 2, folderId: null },

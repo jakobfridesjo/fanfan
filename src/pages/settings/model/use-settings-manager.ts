@@ -5,11 +5,13 @@ import {
   scriptAtom,
   shownExamsAtom,
   shownNotationsAtom,
+  themeAtom,
   type Background,
   type Exam,
   type Language,
   type Notation,
   type Script,
+  type Theme,
 } from "@/shared/config/preferences.ts";
 
 /** The preferences apply as they change: no form, nothing to save. */
@@ -21,6 +23,8 @@ export function useSettingsManager() {
     setScript: (script: Script) => scriptAtom.set(script),
     shownNotations: useSelector(shownNotationsAtom),
     setShownNotations: (notations: Notation[]) => shownNotationsAtom.set(notations),
+    theme: useSelector(themeAtom),
+    setTheme: (theme: Theme) => themeAtom.set(theme),
     background: useSelector(backgroundAtom),
     setBackground: (background: Background) => backgroundAtom.set(background),
     shownExams: useSelector(shownExamsAtom),

@@ -33,7 +33,7 @@ const SAVE_POSITION_MS = 800;
 export type ReaderWordStatus = WordStatus | "unseen" | null;
 
 /** A token in the section: where reading aloud starts. */
-interface TokenPosition {
+export interface TokenPosition {
   paragraph: number;
   token: number;
 }
@@ -59,7 +59,6 @@ export function useReaderManager(documentId: number) {
   const statuses = useQuery(statusesOptions);
   const statusOf = (word: string): ReaderWordStatus =>
     statuses.data ? (statuses.data[word] ?? "unseen") : null;
-  const newWords = statuses.data ? words.filter((word) => !statuses.data[word]) : [];
 
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [cursor, setCursor] = useState<TokenPosition | null>(null);
@@ -78,14 +77,6 @@ export function useReaderManager(documentId: number) {
       })),
     onError: (error) => readerToast.error(commandErrorMessage(error, m.reader.saveFailed)),
   });
-
-  const markNewKnownMutation = useMutation({
-    mutationFn: commands.markWordsKnown,
-    meta: { changesStudyData: true },
-    onSuccess: (added) => readerToast.success(m.reader.markedKnown(added)),
-    onError: (error) => readerToast.error(commandErrorMessage(error, m.reader.markFailed)),
-  });
-  const [confirmingMarkNewKnown, setConfirmingMarkNewKnown] = useState(false);
 
   const rememberPosition = (readingSection: number, readingParagraph: number) =>
     commands
@@ -118,6 +109,11 @@ export function useReaderManager(documentId: number) {
     if (readAloud.status === "paused") readAloud.stop();
   };
 
+  const deselectWord = () => {
+    setSelectedWord(null);
+    setCursor(null);
+  };
+
   const toggleReadAloud = () => {
     if (readAloud.status === "playing") return readAloud.pause();
     if (readAloud.status === "paused") return readAloud.resume();
@@ -130,10 +126,7 @@ export function useReaderManager(documentId: number) {
   };
 
   useKeyBindings({
-    Escape: () => {
-      setSelectedWord(null);
-      setCursor(null);
-    },
+    Escape: deselectWord,
     " ": toggleReadAloud,
   });
 
@@ -152,7 +145,9 @@ export function useReaderManager(documentId: number) {
     },
     statusOf,
     selectedWord,
+    selectedToken: cursor,
     selectToken,
+    deselectWord,
     readAloudStatus: readAloud.status,
     readAloudLoading: readAloud.loading,
     spokenPhrase: readAloud.phrase,
@@ -162,15 +157,6 @@ export function useReaderManager(documentId: number) {
     wordCardLoading: wordCard.isLoading,
     wordCardFailed: wordCard.isError,
     setStatus: (word: string, status: WordStatus) => statusMutation.mutate({ word, status }),
-    newWordCount: newWords.length,
-    confirmingMarkNewKnown,
-    askToMarkNewKnown: () => setConfirmingMarkNewKnown(true),
-    cancelMarkNewKnown: () => setConfirmingMarkNewKnown(false),
-    markNewKnown: () =>
-      markNewKnownMutation.mutate(newWords, {
-        onSettled: () => setConfirmingMarkNewKnown(false),
-      }),
-    markingNewKnown: markNewKnownMutation.isPending,
   };
 }
 

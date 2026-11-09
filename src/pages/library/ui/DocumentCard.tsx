@@ -1,9 +1,8 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpen, FolderOutput, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookCheck, FolderOutput, Trash2 } from "lucide-react";
 import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { cn } from "@/shared/lib/class-names.ts";
-import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { coverageOf, formatShare } from "@/entities/document/model/coverage.ts";
 import { CoverageStrip } from "@/entities/document/ui/CoverageStrip.tsx";
 import { DocumentCover } from "@/entities/document/ui/DocumentCover.tsx";
@@ -13,6 +12,16 @@ import {
   type ShelfDrag,
 } from "@/pages/library/model/use-shelf-drag.ts";
 import { LANDING, POSTER } from "@/pages/library/ui/poster.ts";
+
+/** A translucent triangle in a corner of the cover, holding an icon. */
+const CORNER =
+  "pointer-events-auto absolute size-12 bg-background/55 text-foreground backdrop-blur-sm transition-colors outline-none hover:bg-background/85 focus-visible:bg-primary focus-visible:text-primary-foreground motion-reduce:transition-none [&_svg]:absolute [&_svg]:size-4";
+const TOP_RIGHT =
+  "top-0 right-0 [clip-path:polygon(0_0,100%_0,100%_100%)] [&_svg]:top-2 [&_svg]:right-2";
+const BOTTOM_RIGHT =
+  "right-0 bottom-1.5 [clip-path:polygon(100%_0,100%_100%,0_100%)] [&_svg]:right-2 [&_svg]:bottom-2";
+const BOTTOM_LEFT =
+  "bottom-1.5 left-0 [clip-path:polygon(0_0,100%_100%,0_100%)] [&_svg]:bottom-2 [&_svg]:left-2";
 
 interface DocumentCardProps {
   document: DocumentSummary;
@@ -26,6 +35,11 @@ interface DocumentCardProps {
   /** Shown inside a folder. */
   onTakeOut?: () => void;
 }
+
+/**
+ * A cover that opens the reader, with corners that delete the book (top right),
+ * study its words (bottom right) and, in a folder, take it out (bottom left).
+ */
 export function DocumentCard({
   document,
   drag,
@@ -36,7 +50,7 @@ export function DocumentCard({
   onTakeOut,
 }: DocumentCardProps) {
   const m = useMessages();
-  const navigate = useNavigate();
+  const params = { documentId: document.id };
   const { known, learning } = coverageOf(document);
   const details = [
     document.title,
@@ -50,57 +64,55 @@ export function DocumentCard({
       {...(acceptsDrop && dropTargetProps({ kind: "document", id: document.id }))}
       style={drag ? { translate: `${drag.offset.x}px ${drag.offset.y}px` } : undefined}
       className={cn(
-        "group relative touch-none select-none",
-        drag && "pointer-events-none z-10 opacity-80"
+        "group relative select-none [-webkit-touch-callout:none]",
+        drag && "pointer-events-none z-10 scale-105 opacity-80"
       )}
     >
       <Link
-        to="/library/$documentId"
-        params={{ documentId: document.id }}
+        to="/read/$documentId"
+        params={params}
         draggable={false}
-        aria-label={m.library.studyBook(document.title)}
+        aria-label={m.library.readBook(document.title)}
         title={details}
         className={cn(POSTER, "bg-muted", landing && LANDING, drag && "shadow-xl")}
       >
         <DocumentCover document={document} />
         <CoverageStrip document={document} className="absolute inset-x-0 bottom-0" />
       </Link>
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 has-focus-visible:opacity-100 motion-reduce:transition-none">
-        <TooltipIconButton
-          label={m.library.readBook(document.title)}
-          tooltip={m.library.read}
-          variant="secondary"
-          size="icon-sm"
-          onClick={() =>
-            void navigate({ to: "/read/$documentId", params: { documentId: document.id } })
-          }
-          className="shadow-sm"
-        >
-          <BookOpen />
-        </TooltipIconButton>
-        {onTakeOut && (
-          <TooltipIconButton
-            label={m.library.takeOutOfFolder(document.title)}
-            tooltip={m.library.takeOut}
-            variant="secondary"
-            size="icon-sm"
-            onClick={onTakeOut}
-            className="shadow-sm"
+      {!drag && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl transition-transform group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+          <button
+            type="button"
+            aria-label={m.library.deleteBook(document.title)}
+            title={m.common.delete}
+            onClick={onDelete}
+            className={cn(CORNER, TOP_RIGHT)}
           >
-            <FolderOutput />
-          </TooltipIconButton>
-        )}
-        <TooltipIconButton
-          label={m.library.deleteBook(document.title)}
-          tooltip={m.common.delete}
-          variant="secondary"
-          size="icon-sm"
-          onClick={onDelete}
-          className="shadow-sm"
-        >
-          <Trash2 />
-        </TooltipIconButton>
-      </div>
+            <Trash2 />
+          </button>
+          <Link
+            to="/library/$documentId"
+            params={params}
+            draggable={false}
+            aria-label={m.library.studyBook(document.title)}
+            title={m.library.wordsToSort(document.unseenWords, document.uniqueWords)}
+            className={cn(CORNER, BOTTOM_RIGHT)}
+          >
+            <BookCheck />
+          </Link>
+          {onTakeOut && (
+            <button
+              type="button"
+              aria-label={m.library.takeOutOfFolder(document.title)}
+              title={m.library.takeOut}
+              onClick={onTakeOut}
+              className={cn(CORNER, BOTTOM_LEFT)}
+            >
+              <FolderOutput />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

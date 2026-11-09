@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { cn } from "@/shared/lib/class-names.ts";
 import type { ReaderSection, SpokenPhrase } from "@/shared/api/commands.ts";
-import type { ReaderWordStatus } from "@/pages/reader/model/use-reader-manager.ts";
+import type { ReaderWordStatus, TokenPosition } from "@/pages/reader/model/use-reader-manager.ts";
 import { useSectionScroll } from "@/pages/reader/model/use-section-scroll.ts";
 import { Paragraph, type SelectToken } from "@/pages/reader/ui/Paragraph.tsx";
 
@@ -10,10 +11,12 @@ interface SectionTextProps {
   initialParagraph: number;
   onParagraphReached: (paragraph: number) => void;
   statusOf: (word: string) => ReaderWordStatus;
-  selectedWord: string | null;
+  selectedToken: TokenPosition | null;
   onSelectToken: SelectToken;
   spokenPhrase: SpokenPhrase | null;
   footer: ReactNode;
+  /** The word drawer covers the bottom of the text, so the text can scroll past it. */
+  drawerOpen: boolean;
 }
 
 /** Only the paragraphs in view are rendered: one EPUB chapter can be a whole book. */
@@ -22,10 +25,11 @@ export function SectionText({
   initialParagraph,
   onParagraphReached,
   statusOf,
-  selectedWord,
+  selectedToken,
   onSelectToken,
   spokenPhrase,
   footer,
+  drawerOpen,
 }: SectionTextProps) {
   const { scrollRef, measureElement, items, totalSize } = useSectionScroll({
     paragraphCount: section.paragraphs.length,
@@ -35,7 +39,11 @@ export function SectionText({
   });
 
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" data-testid="reader-text">
+    <div
+      ref={scrollRef}
+      className={cn("min-h-0 flex-1 overflow-y-auto", drawerOpen && "scroll-pb-[45dvh]")}
+      data-testid="reader-text"
+    >
       <div className="relative mx-auto w-full max-w-2xl" style={{ height: totalSize }}>
         {items.map((item) => (
           <div
@@ -49,7 +57,7 @@ export function SectionText({
               index={item.index}
               tokens={section.paragraphs[item.index] ?? []}
               statusOf={statusOf}
-              selectedWord={selectedWord}
+              selectedToken={selectedToken?.paragraph === item.index ? selectedToken.token : null}
               onSelectToken={onSelectToken}
               spoken={spokenPhrase?.paragraph === item.index ? spokenPhrase : null}
             />
@@ -57,6 +65,7 @@ export function SectionText({
         ))}
       </div>
       {footer}
+      {drawerOpen && <div aria-hidden className="h-[45dvh]" />}
     </div>
   );
 }

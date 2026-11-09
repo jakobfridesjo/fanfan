@@ -1,7 +1,6 @@
 import React from "react";
 import { ArrowLeft, MoreHorizontal } from "lucide-react";
 
-import { SidebarTrigger } from "@/shared/ui/shadcn/sidebar.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import {
   DropdownMenu,
@@ -46,6 +45,10 @@ interface PageHeaderProps {
   backLabel?: string;
   /** Centered between the title and the actions, e.g. a search box; below the title on phones. */
   center?: React.ReactNode;
+  /** Keeps `center` in the row on phones too: for a compact picker, not a search box. */
+  centerInline?: boolean;
+  /** The page's main action: stays beside the title on phones instead of folding into the menu. */
+  action?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -113,13 +116,21 @@ function ActionsMenu({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function PageHeader({ title, onBack, backLabel, center, children }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  onBack,
+  backLabel,
+  center,
+  centerInline = false,
+  action,
+  children,
+}: PageHeaderProps) {
   const m = useMessages();
   const isMobile = useIsMobile();
   const hasActions = Boolean(children);
   const { rowRef, titleRef, centerRef, actionsRef, fits } = useActionsFit(hasActions && !isMobile);
   const collapsed = isMobile || !fits;
-  const centered = Boolean(center) && !isMobile;
+  const centered = Boolean(center) && (centerInline || !isMobile);
 
   return (
     <div className="mb-1.5 flex shrink-0 flex-col gap-3 sm:min-h-10 sm:justify-center">
@@ -134,7 +145,6 @@ export function PageHeader({ title, onBack, backLabel, center, children }: PageH
         )}
       >
         <div ref={titleRef} className="flex min-w-0 items-center gap-2">
-          {isMobile && <SidebarTrigger />}
           {onBack && <BackButton onBack={onBack} backLabel={backLabel ?? m.common.back} />}
           <div className="min-w-0 text-lg font-medium">{title}</div>
           {headerText && <HeaderLabel />}
@@ -144,18 +154,19 @@ export function PageHeader({ title, onBack, backLabel, center, children }: PageH
             {center}
           </div>
         )}
-        {hasActions &&
-          (collapsed ? (
-            <div className="flex justify-end">
-              <ActionsMenu>{children}</ActionsMenu>
-            </div>
-          ) : (
-            <div className="flex min-w-0 justify-end">
-              <div ref={actionsRef} className="flex w-max shrink-0 items-center gap-2">
-                {children}
-              </div>
-            </div>
-          ))}
+        {(hasActions || action) && (
+          <div className="flex min-w-0 items-center justify-end gap-2">
+            {hasActions &&
+              (collapsed ? (
+                <ActionsMenu>{children}</ActionsMenu>
+              ) : (
+                <div ref={actionsRef} className="flex w-max shrink-0 items-center gap-2">
+                  {children}
+                </div>
+              ))}
+            {action}
+          </div>
+        )}
       </div>
       {center && !centered && <div className="flex flex-wrap items-center gap-2">{center}</div>}
     </div>

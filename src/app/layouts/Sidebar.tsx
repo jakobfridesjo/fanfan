@@ -1,7 +1,5 @@
-import { useEffect } from "react";
-import { Link, useLocation, useMatchRoute, type LinkProps } from "@tanstack/react-router";
+import { Link, useMatchRoute } from "@tanstack/react-router";
 import { AppLogo } from "@/shared/ui/AppLogo.tsx";
-import { ChartColumn, GraduationCap, Library, ListChecks, type LucideIcon } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,68 +12,37 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarTrigger,
-  useSidebar,
 } from "@/shared/ui/shadcn/sidebar.tsx";
 import { useMessages } from "@/shared/i18n/messages.ts";
-import type { Messages } from "@/shared/i18n/messages-en.ts";
-import { SettingsMenu } from "@/app/layouts/SettingsMenu.tsx";
-
-type NavLabel = Exclude<
-  keyof Messages["nav"],
-  "settings" | "theme" | "allSettings" | "about" | "themes"
->;
-
-interface NavItem {
-  label: NavLabel;
-  /** Where the entry navigates. Also its active-state check — see `renderItem`. */
-  link: LinkProps;
-  icon: LucideIcon;
-  fuzzy?: boolean;
-}
+import {
+  settingsNavItem,
+  studyNavItems,
+  type NavItem,
+  type NavLabel,
+} from "@/app/layouts/nav-items.ts";
 
 interface NavGroup {
   label: NavLabel;
   items: NavItem[];
 }
 
-const navGroups: NavGroup[] = [
-  {
-    label: "study",
-    items: [
-      { label: "library", link: { to: "/library" }, icon: Library, fuzzy: true },
-      { label: "review", link: { to: "/review" }, icon: GraduationCap },
-      { label: "knownWords", link: { to: "/known-words" }, icon: ListChecks },
-      { label: "statistics", link: { to: "/statistics" }, icon: ChartColumn },
-    ],
-  },
-];
+const navGroups: NavGroup[] = [{ label: "study", items: studyNavItems }];
 
+const menuButtonClassName =
+  "h-8 px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:size-4";
+
+/** Desktop navigation; phones get `BottomNav` instead. */
 export function AppSidebar() {
-  const pathname = useLocation({ select: (loc) => loc.pathname });
   const matchRoute = useMatchRoute();
-  const { isMobile, setOpenMobile } = useSidebar();
   const m = useMessages();
 
-  useEffect(() => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  }, [isMobile, pathname, setOpenMobile]);
-
-  // Active state comes from the router matching the entry's own link, so a
-  // parameterised route needs no second, hand-written copy of its pathname.
   const renderItem = ({ label, link, icon: Icon, fuzzy = false }: NavItem) => (
     <SidebarMenuItem key={label} className="my-0.5">
       <SidebarMenuButton
         isActive={matchRoute({ ...link, fuzzy }) !== false}
         tooltip={m.nav[label]}
         render={<Link {...link} />}
-        className="h-8 px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&_svg]:size-4"
-        onClick={() => {
-          if (isMobile) {
-            setOpenMobile(false);
-          }
-        }}
+        className={menuButtonClassName}
       >
         <Icon />
         <span>{m.nav[label]}</span>
@@ -113,11 +80,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SettingsMenu />
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarMenu>{renderItem(settingsNavItem)}</SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

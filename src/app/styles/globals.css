@@ -376,6 +376,17 @@
   @apply relative animate-none! bg-popover/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
 }
 
+/*
+ * The drawer is a card that floats over the page: the theme's tinted card colour and ring instead
+ * of a solid popover, blurred so the text it covers does not show through sharply.
+ */
+[data-slot="drawer-popup"] {
+  @apply border-transparent bg-card text-card-foreground ring-1 ring-foreground/5 backdrop-blur-2xl backdrop-saturate-150 dark:border-transparent dark:ring-foreground/10;
+}
+[data-slot="drawer-swipe-handle"] {
+  @apply after:bg-foreground/25;
+}
+
 /* An empty state's icon takes the same accent wash, so it reads as the theme's colour, not grey. */
 [data-slot="empty-icon"][data-variant="icon"] {
   @apply bg-sidebar-primary/18 text-primary-text;
@@ -390,6 +401,20 @@
 [data-slot="toggle"],
 [data-slot="toggle-group-item"] {
   @apply hover:bg-foreground/5 aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
+}
+
+/* Navigation links mark the current page like the sidebar does: the accent wash, not opaque grey. */
+[data-slot="navigation-menu-link"] {
+  &:focus {
+    background: transparent;
+  }
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded="true"],
+  &[data-active="true"] {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+  }
 }
 
 /* Sea: deep blue-teal water lit from below by crystals, with lights rising through it. */
