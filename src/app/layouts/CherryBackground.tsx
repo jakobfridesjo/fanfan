@@ -1,11 +1,7 @@
 import { SceneCanvas } from "@/app/layouts/SceneCanvas.tsx";
-import type { Scene } from "@/app/layouts/webgl-scene.ts";
+import { between, type Scene } from "@/app/layouts/webgl-scene.ts";
 
 const PETAL_COUNT = 36;
-
-function between(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
 
 const PETALS: Scene = {
   floatsPerParticle: 8,

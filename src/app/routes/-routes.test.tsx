@@ -6,6 +6,7 @@ import {
   makeDocument,
   makeReviewQueue,
   makeSection,
+  makeStatistics,
   makeWordEntry,
 } from "@/shared/test/fixtures.ts";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -91,6 +92,17 @@ describe("routes", () => {
     await expect.element(screen.getByText("學習", { exact: true }).first()).toBeVisible();
     const scripts = callsTo(calls, "get_review_queue").map((args) => args.script);
     expect(new Set(scripts)).toEqual(new Set(["traditional"]));
+  });
+
+  it("keeps the statistics range in the URL", async () => {
+    const calls = mockCommands({ get_statistics: () => makeStatistics() });
+    const { router } = await renderRoute("/statistics?days=7");
+
+    await expect.poll(() => callsTo(calls, "get_statistics")).toEqual([{ days: 7 }]);
+    await screen.getByRole("button", { name: "90 days" }).click();
+
+    await expect.poll(() => router.state.location.search).toEqual({ days: 90 });
+    await expect.poll(() => callsTo(calls, "get_statistics")).toContainEqual({ days: 90 });
   });
 
   it("shows the not-found page for an unknown path or a malformed book id", async () => {

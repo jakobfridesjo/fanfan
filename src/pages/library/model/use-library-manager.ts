@@ -9,7 +9,7 @@ import {
   type Folder,
   type ImportStage,
 } from "@/shared/api/commands.ts";
-import { documentsQuery, foldersQuery, queryKeys } from "@/shared/api/queries.ts";
+import { documentsQuery, foldersQuery } from "@/shared/api/queries.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { actionToasts } from "@/shared/lib/toast.ts";
 import { useHistoryState } from "@/shared/lib/use-history-state.ts";
@@ -97,8 +97,8 @@ export function useLibraryManager() {
 
   const refreshShelf = () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.folders }),
+      queryClient.invalidateQueries({ queryKey: documentsQuery().queryKey }),
+      queryClient.invalidateQueries({ queryKey: foldersQuery().queryKey }),
     ]);
 
   const importMutation = useMutation({
@@ -109,7 +109,7 @@ export function useLibraryManager() {
     onMutate: (path) => setProgress({ fileName: fileNameOf(path), stage: null }),
     onSettled: () => setProgress(null),
     onSuccess: async (document) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.documents });
+      await queryClient.invalidateQueries({ queryKey: documentsQuery().queryKey });
       libraryToast.success(m.library.imported(document.title));
     },
     onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.importFailed)),
@@ -149,7 +149,7 @@ export function useLibraryManager() {
     mutationFn: ({ id, name }: { id: number; name: string }) => commands.renameFolder(id, name),
     onSuccess: async () => {
       setFolderDialog(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.folders });
+      await queryClient.invalidateQueries({ queryKey: foldersQuery().queryKey });
     },
     onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.folderFailed)),
   });

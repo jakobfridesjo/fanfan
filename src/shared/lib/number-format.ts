@@ -1,9 +1,5 @@
 import { appLocale } from "@/shared/lib/locale.ts";
 
-export function formatDecimal(value: number): string {
-  return value.toLocaleString(appLocale(), { maximumFractionDigits: 1 });
-}
-
 export function formatInteger(value: number): string {
   return value.toLocaleString(appLocale(), { maximumFractionDigits: 0 });
 }
@@ -33,8 +29,4 @@ export function formatDuration(minutes: number): string {
   if (hours > 0) return join(`${hours} h`, remainingMinutes, "min");
   if (remainingMinutes > 0) return join(`${remainingMinutes} min`, seconds, "s");
   return `${seconds} s`;
-}
-
-export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : plural}`;
 }

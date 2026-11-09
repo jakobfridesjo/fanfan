@@ -13,7 +13,8 @@ import {
 } from "@/shared/ui/shadcn/dropdown-menu.tsx";
 import { SidebarMenuButton, useSidebar } from "@/shared/ui/shadcn/sidebar.tsx";
 import { useMessages } from "@/shared/i18n/messages.ts";
-import { useThemePreference } from "@/app/providers/theme-context.ts";
+import { useSelector } from "@tanstack/react-store";
+import { THEMES, themeAtom } from "@/shared/config/preferences.ts";
 
 const themeOptions = [
   { value: "light", icon: Sun },
@@ -25,12 +26,12 @@ export function SettingsMenu() {
   const m = useMessages();
   const matchRoute = useMatchRoute();
   const { isMobile, setOpenMobile } = useSidebar();
-  const { themeSetting, setThemeSetting } = useThemePreference();
+  const theme = useSelector(themeAtom);
 
   const selectTheme = (next: string) => {
-    const selectedTheme = themeOptions.find((option) => option.value === next);
-    if (selectedTheme) {
-      setThemeSetting(selectedTheme.value);
+    const selected = THEMES.find((value) => value === next);
+    if (selected) {
+      themeAtom.set(selected);
     }
   };
 
@@ -51,7 +52,7 @@ export function SettingsMenu() {
       <DropdownMenuContent side="top" align="start" className="w-max min-w-48">
         <DropdownMenuGroup>
           <DropdownMenuLabel>{m.nav.theme}</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={themeSetting} onValueChange={selectTheme}>
+          <DropdownMenuRadioGroup value={theme} onValueChange={selectTheme}>
             {themeOptions.map(({ value, icon: Icon }) => (
               <DropdownMenuRadioItem key={value} value={value}>
                 <Icon />

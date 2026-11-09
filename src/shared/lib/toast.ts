@@ -18,7 +18,7 @@ export function toastError(message: string, options?: ToastOptions) {
   toast.error(message, { ...sticky, ...options });
 }
 
-export function toastWarning(message: string, options?: ToastOptions) {
+function toastWarning(message: string, options?: ToastOptions) {
   toast.warning(message, { ...sticky, ...options });
 }
 

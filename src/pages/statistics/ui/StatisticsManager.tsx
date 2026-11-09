@@ -43,17 +43,21 @@ function RangePicker({ value, onChange }: { value: Range; onChange: (range: Rang
   );
 }
 
-function StatisticsManager() {
+interface StatisticsManagerProps {
+  days: Range;
+  onDaysChange: (days: Range) => void;
+}
+
+function StatisticsManager({ days, onDaysChange }: StatisticsManagerProps) {
   const m = useMessages();
-  const { days, setDays, statistics, isLoading, isError, retry, reviewCount } =
-    useStatisticsManager();
+  const { statistics, isLoading, isError, retry, reviewCount } = useStatisticsManager(days);
   const chartState = { isLoading, isError, onRetry: retry };
   const figure = (value: number | undefined) => (value === undefined ? "—" : formatInteger(value));
 
   return (
     <>
       <PageHeader title={m.statistics.title}>
-        <RangePicker value={days} onChange={setDays} />
+        <RangePicker value={days} onChange={onDaysChange} />
       </PageHeader>
 
       <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1">

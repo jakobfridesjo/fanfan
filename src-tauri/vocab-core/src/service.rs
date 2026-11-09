@@ -433,12 +433,28 @@ mod tests {
         Utc.with_ymd_and_hms(2026, 1, 1, 12, 0, 0).unwrap()
     }
 
-    fn write(name: &str, text: &str) -> std::path::PathBuf {
-        let directory = std::env::temp_dir().join(format!("vocab-service-{}", std::process::id()));
-        std::fs::create_dir_all(&directory).unwrap();
-        let path = directory.join(name);
+    /// A file in its own temporary directory, removed when dropped.
+    struct TempFile {
+        _directory: tempfile::TempDir,
+        path: std::path::PathBuf,
+    }
+
+    impl std::ops::Deref for TempFile {
+        type Target = Path;
+
+        fn deref(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    fn write(name: &str, text: &str) -> TempFile {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join(name);
         std::fs::write(&path, text).unwrap();
-        path
+        TempFile {
+            _directory: directory,
+            path,
+        }
     }
 
     fn analyze(path: &Path, language: &Language) -> AnalyzedFile {

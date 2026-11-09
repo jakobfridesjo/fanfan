@@ -12,7 +12,6 @@ import {
 } from "@/shared/api/commands.ts";
 import {
   documentsQuery,
-  invalidateStudyData,
   sectionQuery,
   sectionsQuery,
   wordCardQuery,
@@ -52,15 +51,12 @@ export function useReaderManager(documentId: number) {
 
   const [chosenSection, setChosenSection] = useState<number | null>(null);
   const position = chosenSection ?? document?.readingSection ?? null;
-  const section = useQuery({
-    ...sectionQuery(documentId, position ?? 0, script),
-    enabled: position !== null,
-  });
+  const section = useQuery(sectionQuery(documentId, position, script));
   useQueryErrorToast(section.error ? m.reader.loadFailed : null, "reader-section");
 
   const words = useMemo(() => distinctWords(section.data), [section.data]);
-  const statusesOptions = wordStatusesQuery(documentId, position ?? 0, words);
-  const statuses = useQuery({ ...statusesOptions, enabled: section.isSuccess });
+  const statusesOptions = wordStatusesQuery(documentId, position, section.isSuccess ? words : null);
+  const statuses = useQuery(statusesOptions);
   const statusOf = (word: string): ReaderWordStatus =>
     statuses.data ? (statuses.data[word] ?? "unseen") : null;
   const newWords = statuses.data ? words.filter((word) => !statuses.data[word]) : [];
@@ -69,28 +65,25 @@ export function useReaderManager(documentId: number) {
   const [cursor, setCursor] = useState<TokenPosition | null>(null);
   const firstVisibleParagraph = useRef(0);
   const readAloud = useReadAloud(section.data?.phrases ?? NO_PHRASES);
-  const wordCard = useQuery({
-    ...wordCardQuery(selectedWord ?? "", script),
-    enabled: selectedWord !== null,
-  });
+  const wordCard = useQuery(wordCardQuery(selectedWord, script));
 
   const statusMutation = useMutation({
     mutationFn: ({ word, status }: { word: string; status: WordStatus }) =>
       commands.setWordStatus(word, status),
+    meta: { changesStudyData: true },
     onMutate: ({ word, status }) =>
       queryClient.setQueryData(statusesOptions.queryKey, (previous) => ({
         ...previous,
         [word]: status,
       })),
     onError: (error) => readerToast.error(commandErrorMessage(error, m.reader.saveFailed)),
-    onSettled: () => invalidateStudyData(queryClient),
   });
 
   const markNewKnownMutation = useMutation({
     mutationFn: commands.markWordsKnown,
+    meta: { changesStudyData: true },
     onSuccess: (added) => readerToast.success(m.reader.markedKnown(added)),
     onError: (error) => readerToast.error(commandErrorMessage(error, m.reader.markFailed)),
-    onSettled: () => invalidateStudyData(queryClient),
   });
   const [confirmingMarkNewKnown, setConfirmingMarkNewKnown] = useState(false);
 

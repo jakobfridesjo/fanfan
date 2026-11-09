@@ -2,7 +2,7 @@ import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
 import * as z from "zod/mini";
 import { useHistoryState } from "@/shared/lib/use-history-state.ts";
 
-export const SortingSchema = z.array(z.object({ id: z.string(), desc: z.boolean() }));
+const SortingSchema = z.array(z.object({ id: z.string(), desc: z.boolean() }));
 const ColumnFiltersSchema = z.array(z.object({ id: z.string(), value: z.unknown() }));
 
 /** Spread into `useDataTable` to keep a table's search, filters and sorting across Back navigation. */

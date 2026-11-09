@@ -480,12 +480,28 @@ mod tests {
     use super::*;
     use std::io::Write;
 
-    fn temp_file(name: &str, bytes: &[u8]) -> std::path::PathBuf {
-        let directory = std::env::temp_dir().join(format!("vocab-core-{}", std::process::id()));
-        std::fs::create_dir_all(&directory).unwrap();
-        let path = directory.join(name);
+    /// A file in its own temporary directory, removed when dropped.
+    struct TempFile {
+        _directory: tempfile::TempDir,
+        path: std::path::PathBuf,
+    }
+
+    impl std::ops::Deref for TempFile {
+        type Target = Path;
+
+        fn deref(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    fn temp_file(name: &str, bytes: &[u8]) -> TempFile {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join(name);
         std::fs::write(&path, bytes).unwrap();
-        path
+        TempFile {
+            _directory: directory,
+            path,
+        }
     }
 
     /// Not a real image: the cover is passed on as the file's bytes.

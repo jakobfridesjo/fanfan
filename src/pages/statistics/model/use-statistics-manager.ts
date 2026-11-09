@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { statisticsQuery } from "@/shared/api/queries.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -8,9 +7,8 @@ export const RANGES = [7, 30, 90, 365] as const;
 export type Range = (typeof RANGES)[number];
 export const DEFAULT_RANGE: Range = 30;
 
-export function useStatisticsManager() {
+export function useStatisticsManager(days: Range) {
   const m = useMessages();
-  const [days, setDays] = useState<Range>(DEFAULT_RANGE);
   const statistics = useQuery({
     ...statisticsQuery(days),
     placeholderData: (previous) => previous,
@@ -19,8 +17,6 @@ export function useStatisticsManager() {
 
   const data = statistics.data;
   return {
-    days,
-    setDays,
     statistics: data,
     isLoading: statistics.isLoading,
     isError: statistics.isError,

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import {
   commandErrorMessage,
@@ -7,7 +7,7 @@ import {
   type WordEntry,
   type WordStatus,
 } from "@/shared/api/commands.ts";
-import { invalidateStudyData, wordListQuery } from "@/shared/api/queries.ts";
+import { wordListQuery } from "@/shared/api/queries.ts";
 import { scriptAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { actionToasts } from "@/shared/lib/toast.ts";
@@ -20,7 +20,6 @@ const NO_WORDS: WordEntry[] = [];
 
 export function useKnownWordsManager() {
   const m = useMessages();
-  const queryClient = useQueryClient();
   const script = useSelector(scriptAtom);
   const words = useQuery(wordListQuery(script));
   useQueryErrorToast(words.error ? m.knownWords.loadFailed : null, "word-list-query");
@@ -29,8 +28,8 @@ export function useKnownWordsManager() {
   /** Marks every word in a word-list file (Pleco or Anki export, plain list) as known. */
   const importMutation = useMutation({
     mutationFn: async (file: File) => commands.importKnownWords(await file.text()),
-    onSuccess: async ({ found, added }, file) => {
-      await invalidateStudyData(queryClient);
+    meta: { changesStudyData: true },
+    onSuccess: ({ found, added }, file) => {
       if (found === 0) knownWordsToast.info(m.knownWords.noWordsInFile(file.name));
       else knownWordsToast.success(m.knownWords.marked(added, found - added));
     },
@@ -40,15 +39,15 @@ export function useKnownWordsManager() {
 
   const undoMutation = useMutation({
     mutationFn: commands.restoreWord,
-    onSuccess: () => invalidateStudyData(queryClient),
+    meta: { changesStudyData: true },
     onError: (error) => knownWordsToast.error(commandErrorMessage(error, m.knownWords.undoFailed)),
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ entry, status }: { entry: WordEntry; status: WordStatus }) =>
       commands.setWordStatus(entry.word, status),
-    onSuccess: async (snapshot, { entry, status }) => {
-      await invalidateStudyData(queryClient);
+    meta: { changesStudyData: true },
+    onSuccess: (snapshot, { entry, status }) => {
       const message =
         status === "known"
           ? m.knownWords.nowKnown(entry.displayWord)

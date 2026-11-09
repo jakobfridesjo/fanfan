@@ -1,11 +1,7 @@
 import { SceneCanvas } from "@/app/layouts/SceneCanvas.tsx";
-import type { Scene } from "@/app/layouts/webgl-scene.ts";
+import { between, type Scene } from "@/app/layouts/webgl-scene.ts";
 
 const FIREFLY_COUNT = 90;
-
-function between(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
 
 const FIREFLIES: Scene = {
   floatsPerParticle: 16,

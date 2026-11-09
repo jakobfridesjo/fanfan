@@ -9,8 +9,6 @@ export type ValueStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type StorageArea = "localStorage" | "sessionStorage";
 
 function getBrowserStorage(area: StorageArea): ValueStorage | null {
-  if (typeof window === "undefined") return null;
-
   // Reading the property itself throws when storage is disabled (private
   // browsing, blocked site data), so this has to be a try/catch, not a check.
   try {

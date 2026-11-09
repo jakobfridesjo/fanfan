@@ -1,16 +1,13 @@
 import { page as screen, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import { SettingsMenu } from "@/app/layouts/SettingsMenu.tsx";
-import { ThemePreferenceProvider } from "@/app/providers/ThemeContext.tsx";
+import { syncThemeClass } from "@/app/providers/theme-mode.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
 
 describe("SettingsMenu", () => {
   it("switches the document to the chosen appearance", async () => {
-    await renderPageInRouter(
-      <ThemePreferenceProvider>
-        <SettingsMenu />
-      </ThemePreferenceProvider>
-    );
+    onTestFinished(syncThemeClass());
+    await renderPageInRouter(<SettingsMenu />);
 
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
     await userEvent.click(screen.getByRole("menuitemradio", { name: "Dark" }));
@@ -19,11 +16,7 @@ describe("SettingsMenu", () => {
   });
 
   it("opens the settings page", async () => {
-    const { router } = await renderPageInRouter(
-      <ThemePreferenceProvider>
-        <SettingsMenu />
-      </ThemePreferenceProvider>
-    );
+    const { router } = await renderPageInRouter(<SettingsMenu />);
 
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "All settings" }));
@@ -32,11 +25,7 @@ describe("SettingsMenu", () => {
   });
 
   it("opens the about page", async () => {
-    const { router } = await renderPageInRouter(
-      <ThemePreferenceProvider>
-        <SettingsMenu />
-      </ThemePreferenceProvider>
-    );
+    const { router } = await renderPageInRouter(<SettingsMenu />);
 
     await userEvent.click(screen.getByRole("button", { name: "Settings" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "About" }));

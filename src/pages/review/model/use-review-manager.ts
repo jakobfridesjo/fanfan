@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import {
   commandErrorMessage,
@@ -7,10 +7,11 @@ import {
   type Rating,
   type ReviewSnapshot,
 } from "@/shared/api/commands.ts";
-import { invalidateStudyData, reviewQueueQuery } from "@/shared/api/queries.ts";
+import { reviewQueueQuery } from "@/shared/api/queries.ts";
 import { scriptAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { actionToasts } from "@/shared/lib/toast.ts";
+import { useAnswerHistory } from "@/shared/lib/use-answer-history.ts";
 import { useKeyBindings } from "@/shared/lib/use-key-bindings.ts";
 import { useQueryErrorToast } from "@/shared/lib/use-query-error-toast.ts";
 import type { SwipeDirection } from "@/shared/ui/SwipeCard.tsx";
@@ -23,50 +24,42 @@ export const RATINGS: Rating[] = [1, 2, 3, 4];
 const SWIPE_RATING: Record<SwipeDirection, Rating> = { left: 1, right: 3 };
 
 export function useReviewManager() {
-  const queryClient = useQueryClient();
   const m = useMessages();
   const script = useSelector(scriptAtom);
   const queue = useQuery(reviewQueueQuery(script));
   useQueryErrorToast(queue.error ? m.review.loadFailed : null, "review-query");
 
-  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const history = useAnswerHistory<ReviewSnapshot>();
   const [revealed, setRevealed] = useState(false);
-  const [undoStack, setUndoStack] = useState<ReviewSnapshot[]>([]);
 
   const reviewMutation = useMutation({
     mutationFn: ({ word, rating }: { word: string; rating: Rating }) =>
       commands.reviewWord(word, rating),
+    meta: { changesStudyData: true },
     onMutate: ({ word }) => {
-      setPending((words) => new Set(words).add(word));
+      history.hide(word);
       setRevealed(false);
     },
-    onSuccess: (snapshot) => setUndoStack((stack) => [...stack, snapshot]),
+    onSuccess: history.remember,
     onError: (error) => reviewToast.error(commandErrorMessage(error, m.review.saveFailed)),
-    onSettled: async (_result, _error, { word }) => {
-      await invalidateStudyData(queryClient);
-      setPending((words) => {
-        const next = new Set(words);
-        next.delete(word);
-        return next;
-      });
-    },
+    onSettled: (_result, _error, { word }) => history.show(word),
   });
 
   // The undone word was the most overdue, so the refetched queue shows it first again.
   const undoMutation = useMutation({
     mutationFn: commands.undoReview,
+    meta: { changesStudyData: true },
     onMutate: (snapshot) => {
-      setUndoStack((stack) => stack.filter((entry) => entry !== snapshot));
+      history.forget(snapshot);
       setRevealed(false);
     },
     onError: (error, snapshot) => {
-      setUndoStack((stack) => [...stack, snapshot]);
+      history.remember(snapshot);
       reviewToast.error(commandErrorMessage(error, m.review.undoFailed));
     },
-    onSettled: () => invalidateStudyData(queryClient),
   });
 
-  const cards = (queue.data?.cards ?? []).filter((card) => !pending.has(card.word));
+  const cards = (queue.data?.cards ?? []).filter((card) => !history.pending.has(card.word));
   const current = cards.at(0) ?? null;
 
   const rate = (rating: Rating) => {
@@ -75,7 +68,7 @@ export function useReviewManager() {
 
   const reveal = () => setRevealed(true);
 
-  const lastReview = undoStack.at(-1) ?? null;
+  const lastReview = history.lastAnswer;
   const undo = () => {
     if (!lastReview || undoMutation.isPending) return;
     undoMutation.mutate(lastReview);
@@ -101,7 +94,7 @@ export function useReviewManager() {
     failed: queue.isError,
     current,
     refilling: !current && queue.isFetching,
-    remaining: Math.max((queue.data?.dueCount ?? 0) - pending.size, 0),
+    remaining: Math.max((queue.data?.dueCount ?? 0) - history.pending.size, 0),
     nextDueAt: queue.data?.nextDueAt ?? null,
     revealed,
     reveal,

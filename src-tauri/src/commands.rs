@@ -13,9 +13,7 @@ use vocab_core::service::{
 };
 use vocab_core::speech::{SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
-use vocab_core::store::{
-    DocumentSummary, Folder, ReviewSnapshot, Store, WordCounts, WordSnapshot, WordStatus,
-};
+use vocab_core::store::{DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus};
 use vocab_core::text::parse_word_list;
 
 use crate::picked_file::PickedFile;
@@ -89,14 +87,18 @@ impl AppState {
     }
 
     /// Loads the text-to-speech voice once, on the first word spoken.
-    fn voice(&self) -> CommandResult<&Voice> {
+    /// A failure keeps the bare reason, which `Error::Voice` prefixes when shown.
+    fn voice(&self) -> vocab_core::error::Result<&Voice> {
         self.voice
             .get_or_init(|| {
                 let dir = self.resources.dir()?;
-                Voice::load(&dir.join(VOICE)).map_err(|error| error.to_string())
+                Voice::load(&dir.join(VOICE)).map_err(|error| match error {
+                    vocab_core::error::Error::Voice(reason) => reason,
+                    other => other.to_string(),
+                })
             })
             .as_ref()
-            .map_err(|message| CommandError(message.clone()))
+            .map_err(|reason| vocab_core::error::Error::Voice(reason.clone()))
     }
 }
 
@@ -397,11 +399,6 @@ pub async fn list_words(app: AppHandle, script: Script) -> CommandResult<Vec<Wor
     .await
 }
 
-#[tauri::command]
-pub async fn get_word_counts(app: AppHandle) -> CommandResult<WordCounts> {
-    blocking(app, |state| Ok(state.reader()?.counts(Utc::now())?)).await
-}
-
 /// Review history, due forecast and memory stability over the `days` days ending today.
 #[tauri::command]
 pub async fn get_statistics(app: AppHandle, days: u32) -> CommandResult<Statistics> {
@@ -419,12 +416,9 @@ pub async fn get_statistics(app: AppHandle, days: u32) -> CommandResult<Statisti
 #[tauri::command]
 pub async fn speak(app: AppHandle, text: String) -> CommandResult<Response> {
     blocking(app, move |state| {
-        let audio = state.speech.get_or_speak(&text, |text| {
-            state
-                .voice()
-                .map_err(|CommandError(message)| vocab_core::error::Error::Voice(message))?
-                .speak(text)
-        })?;
+        let audio = state
+            .speech
+            .get_or_speak(&text, |text| state.voice()?.speak(text))?;
         Ok(Response::new(audio))
     })
     .await

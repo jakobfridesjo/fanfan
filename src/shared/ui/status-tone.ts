@@ -6,7 +6,3 @@ export const STATUS_TONE_CLASSNAMES = {
 } as const;
 
 export type StatusTone = keyof typeof STATUS_TONE_CLASSNAMES;
-
-export function activeLabel(isActive: boolean): string {
-  return isActive ? "Active" : "Inactive";
-}

@@ -120,21 +120,6 @@ export function useDataTable<TData extends RowData>(
   });
 }
 
-/**
- * Case-insensitive substring search across the fields a row exposes.
- * Nullish fields are skipped so callers can list optional properties directly.
- */
-export function textSearchFilter<TData extends RowData>(
-  getSearchableFields: (row: TData) => (string | null | undefined)[]
-) {
-  return (row: DataTableRow<TData>, _columnId: string, filterValue: string) => {
-    const query = filterValue.toLowerCase().trim();
-    if (!query) return true;
-
-    return getSearchableFields(row.original).some((field) => field?.toLowerCase().includes(query));
-  };
-}
-
 export function clickableRowProps<TData>(
   onRowClick: ((row: TData) => void) | undefined,
   row: TData

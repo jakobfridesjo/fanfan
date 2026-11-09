@@ -6,7 +6,6 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { render } from "vitest-browser-react";
-import { page, type Locator } from "vitest/browser";
 import type { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/shared/ui/shadcn/sidebar.tsx";
 import { Toaster } from "@/shared/ui/Toaster.tsx";
@@ -45,9 +44,4 @@ export async function renderPageInRouter(
   const view = await renderPage(<RouterProvider router={router} />, queryClient);
 
   return { ...view, router };
-}
-
-export async function selectOption(trigger: Locator, optionName: string | RegExp) {
-  await trigger.click();
-  await page.getByRole("option", { name: optionName }).click();
 }

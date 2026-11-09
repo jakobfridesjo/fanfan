@@ -1,5 +1,4 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Pencil, Trash } from "lucide-react";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { cn } from "@/shared/lib/class-names.ts";
 
@@ -33,40 +32,5 @@ export function RowActionButton({
       }}
       {...props}
     />
-  );
-}
-
-interface EditDeleteRowActionsProps {
-  /** Names the row in the buttons' accessible labels, e.g. "specialty group". */
-  entity: string;
-  onEdit: () => void;
-  onDelete: () => void;
-  disabled?: boolean;
-  deleteDisabled?: boolean;
-  deleteIcon?: ReactNode;
-}
-
-export function EditDeleteRowActions({
-  entity,
-  onEdit,
-  onDelete,
-  disabled = false,
-  deleteDisabled = disabled,
-  deleteIcon,
-}: EditDeleteRowActionsProps) {
-  return (
-    <RowActions>
-      <RowActionButton label={`Edit ${entity}`} tooltip="Edit" onClick={onEdit} disabled={disabled}>
-        <Pencil />
-      </RowActionButton>
-      <RowActionButton
-        label={`Delete ${entity}`}
-        tooltip="Delete"
-        onClick={onDelete}
-        disabled={deleteDisabled}
-      >
-        {deleteIcon ?? <Trash />}
-      </RowActionButton>
-    </RowActions>
   );
 }

@@ -1,15 +1,11 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ThemePreferenceProvider } from "@/app/providers/ThemeContext.tsx";
-import { useThemePreference } from "@/app/providers/theme-context.ts";
+import { useSelector } from "@tanstack/react-store";
+import { syncThemeClass, themeModeAtom } from "@/app/providers/theme-mode.ts";
 import { Toaster } from "@/shared/ui/Toaster.tsx";
 import type { AppRouterContext } from "@/app/router-context.ts";
-import {
-  AppCrashFallback,
-  NotFoundFallback,
-  RouteErrorFallback,
-} from "@/app/layouts/RouteFallbacks.tsx";
+import { AppCrashFallback } from "@/app/layouts/RouteFallbacks.tsx";
 
 const AppDevtools = import.meta.env.DEV
   ? lazy(async () => {
@@ -39,26 +35,23 @@ class GlobalErrorBoundary extends React.Component<
 
 export const Route = createRootRouteWithContext<AppRouterContext>()({
   component: RootComponent,
-  errorComponent: RouteErrorFallback,
-  notFoundComponent: NotFoundFallback,
 });
 
 function AppToaster() {
-  const { themeMode } = useThemePreference();
+  const themeMode = useSelector(themeModeAtom);
 
   return <Toaster theme={themeMode} />;
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(syncThemeClass, []);
 
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemePreferenceProvider>
-          <Outlet />
-          <AppToaster />
-        </ThemePreferenceProvider>
+        <Outlet />
+        <AppToaster />
         {AppDevtools ? (
           <Suspense fallback={null}>
             <AppDevtools />

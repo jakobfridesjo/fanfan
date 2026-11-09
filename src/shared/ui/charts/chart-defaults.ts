@@ -26,7 +26,7 @@ export const FILL_HOST_STYLE: CSSProperties = { position: "absolute", inset: 0, 
 
 // The portal escapes the card's overflow clipping; ChartTooltipBody paints the surface. The
 // portal shell is a popover, whose UA `overflow: auto` would clip the body's shadow to a square.
-export const CHART_TOOLTIP = {
+const CHART_TOOLTIP = {
   use: tooltip,
   portal,
   sticky: false,
@@ -47,21 +47,6 @@ export const X_FOCUS_TOOLTIP = {
 export const CHART_MOTION = motion({
   transition: { type: "tween", duration: 450, easing: "ease-out" },
 });
-
-// Tick labels drawn inside the plot just above their gridline, like a mirrored axis,
-// so the side margins can be zero. The top margin leaves room for the topmost label.
-export const INSIDE_AXIS_MARGIN = { top: 16, right: 0, bottom: 0, left: 0 };
-
-export function insideAxis<TValue extends number>(
-  values: readonly TValue[],
-  format?: (value: TValue) => string
-) {
-  return {
-    line: false,
-    ticks: { values, size: 0, padding: 0, format },
-    tickLabels: { ...TICK_LABELS, anchor: "start", dx: 4, dy: -6 },
-  } as const;
-}
 
 let measureContext: CanvasRenderingContext2D | null | undefined;
 const measureCache = new Map<string, ChartTextMetrics>();

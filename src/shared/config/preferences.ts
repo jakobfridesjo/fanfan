@@ -2,6 +2,7 @@ import { createAtom, type Atom } from "@tanstack/react-store";
 import * as z from "zod/mini";
 import { persistedString } from "@/shared/lib/persisted-value.ts";
 
+export const THEMES = ["light", "dark", "auto"] as const;
 export const LANGUAGES = ["en", "sv", "zh"] as const;
 export const SCRIPTS = ["simplified", "traditional"] as const;
 export const BACKGROUNDS = [
@@ -14,6 +15,8 @@ export const BACKGROUNDS = [
   "plain",
 ] as const;
 
+/** `auto` follows the system's light or dark setting. */
+export type Theme = (typeof THEMES)[number];
 export type Language = (typeof LANGUAGES)[number];
 /** The characters Chinese words are shown in; Rust converts them. */
 export type Script = (typeof SCRIPTS)[number];
@@ -27,12 +30,14 @@ function persistedAtom<T extends string>(key: string, values: readonly [T, ...T[
   return Object.assign(atom, { reset: () => atom.set(fallback) }) satisfies Atom<T>;
 }
 
+export const themeAtom = persistedAtom<Theme>("themePreference", THEMES, "auto");
 export const languageAtom = persistedAtom<Language>("language", LANGUAGES, "en");
 export const scriptAtom = persistedAtom<Script>("script", SCRIPTS, "simplified");
 export const backgroundAtom = persistedAtom<Background>("background", BACKGROUNDS, "fireflies");
 
 /** Back to the defaults, for tests that share one page. */
 export function resetPreferences() {
+  themeAtom.reset();
   languageAtom.reset();
   scriptAtom.reset();
   backgroundAtom.reset();

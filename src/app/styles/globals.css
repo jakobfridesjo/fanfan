@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@/app/styles/shadcn-tailwind.css";
+@import "shadcn/tailwind.css";
 @import "@fontsource-variable/ibm-plex-sans";
 
 @custom-variant dark (&:is(.dark *));
@@ -47,11 +47,6 @@
   --chart-3: oklch(0.6 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
   --chart-4: oklch(0.52 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
   --chart-5: oklch(0.44 calc(0.079 * var(--theme-chroma)) var(--theme-hue));
-  --diff-added-bg: oklch(0.25 0.115 140);
-  --diff-added-fg: oklch(0.98 0 0);
-  --diff-deleted-bg: oklch(0.35 0.115 10);
-  --diff-deleted-fg: oklch(0.98 0 0);
-  --diff-moved-bg: oklch(0.35 0.144 70);
   --primary-text: oklch(0.45 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
   --success: oklch(0.52 0.13 145);
   --success-foreground: oklch(0.98 0 0);
@@ -141,11 +136,6 @@
   --chart-3: oklch(0.6 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
   --chart-4: oklch(0.52 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
   --chart-5: oklch(0.44 calc(0.079 * var(--theme-chroma)) var(--theme-hue));
-  --diff-added-bg: oklch(0.2 0.086 140);
-  --diff-added-fg: oklch(0.98 0 0);
-  --diff-deleted-bg: oklch(0.25 0.086 10);
-  --diff-deleted-fg: oklch(0.98 0 0);
-  --diff-moved-bg: oklch(0.25 0.115 70);
   --primary-text: oklch(0.76 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
   --success: oklch(0.7 0.13 145);
   --success-foreground: oklch(0.98 0 0);
@@ -186,11 +176,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --color-diff-added-bg: var(--diff-added-bg);
-  --color-diff-added-fg: var(--diff-added-fg);
-  --color-diff-deleted-bg: var(--diff-deleted-bg);
-  --color-diff-deleted-fg: var(--diff-deleted-fg);
-  --color-diff-moved-bg: var(--diff-moved-bg);
   --color-primary-text: var(--primary-text);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);

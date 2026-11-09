@@ -1,5 +1,4 @@
 import {
-  type AnyFormApi,
   createErrorVisibility,
   createFormHook,
   getFormHookHelpers,
@@ -9,7 +8,7 @@ import { CheckboxField, TextareaField, TextField } from "@/shared/ui/FormFields.
 
 const { fieldComponent } = getFormHookHelpers();
 
-export const { useAppForm, appFormOptions, defineAppFieldGroup } = createFormHook({
+const { useAppForm, appFormOptions } = createFormHook({
   fieldComponents: {
     TextField: fieldComponent.strict(TextField, "field"),
     TextareaField: fieldComponent.strict(TextareaField, "field"),
@@ -51,14 +50,4 @@ export function schemaFormOptions<TInput, TOutput>(
   });
 }
 
-/**
- * Replaces a form's values and baseline. Resetting clears validation, so this
- * revalidates to keep `canSubmit` honest without revealing any errors.
- */
-export function loadForm<TForm>(
-  form: Pick<AnyFormApi, "validate"> & { reset: (values: TForm) => void },
-  values: TForm
-) {
-  form.reset(values);
-  void form.validate("change");
-}
+export { useAppForm };

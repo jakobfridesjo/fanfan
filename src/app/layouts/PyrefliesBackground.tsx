@@ -1,5 +1,5 @@
 import { SceneCanvas } from "@/app/layouts/SceneCanvas.tsx";
-import type { Scene } from "@/app/layouts/webgl-scene.ts";
+import { between, type Scene } from "@/app/layouts/webgl-scene.ts";
 
 const PYREFLY_COUNT = 15;
 /** Each trail is this many quads along the path the pyrefly just took, so it bends as it does. */
@@ -9,10 +9,6 @@ const TRAIL_STEP_SECONDS = 0.035;
 const TRAIL = 0;
 const ORB = 1;
 const CLOUDS = 2;
-
-function between(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
 
 function mix(far: number, near: number, nearness: number) {
   return far + (near - far) * nearness;

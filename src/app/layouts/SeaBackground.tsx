@@ -1,9 +1,5 @@
 import { SceneCanvas } from "@/app/layouts/SceneCanvas.tsx";
-import type { Scene } from "@/app/layouts/webgl-scene.ts";
-
-function between(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
+import { between, type Scene } from "@/app/layouts/webgl-scene.ts";
 
 /**
  * Lights rising like bubbles through cold water, wobbling and flickering. One in eight is large

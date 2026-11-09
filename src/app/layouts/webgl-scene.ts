@@ -268,3 +268,8 @@ export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
     canvas.removeEventListener("webglcontextrestored", restoreContext);
   };
 }
+
+/** A random number from `min` up to `max`, for scattering particles. */
+export function between(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}

@@ -1,11 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpen, FileUp, FolderOutput, Pencil, Plus, Trash2 } from "lucide-react";
-import type { DocumentSummary, Folder } from "@/shared/api/commands.ts";
+import { BookOpen, FileUp, Pencil, Plus } from "lucide-react";
 import { useMessages } from "@/shared/i18n/messages.ts";
-import { cn } from "@/shared/lib/class-names.ts";
 import { ConfirmationDialog } from "@/shared/ui/ConfirmationDialog.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
-import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import {
@@ -18,27 +14,16 @@ import {
 } from "@/shared/ui/shadcn/empty.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { Spinner } from "@/shared/ui/shadcn/spinner.tsx";
-import { coverageOf, formatShare } from "@/entities/document/model/coverage.ts";
-import { CoverageStrip } from "@/entities/document/ui/CoverageStrip.tsx";
-import { DocumentCover } from "@/entities/document/ui/DocumentCover.tsx";
 import {
   useLibraryManager,
   type ImportProgress,
 } from "@/pages/library/model/use-library-manager.ts";
-import {
-  dropTargetProps,
-  type DragHandlers,
-  type ShelfDrag,
-} from "@/pages/library/model/use-shelf-drag.ts";
+import { DocumentCard } from "@/pages/library/ui/DocumentCard.tsx";
+import { FolderCard } from "@/pages/library/ui/FolderCard.tsx";
 import { FolderNameDialog } from "@/pages/library/ui/FolderNameDialog.tsx";
 
 /** Covers as posters, as many to a row as fit. */
 const SHELF = "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-4";
-
-/** A poster on the shelf; lifted while hovered, ringed while a book hovers over it to land. */
-const POSTER =
-  "relative block aspect-2/3 overflow-hidden rounded-xl shadow-md ring-1 ring-foreground/10 transition-[box-shadow,translate,scale] outline-none group-hover:-translate-y-0.5 group-hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:group-hover:translate-y-0";
-const LANDING = "scale-105 ring-3 ring-primary";
 
 function LibraryManager() {
   const m = useMessages();
@@ -194,139 +179,6 @@ function ImportSlot({ onClick, disabled }: { onClick: () => void; disabled: bool
     >
       <Plus className="size-10" strokeWidth={1.5} />
     </button>
-  );
-}
-
-interface DocumentCardProps {
-  document: DocumentSummary;
-  /** Set while this book is being dragged. */
-  drag: ShelfDrag | null;
-  dragHandlers: DragHandlers;
-  /** Whether another book dropped here makes a folder of the two. */
-  acceptsDrop: boolean;
-  landing: boolean;
-  onDelete: () => void;
-  /** Shown inside a folder. */
-  onTakeOut?: () => void;
-}
-
-function DocumentCard({
-  document,
-  drag,
-  dragHandlers,
-  acceptsDrop,
-  landing,
-  onDelete,
-  onTakeOut,
-}: DocumentCardProps) {
-  const m = useMessages();
-  const navigate = useNavigate();
-  const { known, learning } = coverageOf(document);
-  const details = [
-    document.title,
-    `${m.coverage.known(formatShare(known))}, ${m.coverage.learning(formatShare(learning))}`,
-    m.library.wordsToSort(document.unseenWords, document.uniqueWords),
-  ].join("\n");
-
-  return (
-    <div
-      {...dragHandlers}
-      {...(acceptsDrop && dropTargetProps({ kind: "document", id: document.id }))}
-      style={drag ? { translate: `${drag.offset.x}px ${drag.offset.y}px` } : undefined}
-      className={cn(
-        "group relative touch-none select-none",
-        drag && "pointer-events-none z-10 opacity-80"
-      )}
-    >
-      <Link
-        to="/library/$documentId"
-        params={{ documentId: document.id }}
-        draggable={false}
-        aria-label={m.library.studyBook(document.title)}
-        title={details}
-        className={cn(POSTER, "bg-muted", landing && LANDING, drag && "shadow-xl")}
-      >
-        <DocumentCover document={document} />
-        <CoverageStrip document={document} className="absolute inset-x-0 bottom-0" />
-      </Link>
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 has-focus-visible:opacity-100 motion-reduce:transition-none">
-        <TooltipIconButton
-          label={m.library.readBook(document.title)}
-          tooltip={m.library.read}
-          variant="secondary"
-          size="icon-sm"
-          onClick={() =>
-            void navigate({ to: "/read/$documentId", params: { documentId: document.id } })
-          }
-          className="shadow-sm"
-        >
-          <BookOpen />
-        </TooltipIconButton>
-        {onTakeOut && (
-          <TooltipIconButton
-            label={m.library.takeOutOfFolder(document.title)}
-            tooltip={m.library.takeOut}
-            variant="secondary"
-            size="icon-sm"
-            onClick={onTakeOut}
-            className="shadow-sm"
-          >
-            <FolderOutput />
-          </TooltipIconButton>
-        )}
-        <TooltipIconButton
-          label={m.library.deleteBook(document.title)}
-          tooltip={m.common.delete}
-          variant="secondary"
-          size="icon-sm"
-          onClick={onDelete}
-          className="shadow-sm"
-        >
-          <Trash2 />
-        </TooltipIconButton>
-      </div>
-    </div>
-  );
-}
-
-/** Up to four of its books' covers, and its name. */
-function FolderCard({
-  folder,
-  documents,
-  landing,
-  onOpen,
-}: {
-  folder: Folder;
-  documents: DocumentSummary[];
-  landing: boolean;
-  onOpen: () => void;
-}) {
-  const m = useMessages();
-  return (
-    <div className="group relative" {...dropTargetProps({ kind: "folder", id: folder.id })}>
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={m.library.openFolder(folder.name, documents.length)}
-        title={folder.name}
-        className={cn(
-          POSTER,
-          "flex w-full flex-col gap-2 bg-card p-2.5 text-left text-card-foreground",
-          landing && LANDING
-        )}
-      >
-        <span className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-1.5">
-          {documents.slice(0, 4).map((document) => (
-            <span key={document.id} className="overflow-hidden rounded-md shadow-sm">
-              <DocumentCover document={document} thumbnail />
-            </span>
-          ))}
-        </span>
-        <span lang="zh" className="truncate px-0.5 font-medium">
-          {folder.name}
-        </span>
-      </button>
-    </div>
   );
 }
 

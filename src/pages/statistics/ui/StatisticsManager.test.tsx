@@ -1,5 +1,6 @@
 import { page as screen, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { noop } from "@tanstack/react-query";
 import type { ReviewDay, Statistics } from "@/shared/api/commands.ts";
 import { makeStatistics, makeWordCounts } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
@@ -36,7 +37,7 @@ const studied: Statistics = makeStatistics({
 describe("StatisticsManager", () => {
   it("shows the headline figures and a chart for each section", async () => {
     mockCommands({ get_statistics: () => studied });
-    await renderPageInRouter(<StatisticsManager />);
+    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
 
     const figure = (label: string) => screen.getByRole("group", { name: label, exact: true });
     await expect.element(figure("Known").getByText("2,500", { exact: true })).toBeVisible();
@@ -54,19 +55,20 @@ describe("StatisticsManager", () => {
     }
   });
 
-  it("refetches for the chosen range", async () => {
+  it("fetches the given range and reports a newly chosen one", async () => {
     const calls = mockCommands({ get_statistics: () => studied });
-    await renderPageInRouter(<StatisticsManager />);
+    const onDaysChange = vi.fn();
+    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={onDaysChange} />);
 
     await screen.getByRole("button", { name: "90 days" }).click();
 
-    await expect.poll(() => callsTo(calls, "get_statistics")).toContainEqual({ days: 90 });
-    expect(callsTo(calls, "get_statistics")[0]).toEqual({ days: 30 });
+    expect(onDaysChange).toHaveBeenCalledWith(90);
+    expect(callsTo(calls, "get_statistics")).toEqual([{ days: 30 }]);
   });
 
   it("explains each empty chart before the first review", async () => {
     mockCommands({ get_statistics: () => makeStatistics() });
-    await renderPageInRouter(<StatisticsManager />);
+    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
 
     await expect.element(screen.getByText("No reviews in this range")).toBeVisible();
     await expect.element(screen.getByText("Nothing due in the next 30 days")).toBeVisible();
@@ -88,7 +90,7 @@ describe("StatisticsManager", () => {
         return studied;
       },
     });
-    await renderPageInRouter(<StatisticsManager />);
+    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
 
     fail = false;
     await userEvent.click(screen.getByRole("button", { name: "Try again" }).first());

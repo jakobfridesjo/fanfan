@@ -15,13 +15,16 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_fs::init());
     builder
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            let log_level = if cfg!(debug_assertions) {
+                log::LevelFilter::Info
+            } else {
+                log::LevelFilter::Warn
+            };
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log_level)
+                    .build(),
+            )?;
 
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
@@ -70,7 +73,6 @@ pub fn run() {
             commands::undo_review,
             commands::import_known_words,
             commands::list_words,
-            commands::get_word_counts,
             commands::get_statistics,
             commands::speak,
         ])

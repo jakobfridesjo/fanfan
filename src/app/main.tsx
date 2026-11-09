@@ -2,7 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import * as z from "zod/mini";
-import { router } from "@/app/router.tsx";
+import { createAppRouter } from "@/app/router.tsx";
+import { createQueryClient } from "@/shared/api/query-client.ts";
 import {
   backgroundAtom,
   languageAtom,
@@ -34,6 +35,8 @@ backgroundAtom.subscribe(applyBackground);
 window.addEventListener("vite:preloadError", () => {
   window.location.reload();
 });
+
+const router = createAppRouter({ queryClient: createQueryClient() });
 
 const rootElement = document.getElementById("root");
 if (rootElement) {

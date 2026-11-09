@@ -8,7 +8,6 @@ const SHORT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
 
 const MONTH_DAY_OPTIONS: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
 const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" };
-const TIME_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 
 const format = (date: Date, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(appLocale(), options).format(date);
@@ -52,10 +51,6 @@ export function formatDuration(ms: number): string {
   return new Intl.NumberFormat(appLocale(), { style: "unit", unit, unitDisplay: "short" }).format(
     amount
   );
-}
-
-export function formatLocalTime(date: Date): string {
-  return format(date, TIME_OPTIONS);
 }
 
 // toISOString would shift the day in western timezones.

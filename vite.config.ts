@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -14,16 +14,15 @@ export default defineConfig(({ mode }) => {
 
   const buildTime = env.VITE_BUILD_TIME || new Date().toISOString();
 
-  const routerPlugin = tanstackRouter({
-    routesDirectory: "./src/app/routes",
-    generatedRouteTree: "./src/app/routeTree.gen.ts",
-    autoCodeSplitting: true,
-  });
   const plugins = [
-    ...(Array.isArray(routerPlugin) ? routerPlugin : [routerPlugin]),
-    ...react({ compiler: true }),
-    ...tailwindcss(),
-  ] as unknown as Plugin[];
+    tanstackRouter({
+      routesDirectory: "./src/app/routes",
+      generatedRouteTree: "./src/app/routeTree.gen.ts",
+      autoCodeSplitting: true,
+    }),
+    react({ compiler: true }),
+    tailwindcss(),
+  ];
 
   // Browser tests share one iframe per page (`isolate: false`); a file that calls
   // `vi.mock` would leak its mocks into the next, so it is named `*.isolated.test.tsx`.
@@ -65,7 +64,6 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       attachmentsDir: "test-results",
-      clearMocks: true,
       mockReset: true,
       restoreMocks: true,
       unstubEnvs: true,

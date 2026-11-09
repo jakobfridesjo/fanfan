@@ -1,4 +1,4 @@
-import { Channel, invoke } from "@tauri-apps/api/core";
+import { Channel, invoke as tauriInvoke, type InvokeArgs } from "@tauri-apps/api/core";
 import type { Script } from "@/shared/config/preferences.ts";
 
 // Mirrors the serde types in src-tauri (camelCase). Keep the two in step.
@@ -31,7 +31,7 @@ export interface Folder {
   name: string;
 }
 
-export interface Reading {
+interface Reading {
   pinyin: string;
   definitions: string[];
   properNoun: boolean;
@@ -145,7 +145,7 @@ export interface DueDay {
 }
 
 /** Upper bound of a stability bucket; `longer` is over a year. */
-export type StabilityKey = "day" | "week" | "month" | "quarter" | "year" | "longer";
+type StabilityKey = "day" | "week" | "month" | "quarter" | "year" | "longer";
 
 export interface StabilityBucket {
   key: StabilityKey;
@@ -174,6 +174,35 @@ export interface KnownWordsImport {
 
 /** FSRS grades: again, hard, good, easy. */
 export type Rating = 1 | 2 | 3 | 4;
+
+/** Every Rust command: `commands` and the test mocks accept only these names. */
+export type CommandName =
+  | "list_documents"
+  | "import_document"
+  | "delete_document"
+  | "list_folders"
+  | "create_folder"
+  | "rename_folder"
+  | "move_document"
+  | "get_cover"
+  | "get_deck"
+  | "list_sections"
+  | "get_section"
+  | "set_reading_position"
+  | "get_word_statuses"
+  | "get_word_card"
+  | "mark_words_known"
+  | "set_word_status"
+  | "restore_word"
+  | "get_review_queue"
+  | "review_word"
+  | "undo_review"
+  | "import_known_words"
+  | "list_words"
+  | "get_statistics"
+  | "speak";
+
+const invoke = <T>(command: CommandName, args?: InvokeArgs) => tauriInvoke<T>(command, args);
 
 export const commands = {
   listDocuments: () => invoke<DocumentSummary[]>("list_documents"),
@@ -243,40 +272,11 @@ export const commands = {
   /** Every known or learning word, most recently changed first. */
   listWords: (script: Script) => invoke<WordEntry[]>("list_words", { script }),
 
-  getWordCounts: () => invoke<WordCounts>("get_word_counts"),
-
   getStatistics: (days: number) => invoke<Statistics>("get_statistics", { days }),
 
   /** A word or phrase spoken aloud, as an Ogg Opus file; Rust saves it, so each is generated once. */
   speak: (text: string) => invoke<ArrayBuffer>("speak", { text }),
 };
-
-export type CommandName =
-  | "list_documents"
-  | "import_document"
-  | "delete_document"
-  | "list_folders"
-  | "create_folder"
-  | "rename_folder"
-  | "move_document"
-  | "get_cover"
-  | "get_deck"
-  | "list_sections"
-  | "get_section"
-  | "set_reading_position"
-  | "get_word_statuses"
-  | "get_word_card"
-  | "mark_words_known"
-  | "set_word_status"
-  | "restore_word"
-  | "get_review_queue"
-  | "review_word"
-  | "undo_review"
-  | "import_known_words"
-  | "list_words"
-  | "get_word_counts"
-  | "get_statistics"
-  | "speak";
 
 /** Rust rejects with its error's message as a plain string. */
 export function commandErrorMessage(error: unknown, fallback: string): string {

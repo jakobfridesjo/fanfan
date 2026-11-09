@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { SelectValue } from "@/shared/ui/shadcn/select.tsx";
 
-export interface SelectDisplayOption {
+interface SelectDisplayOption {
   value: string;
   label: React.ReactNode;
 }
