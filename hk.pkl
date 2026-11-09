@@ -62,6 +62,12 @@ local projectSteps = new Mapping<String, Step> {
     fix = null
   }
   ["cargo-fmt"] = Builtins.cargo_fmt
+  // The builtin lets clippy warnings pass.
+  ["cargo-clippy"] = (Builtins.cargo_clippy) {
+    env {
+      ["CARGO_BUILD_WARNINGS"] = "deny"
+    }
+  }
   ["steiger"] {
     glob = Builtins.ox_lint.glob
     exclude = generatedFiles
