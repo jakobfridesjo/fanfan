@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "build:debug": "vite build --mode debug",
-    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

@@ -1,5 +1,5 @@
 /// <reference types="vitest/config" />
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -22,6 +22,13 @@ export default defineConfig(({ mode }) => {
     }),
     react({ compiler: true }),
     tailwindcss(),
+    // The dev server only feeds the Tauri window; its URL is useless in a browser.
+    {
+      name: "hide-dev-server-urls",
+      configureServer: (server) => {
+        server.printUrls = () => {};
+      },
+    } satisfies Plugin,
   ];
 
   // Browser tests share one iframe per page (`isolate: false`); a file that calls
@@ -130,9 +137,6 @@ export default defineConfig(({ mode }) => {
       fs: {
         allow: [path.resolve(import.meta.dirname)],
       },
-    },
-    preview: {
-      port: 5173,
     },
   };
 });
