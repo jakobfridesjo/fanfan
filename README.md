@@ -44,6 +44,8 @@ mise test   # Rust core, then frontend
 
 ## Licences
 
+FanFan is licensed under either of [Apache License 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Unless you state otherwise, any contribution you submit for inclusion is dual-licensed the same way, without additional terms.
+
 CC-CEDICT (CC BY-SA 4.0) and MOSS-TTS-Nano (Apache-2.0) are downloaded by `mise setup` and bundled with the app. The HSK 3.0 word levels (from complete-hsk-vocabulary, MIT) and the TOCFL 2023 word levels (SC-TOP's published list, no open licence) are vendored in `src-tauri/vocab-core/data/levels.tsv`. Every Rust and npm dependency is under a permissive licence or MPL-2.0.
 
 ## Docs
