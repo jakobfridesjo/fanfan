@@ -72,4 +72,19 @@ describe("TooltipIconButton", () => {
     await userEvent.click(button);
     expect(onClick).toHaveBeenCalled();
   });
+  it("shows each button's own tooltip on hover", async () => {
+    await renderPage(
+      <>
+        <TooltipIconButton label="Delete" tooltip="Delete template">
+          <span aria-hidden="true">x</span>
+        </TooltipIconButton>
+        <TooltipIconButton label="Copy" tooltip="Copy template">
+          <span aria-hidden="true">c</span>
+        </TooltipIconButton>
+      </>
+    );
+    await userEvent.hover(screen.getByRole("button", { name: "Copy" }));
+    await expect.element(screen.getByText("Copy template")).toBeVisible();
+    await expect.element(screen.getByText("Delete template")).not.toBeInTheDocument();
+  });
 });

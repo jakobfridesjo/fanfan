@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import { syncThemeClass, themeModeAtom } from "@/app/providers/theme-mode.ts";
 import { Toaster } from "@/shared/ui/Toaster.tsx";
+import { IconButtonTooltip } from "@/shared/ui/TooltipIconButton.tsx";
 import type { AppRouterContext } from "@/app/router-context.ts";
 import { AppCrashFallback } from "@/app/layouts/RouteFallbacks.tsx";
 
@@ -51,6 +52,7 @@ function RootComponent() {
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <Outlet />
+        <IconButtonTooltip />
         <AppToaster />
         {AppDevtools ? (
           <Suspense fallback={null}>

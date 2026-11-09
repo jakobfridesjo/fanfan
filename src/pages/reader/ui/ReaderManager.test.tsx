@@ -142,4 +142,24 @@ describe("ReaderManager", () => {
       paragraph: 0,
     });
   });
+
+  it("renders the paragraphs scrolled into view", async () => {
+    const paragraphs = Array.from({ length: 300 }, (_, index) => `段落${index} 。`);
+    mockCommands({
+      list_documents: () => [makeDocument({ id: 1, readingSection: 0 })],
+      list_sections: () => ["第一章"],
+      get_section: () => makeSection(paragraphs),
+      get_word_statuses: () => ({}),
+      set_reading_position: () => null,
+    });
+    await renderPageInRouter(<ReaderManager documentId={1} />);
+
+    const text = screen.getByTestId("reader-text");
+    await expect.element(word("段落0")).toBeInTheDocument();
+    text.element().setAttribute("style", "height: 20rem; flex: none");
+    text.element().scrollTop = text.element().scrollHeight;
+
+    await expect.element(word("段落299")).toBeInTheDocument();
+    await expect.element(word("段落0")).not.toBeInTheDocument();
+  });
 });

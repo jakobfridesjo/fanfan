@@ -18,18 +18,18 @@ import { StatusBadge } from "@/shared/ui/StatusBadge.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Spinner } from "@/shared/ui/shadcn/spinner.tsx";
 import { matchesWordSearch } from "@/pages/known-words/model/word-search.ts";
-import { useKnownWordsManager } from "@/pages/known-words/model/use-known-words-manager.ts";
+import {
+  useIsChangingStatus,
+  useKnownWordsManager,
+} from "@/pages/known-words/model/use-known-words-manager.ts";
 
 function KnownWordsManager() {
   const m = useMessages();
   const manager = useKnownWordsManager();
   const fileInput = useRef<HTMLInputElement>(null);
-  const { setStatus, changingWord } = manager;
+  const { setStatus } = manager;
 
-  const columns = useMemo(
-    () => wordColumns(m, setStatus, changingWord),
-    [m, setStatus, changingWord]
-  );
+  const columns = useMemo(() => wordColumns(m, setStatus), [m, setStatus]);
   const table = useDataTable({
     data: manager.words,
     columns,
@@ -112,11 +112,9 @@ function KnownWordsManager() {
   );
 }
 
-function wordColumns(
-  m: Messages,
-  setStatus: (change: { entry: WordEntry; status: WordStatus }) => void,
-  changingWord: string | null
-): DataTableColumnDef<WordEntry>[] {
+type SetStatus = (change: { entry: WordEntry; status: WordStatus }) => void;
+
+function wordColumns(m: Messages, setStatus: SetStatus): DataTableColumnDef<WordEntry>[] {
   return [
     {
       id: "word",
@@ -189,37 +187,39 @@ function wordColumns(
       header: "",
       enableSorting: false,
       meta: { actions: true, width: "6rem" },
-      cell: ({ row }) => {
-        const entry = row.original;
-        const busy = changingWord === entry.word;
-        const busyIcon = <LoaderCircle className="animate-spin motion-reduce:animate-none" />;
-        return (
-          <RowActions>
-            <SpeakButton word={entry.word} />
-            {entry.status === "known" ? (
-              <RowActionButton
-                label={`${m.knownWords.startLearning}: ${entry.displayWord}`}
-                tooltip={m.knownWords.startLearning}
-                disabled={busy}
-                onClick={() => setStatus({ entry, status: "learning" })}
-              >
-                {busy ? busyIcon : <GraduationCap />}
-              </RowActionButton>
-            ) : (
-              <RowActionButton
-                label={`${m.knownWords.markKnown}: ${entry.displayWord}`}
-                tooltip={m.knownWords.markKnown}
-                disabled={busy}
-                onClick={() => setStatus({ entry, status: "known" })}
-              >
-                {busy ? busyIcon : <BookCheck />}
-              </RowActionButton>
-            )}
-          </RowActions>
-        );
-      },
+      cell: ({ row }) => <WordActions entry={row.original} setStatus={setStatus} />,
     },
   ];
+}
+
+function WordActions({ entry, setStatus }: { entry: WordEntry; setStatus: SetStatus }) {
+  const m = useMessages();
+  const busy = useIsChangingStatus(entry.word);
+  const busyIcon = <LoaderCircle className="animate-spin motion-reduce:animate-none" />;
+  return (
+    <RowActions>
+      <SpeakButton word={entry.word} />
+      {entry.status === "known" ? (
+        <RowActionButton
+          label={`${m.knownWords.startLearning}: ${entry.displayWord}`}
+          tooltip={m.knownWords.startLearning}
+          disabled={busy}
+          onClick={() => setStatus({ entry, status: "learning" })}
+        >
+          {busy ? busyIcon : <GraduationCap />}
+        </RowActionButton>
+      ) : (
+        <RowActionButton
+          label={`${m.knownWords.markKnown}: ${entry.displayWord}`}
+          tooltip={m.knownWords.markKnown}
+          disabled={busy}
+          onClick={() => setStatus({ entry, status: "known" })}
+        >
+          {busy ? busyIcon : <BookCheck />}
+        </RowActionButton>
+      )}
+    </RowActions>
+  );
 }
 
 export default KnownWordsManager;

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import {
   commandErrorMessage,
@@ -17,6 +17,13 @@ import { useTableViewState } from "@/shared/lib/use-table-view-state.ts";
 const knownWordsToast = actionToasts("known-words-action");
 
 const NO_WORDS: WordEntry[] = [];
+
+interface StatusChange {
+  entry: WordEntry;
+  status: WordStatus;
+}
+
+const STATUS_MUTATION_KEY = ["known-words", "set-status"];
 
 export function useKnownWordsManager() {
   const m = useMessages();
@@ -44,8 +51,8 @@ export function useKnownWordsManager() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: ({ entry, status }: { entry: WordEntry; status: WordStatus }) =>
-      commands.setWordStatus(entry.word, status),
+    mutationKey: STATUS_MUTATION_KEY,
+    mutationFn: ({ entry, status }: StatusChange) => commands.setWordStatus(entry.word, status),
     meta: { changesStudyData: true },
     onSuccess: (snapshot, { entry, status }) => {
       const message =
@@ -79,6 +86,15 @@ export function useKnownWordsManager() {
     importFile: (file: File) => importMutation.mutate(file),
     importing: importMutation.isPending,
     setStatus: statusMutation.mutate,
-    changingWord: statusMutation.isPending ? statusMutation.variables.entry.word : null,
   };
+}
+
+/** Whether `word`'s status is being changed. Only that word's row re-renders when it starts or ends. */
+export function useIsChangingStatus(word: string) {
+  const pending = useIsMutating({
+    mutationKey: STATUS_MUTATION_KEY,
+    predicate: (mutation) =>
+      (mutation.state.variables as StatusChange | undefined)?.entry.word === word,
+  });
+  return pending > 0;
 }

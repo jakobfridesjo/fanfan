@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from "react";
 import {
+  type Cell,
   type CellData,
   type Column,
   type ColumnDef,
@@ -88,6 +89,8 @@ export type DataTableColumn<TData extends RowData, TValue extends CellData = Cel
 >;
 
 export type DataTableRow<TData extends RowData> = Row<DataTableFeatures, TData>;
+
+export type DataTableCell<TData extends RowData> = Cell<DataTableFeatures, TData, CellData>;
 
 export type DataTableInstance<TData extends RowData> = ReactTable<DataTableFeatures, TData>;
 

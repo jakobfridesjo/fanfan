@@ -20,8 +20,9 @@ export function useSectionScroll({
   onParagraphReached,
   spokenParagraph,
 }: SectionScrollOptions) {
+  "use no memo";
   const scrollRef = useRef<HTMLDivElement>(null);
-  // oxlint-disable-next-line react/incompatible-library -- the compiler skips this hook; its inputs are plain data
+  // oxlint-disable-next-line react/incompatible-library -- "use no memo" above, and callers get only fresh values and the stable measureElement
   const virtualizer = useVirtualizer({
     count: paragraphCount,
     getScrollElement: () => scrollRef.current,
@@ -45,5 +46,10 @@ export function useSectionScroll({
       virtualizer.scrollToIndex(spokenParagraph, { align: "auto" });
   }, [virtualizer, spokenParagraph]);
 
-  return { scrollRef, virtualizer };
+  return {
+    scrollRef,
+    measureElement: virtualizer.measureElement,
+    items: virtualizer.getVirtualItems(),
+    totalSize: virtualizer.getTotalSize(),
+  };
 }

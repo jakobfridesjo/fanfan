@@ -6,6 +6,7 @@ import {
   RouterProvider,
 } from "@tanstack/react-router";
 import { render } from "vitest-browser-react";
+import { IconButtonTooltip } from "@/shared/ui/TooltipIconButton.tsx";
 import type { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/shared/ui/shadcn/sidebar.tsx";
 import { Toaster } from "@/shared/ui/Toaster.tsx";
@@ -21,6 +22,7 @@ export async function renderPage(
       <SidebarProvider>
         <SidebarInset>{ui}</SidebarInset>
       </SidebarProvider>
+      <IconButtonTooltip />
       <Toaster />
     </QueryClientProvider>
   );

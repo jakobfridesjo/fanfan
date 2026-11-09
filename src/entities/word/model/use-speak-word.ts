@@ -27,9 +27,8 @@ export function useSpeakWord(word: string) {
       await audio.play();
     } catch (error) {
       toastError(commandErrorMessage(error, m.word.playFailed(word)));
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return { speak, loading };

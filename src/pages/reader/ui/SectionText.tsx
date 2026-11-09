@@ -27,7 +27,7 @@ export function SectionText({
   spokenPhrase,
   footer,
 }: SectionTextProps) {
-  const { scrollRef, virtualizer } = useSectionScroll({
+  const { scrollRef, measureElement, items, totalSize } = useSectionScroll({
     paragraphCount: section.paragraphs.length,
     initialParagraph,
     onParagraphReached,
@@ -36,15 +36,12 @@ export function SectionText({
 
   return (
     <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto" data-testid="reader-text">
-      <div
-        className="relative mx-auto w-full max-w-2xl"
-        style={{ height: virtualizer.getTotalSize() }}
-      >
-        {virtualizer.getVirtualItems().map((item) => (
+      <div className="relative mx-auto w-full max-w-2xl" style={{ height: totalSize }}>
+        {items.map((item) => (
           <div
             key={item.key}
             data-index={item.index}
-            ref={virtualizer.measureElement}
+            ref={measureElement}
             className="absolute inset-x-0 top-0 pb-5"
             style={{ transform: `translateY(${item.start}px)` }}
           >

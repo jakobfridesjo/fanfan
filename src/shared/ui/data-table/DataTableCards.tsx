@@ -1,15 +1,13 @@
-import type { ReactNode, Ref } from "react";
+import { memo, type ReactNode, type Ref } from "react";
 import { flexRender, type RowData } from "@tanstack/react-table";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
-import { clickableRowProps, type DataTableRow } from "@/shared/lib/table.ts";
+import { clickableRowProps, type DataTableCell, type DataTableRow } from "@/shared/lib/table.ts";
 import { cn } from "@/shared/lib/class-names.ts";
 
 export const CLICKABLE_ROW_CLASSNAME =
   "cursor-pointer transition-colors outline-none focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset";
 
-function titleCellOf<TData extends RowData>(row: DataTableRow<TData>) {
-  const visibleCells = row.getVisibleCells();
-
+function titleCellOf<TData extends RowData>(visibleCells: DataTableCell<TData>[]) {
   return (
     visibleCells.find((cell) => cell.column.columnDef.meta?.primary) ??
     visibleCells.find((cell) => !cell.column.columnDef.meta?.actions) ??
@@ -35,26 +33,34 @@ export function DataTableCardSkeletons({ rowCount }: { rowCount: number }) {
   );
 }
 
-export function DataTableCard<TData extends RowData>({
-  ref,
-  index,
-  row,
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
-}: {
+interface DataTableCardProps<TData extends RowData> {
   ref?: Ref<HTMLDivElement>;
   /** The row's position in the virtualized list, read by `measureElement`. */
   index?: number;
   row: DataTableRow<TData>;
+  /** The row's state is passed in, not read from `row`, whose identity outlives it. */
+  cells: DataTableCell<TData>[];
+  isSelected: boolean;
+  isExpanded: boolean;
   onRowClick?: (row: TData) => void;
   getRowClassName?: (row: TData) => string;
   renderSubRow?: (row: TData) => ReactNode;
-}) {
-  const titleCell = titleCellOf(row);
-  const visibleCells = row
-    .getVisibleCells()
-    .filter((cell) => !cell.column.columnDef.meta?.mobileHidden);
+}
+
+/** Memoized, so scrolling renders only the cards that come into view. */
+export const DataTableCard = memo(function DataTableCard<TData extends RowData>({
+  ref,
+  index,
+  row,
+  cells,
+  isSelected,
+  isExpanded,
+  onRowClick,
+  getRowClassName,
+  renderSubRow,
+}: DataTableCardProps<TData>) {
+  const titleCell = titleCellOf(cells);
+  const visibleCells = cells.filter((cell) => !cell.column.columnDef.meta?.mobileHidden);
   const actionCells = visibleCells.filter((cell) => cell.column.columnDef.meta?.actions);
   const detailCells = visibleCells.filter(
     (cell) => cell.id !== titleCell?.id && !cell.column.columnDef.meta?.actions
@@ -64,7 +70,7 @@ export function DataTableCard<TData extends RowData>({
     <div
       ref={ref}
       data-index={index}
-      data-state={row.getIsSelected() && "selected"}
+      data-state={isSelected && "selected"}
       {...clickableRowProps(onRowClick, row.original)}
       className={cn(
         "border-b p-2 transition-colors data-[state=selected]:bg-muted last:border-b-0 hover:bg-muted/50",
@@ -91,7 +97,7 @@ export function DataTableCard<TData extends RowData>({
         </div>
       )}
 
-      {renderSubRow && row.getIsExpanded() && (
+      {renderSubRow && isExpanded && (
         <div className="mt-2 border-t pt-2">{renderSubRow(row.original)}</div>
       )}
 
@@ -128,4 +134,4 @@ export function DataTableCard<TData extends RowData>({
       )}
     </div>
   );
-}
+}) as <TData extends RowData>(props: DataTableCardProps<TData>) => ReactNode;

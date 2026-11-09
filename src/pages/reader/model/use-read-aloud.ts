@@ -62,7 +62,10 @@ export function useReadAloud(phrases: SpokenPhrase[]) {
         audioRef.current = audio;
         const played = await playToEnd(audio, !pausedRef.current);
         if (replaced()) return;
-        if (!played) throw new Error(m.reader.readAloudFailed);
+        if (!played) {
+          toastError(m.reader.readAloudFailed);
+          break;
+        }
         release(audio);
         audioRef.current = null;
       } catch (error) {
