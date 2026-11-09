@@ -3,8 +3,8 @@ import type { Scene } from "@/app/layouts/webgl-scene.ts";
 
 const PYREFLY_COUNT = 15;
 /** Each trail is this many quads along the path the pyrefly just took, so it bends as it does. */
-const TRAIL_SEGMENTS = 40;
-const TRAIL_STEP_SECONDS = 0.14;
+const TRAIL_SEGMENTS = 160;
+const TRAIL_STEP_SECONDS = 0.035;
 
 const TRAIL = 0;
 const ORB = 1;
@@ -75,7 +75,7 @@ flat out float flare;
 flat out float tilt;
 
 const float TRAIL_SEGMENTS = ${TRAIL_SEGMENTS}.0;
-const float TRAIL_STEP = ${TRAIL_STEP_SECONDS.toFixed(2)};
+const float TRAIL_STEP = ${TRAIL_STEP_SECONDS.toFixed(3)};
 
 /** How many times it has crossed the screen; the fraction is how far up it is now. */
 float climbs(float at) {
@@ -89,9 +89,26 @@ vec2 lightAt(float at) {
   return vec2(a0.x * resolution.x + sway, mix(1.15, -0.15, fract(climbs(at))) * resolution.y);
 }
 
-vec2 headingAt(float at) {
-  vec2 tangent = lightAt(at - TRAIL_STEP) - lightAt(at + TRAIL_STEP);
-  return length(tangent) > 0.001 ? normalize(tangent) : vec2(0.0, 1.0);
+/**
+ * Where an edge of the trail lies, across pixels to the side of the path. On the inside of a
+ * sharp turn the edge stops at the turn's centre, or the trail would fold over itself; across is
+ * narrowed to match, so the smoke there is cut off rather than squeezed.
+ */
+vec2 trailEdgeAt(float at, inout float across) {
+  vec2 behind = lightAt(at + TRAIL_STEP);
+  vec2 here = lightAt(at);
+  vec2 ahead = lightAt(at - TRAIL_STEP);
+  vec2 tangent = ahead - behind;
+  float speed = length(tangent);
+  vec2 heading = speed > 0.001 ? tangent / speed : vec2(0.0, 1.0);
+  vec2 side = vec2(-heading.y, heading.x);
+  vec2 bend = ahead - 2.0 * here + behind;
+  float inward = dot(bend, side);
+  if (inward * across > 0.0) {
+    float radius = 0.25 * speed * speed / abs(inward);
+    across = sign(across) * min(abs(across), radius);
+  }
+  return here + side * across;
 }
 
 void main() {
@@ -126,9 +143,9 @@ void main() {
     // Each end is mitred along its neighbouring points, so neighbouring segments share an edge.
     float end = corner.x * 0.5 + 0.5;
     float at = startAt - end * TRAIL_STEP;
-    vec2 heading = headingAt(at);
-    local = vec2((segment + end) / TRAIL_SEGMENTS, corner.y * 2.6 * size);
-    gl_Position = clip(lightAt(at) + vec2(-heading.y, heading.x) * local.y);
+    float across = corner.y * 2.6 * size;
+    gl_Position = clip(trailEdgeAt(at, across));
+    local = vec2((segment + end) / TRAIL_SEGMENTS, across);
     return;
   }
 
@@ -149,7 +166,7 @@ flat in float flare;
 flat in float tilt;
 
 const float PI = 3.14159265;
-const float TRAIL_SECONDS = ${(TRAIL_SEGMENTS * TRAIL_STEP_SECONDS).toFixed(2)};
+const float TRAIL_SECONDS = ${(TRAIL_SEGMENTS * TRAIL_STEP_SECONDS).toFixed(3)};
 
 vec3 rainbow(float hue) {
   return 0.5 + 0.5 * cos(2.0 * PI * (hue + vec3(0.0, 0.33, 0.67)));
