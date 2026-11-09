@@ -1,3 +1,4 @@
+import type { TocflLevel } from "@/shared/api/commands.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 
 const words = (count: number, word = "word") =>
@@ -31,6 +32,20 @@ export const en = {
     name: "Name",
     countInBook: (count: number) =>
       count === 1 ? "Once in this book" : `${formatInteger(count)} times in this book`,
+    examLevels: "Exam levels",
+    hskLevel: (level: number) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
+    tocflLevel: (level: TocflLevel) =>
+      `TOCFL ${
+        {
+          novice1: "Novice 1",
+          novice2: "Novice 2",
+          beginner: "Beginner",
+          basic: "Basic",
+          intermediate: "Intermediate",
+          advanced: "Advanced",
+          fluent: "Fluent",
+        }[level]
+      }`,
   },
   coverage: {
     meter: "Known words",
@@ -148,6 +163,7 @@ export const en = {
     title: "Known words",
     known: "Known",
     learning: "Learning",
+    level: "Level",
     status: "Status",
     word: "Word",
     pinyin: "Pinyin",
@@ -237,6 +253,10 @@ export const en = {
       pyreflies: "Pyreflies",
       plain: "Plain",
     },
+    examLevels: "Exam levels",
+    examLevelsDescription:
+      "Show each word's HSK 3.0 and TOCFL level on its card. A word missing from a list shows no level for it.",
+    exams: { hsk: "HSK", tocfl: "TOCFL" },
   },
   about: {
     title: "About",
@@ -251,6 +271,8 @@ export const en = {
       speech: "Speech",
       segmentation: "Word segmentation",
       scheduling: "Review scheduling",
+      hsk: "HSK 3.0 levels",
+      tocfl: "TOCFL levels",
     },
   },
   fallback: {

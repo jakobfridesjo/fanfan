@@ -48,7 +48,23 @@ export interface StudyCard {
   example: string;
   /** Occurrences in the document; null outside a document. */
   count: number | null;
+  /** HSK 3.0, 1 to 7, where 7 stands for levels 7–9; null when the word is not on the list. */
+  hskLevel: number | null;
+  /** Null when the word is not on the TOCFL 2023 list. */
+  tocflLevel: TocflLevel | null;
 }
+
+/** TOCFL 2023 levels, easiest first. */
+export const TOCFL_LEVELS = [
+  "novice1",
+  "novice2",
+  "beginner",
+  "basic",
+  "intermediate",
+  "advanced",
+  "fluent",
+] as const;
+export type TocflLevel = (typeof TOCFL_LEVELS)[number];
 
 export interface Deck {
   document: DocumentSummary;
@@ -122,6 +138,10 @@ export interface WordEntry {
   dueAt: number | null;
   /** Unix milliseconds of the last status change or review. */
   updatedAt: number;
+  /** HSK 3.0, 1 to 7, where 7 stands for levels 7–9; null when the word is not on the list. */
+  hskLevel: number | null;
+  /** Null when the word is not on the TOCFL 2023 list. */
+  tocflLevel: TocflLevel | null;
 }
 
 export interface WordCounts {

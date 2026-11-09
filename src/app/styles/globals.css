@@ -52,6 +52,14 @@
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.66 0.12 85);
   --warning-foreground: oklch(0.2 0 0);
+  /* Exam levels, easiest to hardest: green through blue and violet to red. */
+  --level-1: oklch(0.52 0.14 145);
+  --level-2: oklch(0.52 0.14 180);
+  --level-3: oklch(0.52 0.14 225);
+  --level-4: oklch(0.52 0.14 265);
+  --level-5: oklch(0.52 0.14 300);
+  --level-6: oklch(0.52 0.14 345);
+  --level-7: oklch(0.52 0.14 25);
 }
 
 :root[data-background="fireflies"] {
@@ -141,6 +149,13 @@
   --success-foreground: oklch(0.98 0 0);
   --warning: oklch(0.76 0.1 85);
   --warning-foreground: oklch(0.2 0 0);
+  --level-1: oklch(0.76 0.12 145);
+  --level-2: oklch(0.76 0.12 180);
+  --level-3: oklch(0.76 0.12 225);
+  --level-4: oklch(0.76 0.12 265);
+  --level-5: oklch(0.76 0.12 300);
+  --level-6: oklch(0.76 0.12 345);
+  --level-7: oklch(0.76 0.12 25);
 }
 
 @theme inline {
@@ -181,6 +196,13 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-level-1: var(--level-1);
+  --color-level-2: var(--level-2);
+  --color-level-3: var(--level-3);
+  --color-level-4: var(--level-4);
+  --color-level-5: var(--level-5);
+  --color-level-6: var(--level-6);
+  --color-level-7: var(--level-7);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

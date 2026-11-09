@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { render as renderInPage } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
+import { shownExamsAtom } from "@/shared/config/preferences.ts";
 import { makeCard, silentOpus } from "@/shared/test/fixtures.ts";
 import { createTestQueryClient } from "@/shared/test/query.tsx";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -22,6 +23,18 @@ function render(ui: ReactNode) {
 }
 
 describe("WordCard", () => {
+  it("shows the exam levels the settings ask for", async () => {
+    await render(<WordCard card={makeCard("学习", { hskLevel: 7, tocflLevel: "beginner" })} />);
+
+    const levels = page.getByRole("list", { name: "Exam levels" });
+    await expect.element(levels).toHaveTextContent("HSK 7–9TOCFL Beginner");
+
+    shownExamsAtom.set(["tocfl"]);
+    await expect.element(levels).toHaveTextContent("TOCFL Beginner");
+    shownExamsAtom.set([]);
+    await expect.element(levels).not.toBeInTheDocument();
+  });
+
   it("highlights the word in its example and counts a single use", async () => {
     await render(<WordCard card={makeCard("北京", { count: 1, example: "我们在北京学习。" })} />);
 

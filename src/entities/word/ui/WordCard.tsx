@@ -7,6 +7,7 @@ import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
+import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 
 const MAX_DEFINITIONS = 4;
 
@@ -32,6 +33,7 @@ export function WordCard({ card, hidden = false, footer }: WordCardProps) {
           {card.count !== null && (
             <p className="text-xs text-muted-foreground">{m.word.countInBook(card.count)}</p>
           )}
+          <ExamLevels levels={card} className="justify-center" />
         </div>
 
         {card.example && (

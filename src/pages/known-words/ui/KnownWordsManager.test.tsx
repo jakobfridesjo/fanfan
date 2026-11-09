@@ -1,6 +1,7 @@
 import { page as screen, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import type { WordEntry, WordStatus } from "@/shared/api/commands.ts";
+import { shownExamsAtom } from "@/shared/config/preferences.ts";
 import { makeWordEntry } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -50,6 +51,33 @@ describe("KnownWordsManager", () => {
     await expect.element(screen.getByText("hello; hi")).toBeVisible();
     await expect.element(screen.getByText("Due now")).toBeVisible();
     await expect.element(screen.getByRole("cell", { name: "Learning" })).toBeVisible();
+  });
+
+  it("shows and sorts by exam level, and drops the column when no exam is shown", async () => {
+    mockCommands({
+      list_words: () => [
+        makeWordEntry("阿拉伯语", { hskLevel: 7 }),
+        makeWordEntry("北京大学生"),
+        makeWordEntry("学习", { hskLevel: 1, tocflLevel: "beginner" }),
+      ],
+    });
+    await renderPageInRouter(<KnownWordsManager />);
+
+    await expect.element(screen.getByText("TOCFL Beginner")).toBeVisible();
+    await screen.getByRole("button", { name: "Sort ascending by Level" }).click();
+    await expect
+      .poll(() => bodyRows().map((row) => row.element().textContent))
+      .toEqual([
+        expect.stringContaining("HSK 1TOCFL Beginner"),
+        expect.stringContaining("HSK 7–9"),
+        expect.not.stringContaining("HSK"),
+      ]);
+
+    shownExamsAtom.set([]);
+    await expect.element(screen.getByText("HSK 7–9")).not.toBeInTheDocument();
+    await expect
+      .element(screen.getByRole("columnheader", { name: "Level" }))
+      .not.toBeInTheDocument();
   });
 
   it("searches pinyin without tone marks and filters by status", async () => {

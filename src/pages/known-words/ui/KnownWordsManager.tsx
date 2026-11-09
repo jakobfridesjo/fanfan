@@ -1,6 +1,9 @@
 import { useMemo, useRef } from "react";
 import { BookCheck, GraduationCap, LoaderCircle, Upload } from "lucide-react";
-import type { WordEntry, WordStatus } from "@/shared/api/commands.ts";
+import { useSelector } from "@tanstack/react-store";
+import { TOCFL_LEVELS, type WordEntry, type WordStatus } from "@/shared/api/commands.ts";
+import { shownExamsAtom, type Exam } from "@/shared/config/preferences.ts";
+import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -29,7 +32,8 @@ function KnownWordsManager() {
   const fileInput = useRef<HTMLInputElement>(null);
   const { setStatus } = manager;
 
-  const columns = useMemo(() => wordColumns(m, setStatus), [m, setStatus]);
+  const exams = useSelector(shownExamsAtom);
+  const columns = useMemo(() => wordColumns(m, setStatus, exams), [m, setStatus, exams]);
   const table = useDataTable({
     data: manager.words,
     columns,
@@ -114,7 +118,29 @@ function KnownWordsManager() {
 
 type SetStatus = (change: { entry: WordEntry; status: WordStatus }) => void;
 
-function wordColumns(m: Messages, setStatus: SetStatus): DataTableColumnDef<WordEntry>[] {
+/** Sorts by the shown exams in order, easiest first; undefined for a word on neither list. */
+function levelRank(entry: WordEntry, exams: Exam[]): number | undefined {
+  const ranks = exams.map((exam) =>
+    exam === "hsk" ? entry.hskLevel : entry.tocflLevel && TOCFL_LEVELS.indexOf(entry.tocflLevel) + 1
+  );
+  if (ranks.every((rank) => rank === null)) return undefined;
+  return ranks.reduce<number>((sum, rank) => sum * 10 + (rank ?? 9), 0);
+}
+
+function wordColumns(
+  m: Messages,
+  setStatus: SetStatus,
+  exams: Exam[]
+): DataTableColumnDef<WordEntry>[] {
+  const levelColumn: DataTableColumnDef<WordEntry> = {
+    id: "level",
+    accessorFn: (entry) => levelRank(entry, exams),
+    header: m.knownWords.level,
+    sortDescFirst: false,
+    sortUndefined: "last",
+    meta: { width: "12rem" },
+    cell: ({ row }) => <ExamLevels levels={row.original} />,
+  };
   return [
     {
       id: "word",
@@ -134,6 +160,7 @@ function wordColumns(m: Messages, setStatus: SetStatus): DataTableColumnDef<Word
       meta: { width: "9rem" },
       cell: ({ row }) => row.original.readings[0]?.pinyin ?? <EmptyCell />,
     },
+    ...(exams.length > 0 ? [levelColumn] : []),
     {
       id: "meaning",
       accessorFn: (entry) => entry.readings[0]?.definitions.join("; ") ?? "",

@@ -31,6 +31,20 @@ export const sv: Messages = {
     name: "Namn",
     countInBook: (count) =>
       count === 1 ? "En gång i den här boken" : `${formatInteger(count)} gånger i den här boken`,
+    examLevels: "Provnivåer",
+    hskLevel: (level) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
+    tocflLevel: (level) =>
+      `TOCFL ${
+        {
+          novice1: "Förberedande 1",
+          novice2: "Förberedande 2",
+          beginner: "Nybörjare",
+          basic: "Grundläggande",
+          intermediate: "Mellannivå",
+          advanced: "Avancerad",
+          fluent: "Flytande",
+        }[level]
+      }`,
   },
   coverage: {
     meter: "Kända ord",
@@ -149,6 +163,7 @@ export const sv: Messages = {
     title: "Kända ord",
     known: "Kända",
     learning: "Lär mig",
+    level: "Nivå",
     status: "Status",
     word: "Ord",
     pinyin: "Pinyin",
@@ -238,6 +253,10 @@ export const sv: Messages = {
       pyreflies: "Pyreflugor",
       plain: "Enfärgad",
     },
+    examLevels: "Provnivåer",
+    examLevelsDescription:
+      "Visa ordets nivå i HSK 3.0 och TOCFL på kortet. Ett ord som saknas i en lista får ingen nivå för den.",
+    exams: { hsk: "HSK", tocfl: "TOCFL" },
   },
   about: {
     title: "Om",
@@ -252,6 +271,8 @@ export const sv: Messages = {
       speech: "Tal",
       segmentation: "Ordsegmentering",
       scheduling: "Schemaläggning av repetitioner",
+      hsk: "HSK 3.0-nivåer",
+      tocfl: "TOCFL-nivåer",
     },
   },
   fallback: {

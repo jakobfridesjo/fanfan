@@ -2,6 +2,7 @@ pub mod analysis;
 pub mod dictionary;
 pub mod error;
 pub mod extract;
+pub mod levels;
 pub mod pinyin;
 pub mod service;
 pub mod speech;

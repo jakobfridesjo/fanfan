@@ -28,6 +28,20 @@ export const zh: Messages = {
     noEntry: "词典中没有这个词",
     name: "专名",
     countInBook: (count) => `在本书中出现 ${formatInteger(count)} 次`,
+    examLevels: "考试等级",
+    hskLevel: (level) => (level === 7 ? "HSK 7–9级" : `HSK ${level}级`),
+    tocflLevel: (level) =>
+      `TOCFL ${
+        {
+          novice1: "准备级一级",
+          novice2: "准备级二级",
+          beginner: "入门级",
+          basic: "基础级",
+          intermediate: "进阶级",
+          advanced: "高阶级",
+          fluent: "流利级",
+        }[level]
+      }`,
   },
   coverage: {
     meter: "已认识的词",
@@ -143,6 +157,7 @@ export const zh: Messages = {
     title: "已认识的词",
     known: "已认识",
     learning: "学习中",
+    level: "等级",
     status: "状态",
     word: "词语",
     pinyin: "拼音",
@@ -229,6 +244,10 @@ export const zh: Messages = {
       pyreflies: "幻光虫",
       plain: "纯色",
     },
+    examLevels: "考试等级",
+    examLevelsDescription:
+      "在词卡上显示词语的 HSK 3.0 和 TOCFL 等级。不在某个词表中的词不显示该等级。",
+    exams: { hsk: "HSK", tocfl: "TOCFL" },
   },
   about: {
     title: "关于",
@@ -243,6 +262,8 @@ export const zh: Messages = {
       speech: "语音",
       segmentation: "分词",
       scheduling: "复习排程",
+      hsk: "HSK 3.0 等级",
+      tocfl: "TOCFL 等级",
     },
   },
   fallback: {

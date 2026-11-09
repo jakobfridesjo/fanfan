@@ -3,7 +3,9 @@ import {
   backgroundAtom,
   languageAtom,
   scriptAtom,
+  shownExamsAtom,
   type Background,
+  type Exam,
   type Language,
   type Script,
 } from "@/shared/config/preferences.ts";
@@ -17,5 +19,7 @@ export function useSettingsManager() {
     setScript: (script: Script) => scriptAtom.set(script),
     background: useSelector(backgroundAtom),
     setBackground: (background: Background) => backgroundAtom.set(background),
+    shownExams: useSelector(shownExamsAtom),
+    setShownExams: (exams: Exam[]) => shownExamsAtom.set(exams),
   };
 }

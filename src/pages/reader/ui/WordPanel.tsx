@@ -4,6 +4,7 @@ import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
+import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { Readings, SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import type { ReaderWordStatus } from "@/pages/reader/model/use-reader-manager.ts";
 
@@ -47,6 +48,7 @@ export function WordPanel({ word, card, loading, failed, status, onSetStatus }: 
                 </Badge>
               )}
             </div>
+            <ExamLevels levels={card} />
             <Readings card={card} />
           </>
         )}

@@ -16,6 +16,8 @@ const AUTHOR = "Jakob Fridesjö";
 
 const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license: string }[] = [
   { role: "dictionary", name: "CC-CEDICT", license: "CC BY-SA 4.0" },
+  { role: "hsk", name: "complete-hsk-vocabulary", license: "MIT" },
+  { role: "tocfl", name: "TOCFL 8000 (SC-TOP)", license: "© SC-TOP" },
   { role: "speech", name: "MOSS-TTS-Nano", license: "Apache-2.0" },
   { role: "segmentation", name: "jieba-rs", license: "MIT" },
   { role: "scheduling", name: "FSRS (rs-fsrs)", license: "MIT" },

@@ -1,6 +1,11 @@
 import { page as screen } from "vitest/browser";
 import { describe, expect, it } from "vitest";
-import { backgroundAtom, languageAtom, scriptAtom } from "@/shared/config/preferences.ts";
+import {
+  backgroundAtom,
+  languageAtom,
+  scriptAtom,
+  shownExamsAtom,
+} from "@/shared/config/preferences.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 import { renderPage } from "@/shared/test/render.tsx";
 import SettingsManager from "@/pages/settings/ui/SettingsManager.tsx";
@@ -35,5 +40,23 @@ describe("SettingsManager", () => {
     await screen.getByRole("button", { name: "Plain" }).click();
     expect(backgroundAtom.get()).toBe("plain");
     expect(localStorage.getItem("background")).toBe("plain");
+  });
+
+  it("turns each exam's levels on and off on their own", async () => {
+    await renderPage(<SettingsManager />);
+
+    const hsk = screen.getByRole("button", { name: "HSK" });
+    const tocfl = screen.getByRole("button", { name: "TOCFL" });
+    await expect.element(hsk).toHaveAttribute("aria-pressed", "true");
+
+    await hsk.click();
+    expect(shownExamsAtom.get()).toEqual(["tocfl"]);
+    await tocfl.click();
+    expect(shownExamsAtom.get()).toEqual([]);
+    expect(localStorage.getItem("shownExams")).toBe("[]");
+
+    await tocfl.click();
+    await expect.element(tocfl).toHaveAttribute("aria-pressed", "true");
+    expect(shownExamsAtom.get()).toEqual(["tocfl"]);
   });
 });

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BACKGROUNDS, LANGUAGES, SCRIPTS } from "@/shared/config/preferences.ts";
+import { BACKGROUNDS, EXAMS, LANGUAGES, SCRIPTS } from "@/shared/config/preferences.ts";
 import { LANGUAGE_NAMES, useMessages } from "@/shared/i18n/messages.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import {
@@ -17,8 +17,16 @@ const SCRIPT_SAMPLES = { simplified: "汉语", traditional: "漢語" } as const;
 
 function SettingsManager() {
   const m = useMessages();
-  const { language, setLanguage, script, setScript, background, setBackground } =
-    useSettingsManager();
+  const {
+    language,
+    setLanguage,
+    script,
+    setScript,
+    background,
+    setBackground,
+    shownExams,
+    setShownExams,
+  } = useSettingsManager();
 
   return (
     <>
@@ -60,6 +68,22 @@ function SettingsManager() {
             onChange={setBackground}
             render={(option) => m.settings.backgrounds[option]}
           />
+        </SettingCard>
+
+        <SettingCard title={m.settings.examLevels} description={m.settings.examLevelsDescription}>
+          <ToggleGroup
+            aria-label={m.settings.examLevels}
+            variant="outline"
+            multiple
+            value={shownExams}
+            onValueChange={(next) => setShownExams(EXAMS.filter((exam) => next.includes(exam)))}
+          >
+            {EXAMS.map((exam) => (
+              <ToggleGroupItem key={exam} value={exam} className="px-3">
+                {m.settings.exams[exam]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </SettingCard>
       </div>
     </>

@@ -42,6 +42,8 @@ export function makeCard(word: string, overrides: Partial<StudyCard> = {}): Stud
     ],
     example: `我们在这里${word}。`,
     count: 10,
+    hskLevel: null,
+    tocflLevel: null,
     ...overrides,
   };
 }
@@ -83,6 +85,8 @@ export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}):
     status: "known",
     dueAt: null,
     updatedAt: Date.UTC(2026, 0, 1),
+    hskLevel: null,
+    tocflLevel: null,
     ...overrides,
   };
 }

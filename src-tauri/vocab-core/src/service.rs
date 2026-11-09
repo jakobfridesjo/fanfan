@@ -10,6 +10,7 @@ use crate::analysis::{Analysis, Piece, analyze, tokenize};
 use crate::dictionary::{Dictionary, Entry, Script};
 use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
+use crate::levels::{TocflLevel, levels_of};
 use crate::store::{
     DocumentSummary, DocumentWord, DueWord, NewDocument, Store, TrackedWord, WordStatus,
 };
@@ -60,6 +61,9 @@ pub struct StudyCard {
     pub example: String,
     /// How often the word occurs in the document; absent outside a document.
     pub count: Option<u32>,
+    /// HSK 3.0, 1 to 7, where 7 stands for levels 7-9.
+    pub hsk_level: Option<u8>,
+    pub tocfl_level: Option<TocflLevel>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -132,6 +136,9 @@ pub struct WordEntry {
     pub status: WordStatus,
     pub due_at: Option<i64>,
     pub updated_at: i64,
+    /// HSK 3.0, 1 to 7, where 7 stands for levels 7-9.
+    pub hsk_level: Option<u8>,
+    pub tocfl_level: Option<TocflLevel>,
 }
 
 /// The SHA-256 of the file's bytes, which tells a re-import of the same file apart.
@@ -380,13 +387,18 @@ pub fn word_list(
 ) -> Vec<WordEntry> {
     words
         .into_iter()
-        .map(|tracked| WordEntry {
-            display_word: dictionary.write_in(&tracked.word, script),
-            readings: readings(dictionary, &tracked.word),
-            word: tracked.word,
-            status: tracked.status,
-            due_at: tracked.due_at,
-            updated_at: tracked.updated_at,
+        .map(|tracked| {
+            let levels = levels_of(&tracked.word);
+            WordEntry {
+                display_word: dictionary.write_in(&tracked.word, script),
+                readings: readings(dictionary, &tracked.word),
+                word: tracked.word,
+                status: tracked.status,
+                due_at: tracked.due_at,
+                updated_at: tracked.updated_at,
+                hsk_level: levels.hsk,
+                tocfl_level: levels.tocfl,
+            }
         })
         .collect()
 }
@@ -407,12 +419,15 @@ fn study_card(
     example: &str,
     count: Option<u32>,
 ) -> StudyCard {
+    let levels = levels_of(&word);
     StudyCard {
         display_word: dictionary.write_in(&word, script),
         readings: readings(dictionary, &word),
         example: dictionary.write_in(example, script),
         word,
         count,
+        hsk_level: levels.hsk,
+        tocfl_level: levels.tocfl,
     }
 }
 
@@ -694,8 +709,10 @@ mod tests {
                 "count",
                 "displayWord",
                 "example",
+                "hskLevel",
                 "intervals",
                 "readings",
+                "tocflLevel",
                 "word"
             ]
         );
@@ -758,8 +775,10 @@ mod tests {
             [
                 "displayWord",
                 "dueAt",
+                "hskLevel",
                 "readings",
                 "status",
+                "tocflLevel",
                 "updatedAt",
                 "word"
             ]
@@ -823,6 +842,8 @@ mod tests {
             readings: language().dictionary.lookup("北京").to_vec(),
             example: "北京很好。".into(),
             count: Some(3),
+            hsk_level: Some(1),
+            tocfl_level: Some(TocflLevel::Novice2),
         };
         assert_eq!(
             serde_json::to_value(&card).unwrap(),
@@ -831,7 +852,9 @@ mod tests {
                 "displayWord": "北京",
                 "readings": [{ "pinyin": "Běi jīng", "definitions": ["Beijing"], "properNoun": true }],
                 "example": "北京很好。",
-                "count": 3
+                "count": 3,
+                "hskLevel": 1,
+                "tocflLevel": "novice2"
             })
         );
     }

@@ -138,6 +138,47 @@ gzip -t resources/cedict.txt.gz.part
 mv resources/cedict.txt.gz.part resources/cedict.txt.gz
 """
 
+[tasks."levels:update"]
+description = "Rebuild the vendored HSK 3.0 (MIT) and TOCFL 2023 word levels from their pinned sources"
+dir = "src-tauri/vocab-core/data"
+run = """
+node --input-type=module <<'SCRIPT'
+import { writeFileSync } from "node:fs";
+
+const hskUrl = "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.min.json";
+const tocflUrl = "https://raw.githubusercontent.com/ivankra/tocfl/1fb4a6ba132bacba4742cfdfeb13e12d0730e4ea/expanded/tocfl-202307.csv";
+// TOCFL ID prefixes, easiest first; `L0-1` and `L0-2` are the two novice levels.
+const tocflLevels = { "L0-1": "novice1", "L0-2": "novice2", L1: "beginner", L2: "basic", L3: "intermediate", L4: "advanced", L5: "fluent" };
+const tocflOrder = Object.values(tocflLevels);
+
+const levels = new Map();
+const entry = (word) => levels.get(word) ?? levels.set(word, {}).get(word);
+
+for (const word of await (await fetch(hskUrl)).json()) {
+  // `n1`..`n7` are HSK 3.0 levels, `n7` standing for 7-9.
+  const hsk = Math.min(...word.l.filter((l) => l.startsWith("n")).map((l) => Number(l.slice(1))));
+  if (!Number.isFinite(hsk)) continue;
+  for (const form of new Set([word.s, ...word.f.map((f) => f.t)])) {
+    const e = entry(form);
+    e.hsk = Math.min(e.hsk ?? hsk, hsk);
+  }
+}
+
+const rows = (await (await fetch(tocflUrl)).text()).trim().split("\\n").slice(1);
+for (const row of rows) {
+  const [id, traditional, simplified] = row.split(",");
+  const tocfl = tocflLevels[id.slice(0, 4)] ?? tocflLevels[id.slice(0, 2)];
+  for (const form of new Set([traditional, simplified])) {
+    const e = entry(form);
+    if (e.tocfl === undefined || tocflOrder.indexOf(tocfl) < tocflOrder.indexOf(e.tocfl)) e.tocfl = tocfl;
+  }
+}
+
+const lines = [...levels].sort(([a], [b]) => (a < b ? -1 : 1)).map(([word, e]) => `${word}\\t${e.hsk ?? ""}\\t${e.tocfl ?? ""}`.trimEnd());
+writeFileSync("levels.tsv", ["word\\thsk\\ttocfl", ...lines].join("\\n") + "\\n");
+SCRIPT
+"""
+
 [tasks."voice:fetch"]
 description = "Download MOSS-TTS-Nano (Apache-2.0) and its Mandarin reference voice into the Tauri resources"
 dir = "src-tauri"
