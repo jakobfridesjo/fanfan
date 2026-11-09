@@ -1,9 +1,16 @@
 import { useMemo, useRef } from "react";
 import { BookCheck, GraduationCap, LoaderCircle, Upload } from "lucide-react";
 import { useSelector } from "@tanstack/react-store";
-import { TOCFL_LEVELS, type WordEntry, type WordStatus } from "@/shared/api/commands.ts";
-import { shownExamsAtom, type Exam } from "@/shared/config/preferences.ts";
+import type { WordEntry, WordStatus } from "@/shared/api/commands.ts";
+import {
+  shownExamsAtom,
+  shownNotationsAtom,
+  type Exam,
+  type Notation,
+} from "@/shared/config/preferences.ts";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
+import { pronunciationText, showsPronunciation } from "@/entities/word/model/pronunciation.ts";
+import { ReadingPronunciation } from "@/entities/word/ui/Pronunciation.tsx";
 import { SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import { WordForms } from "@/entities/word/ui/WordForms.tsx";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
@@ -34,7 +41,11 @@ function KnownWordsManager() {
   const { setStatus } = manager;
 
   const exams = useSelector(shownExamsAtom);
-  const columns = useMemo(() => wordColumns(m, setStatus, exams), [m, setStatus, exams]);
+  const notations = useSelector(shownNotationsAtom);
+  const columns = useMemo(
+    () => wordColumns(m, setStatus, exams, notations),
+    [m, setStatus, exams, notations]
+  );
   const table = useDataTable({
     data: manager.words,
     columns,
@@ -121,9 +132,7 @@ type SetStatus = (change: { entry: WordEntry; status: WordStatus }) => void;
 
 /** Sorts by the shown exams in order, easiest first; undefined for a word on neither list. */
 function levelRank(entry: WordEntry, exams: Exam[]): number | undefined {
-  const ranks = exams.map((exam) =>
-    exam === "hsk" ? entry.hskLevel : entry.tocflLevel && TOCFL_LEVELS.indexOf(entry.tocflLevel) + 1
-  );
+  const ranks = exams.map((exam) => (exam === "hsk" ? entry.hskLevel : entry.tbclLevel));
   if (ranks.every((rank) => rank === null)) return undefined;
   return ranks.reduce<number>((sum, rank) => sum * 10 + (rank ?? 9), 0);
 }
@@ -131,8 +140,22 @@ function levelRank(entry: WordEntry, exams: Exam[]): number | undefined {
 function wordColumns(
   m: Messages,
   setStatus: SetStatus,
-  exams: Exam[]
+  exams: Exam[],
+  notations: Notation[]
 ): DataTableColumnDef<WordEntry>[] {
+  const pronunciationColumn: DataTableColumnDef<WordEntry> = {
+    id: "pronunciation",
+    accessorFn: (entry) => {
+      const reading = entry.readings[0];
+      return reading ? pronunciationText(reading, notations) : "";
+    },
+    header: m.knownWords.pronunciation,
+    meta: { width: "9rem" },
+    cell: ({ row }) => {
+      const reading = row.original.readings[0];
+      return reading ? <ReadingPronunciation reading={reading} /> : <EmptyCell />;
+    },
+  };
   const levelColumn: DataTableColumnDef<WordEntry> = {
     id: "level",
     accessorFn: (entry) => levelRank(entry, exams),
@@ -154,13 +177,7 @@ function wordColumns(
         </span>
       ),
     },
-    {
-      id: "pinyin",
-      accessorFn: (entry) => entry.readings[0]?.pinyin ?? "",
-      header: m.knownWords.pinyin,
-      meta: { width: "9rem" },
-      cell: ({ row }) => row.original.readings[0]?.pinyin ?? <EmptyCell />,
-    },
+    ...(showsPronunciation(notations) ? [pronunciationColumn] : []),
     ...(exams.length > 0 ? [levelColumn] : []),
     {
       id: "meaning",
@@ -226,7 +243,7 @@ function WordActions({ entry, setStatus }: { entry: WordEntry; setStatus: SetSta
   const busyIcon = <LoaderCircle className="animate-spin motion-reduce:animate-none" />;
   return (
     <RowActions>
-      <SpeakButton word={entry.word} />
+      <SpeakButton word={entry.word} variant="ghost" />
       {entry.status === "known" ? (
         <RowActionButton
           label={`${m.knownWords.startLearning}: ${entry.displayWord}`}

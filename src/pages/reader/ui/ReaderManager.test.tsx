@@ -29,7 +29,14 @@ function mockBook({ readingSection = 0, known = [] as string[], learning = [] as
     get_word_card: ({ word }) =>
       makeCard(word as string, {
         count: null,
-        readings: [{ pinyin: "Zhōng wén", definitions: ["Chinese language"], properNoun: false }],
+        readings: [
+          {
+            pinyin: "Zhōng wén",
+            zhuyin: "ㄓㄨㄥ ㄨㄣˊ",
+            definitions: ["Chinese language"],
+            properNoun: false,
+          },
+        ],
       }),
     set_word_status: ({ word, status }) => {
       statuses.set(word as string, status as WordStatus);

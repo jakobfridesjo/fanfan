@@ -13,6 +13,7 @@ node_modules/
 
 # Build output
 dist/
+src/pages/about/model/third-party-licenses.gen.json
 *.tsbuildinfo
 outputs/
 

@@ -17,6 +17,7 @@ export function useAnswerHistory<Snapshot>() {
         next.delete(word);
         return next;
       }),
+    answered: undoStack.length,
     lastAnswer: undoStack.at(-1) ?? null,
     remember: (snapshot: Snapshot) => setUndoStack((stack) => [...stack, snapshot]),
     forget: (snapshot: Snapshot) =>

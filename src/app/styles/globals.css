@@ -381,6 +381,11 @@
   @apply bg-sidebar-primary/18 text-primary-text;
 }
 
+/* Skeletons are a wash of the text colour, not opaque grey, so they sit on translucent cards like the content they stand in for. */
+[data-slot="skeleton"] {
+  --muted: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+
 /* Toggles mark the chosen option like the sidebar marks the current page: a wash of the accent. */
 [data-slot="toggle"],
 [data-slot="toggle-group-item"] {

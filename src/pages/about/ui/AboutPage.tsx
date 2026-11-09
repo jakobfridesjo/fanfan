@@ -1,9 +1,12 @@
+import { useState } from "react";
+import { ThirdPartyLicensesSheet } from "@/pages/about/ui/ThirdPartyLicensesSheet.tsx";
 import { appVersion, buildTime } from "@/shared/config/env.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { formatShortDate } from "@/shared/lib/date.ts";
 import { AppLogo } from "@/shared/ui/AppLogo.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { Button } from "@/shared/ui/shadcn/button.tsx";
 import {
   Card,
   CardContent,
@@ -17,7 +20,8 @@ const AUTHOR = "Jakob Fridesjö";
 const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license: string }[] = [
   { role: "dictionary", name: "CC-CEDICT", license: "CC BY-SA 4.0" },
   { role: "hsk", name: "complete-hsk-vocabulary", license: "MIT" },
-  { role: "tocfl", name: "TOCFL 8000 (SC-TOP)", license: "© SC-TOP" },
+  { role: "tbcl", name: "TBCL (NAER)", license: "NAER open data" },
+  { role: "cangjie", name: "Unihan (Unicode)", license: "Unicode-3.0" },
   { role: "speech", name: "MOSS-TTS-Nano", license: "Apache-2.0" },
   { role: "segmentation", name: "jieba-rs", license: "MIT" },
   { role: "scheduling", name: "FSRS (rs-fsrs)", license: "MIT" },
@@ -25,6 +29,7 @@ const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license
 
 function AboutPage() {
   const m = useMessages();
+  const [licensesOpen, setLicensesOpen] = useState(false);
 
   return (
     <>
@@ -63,7 +68,21 @@ function AboutPage() {
             </dl>
           </CardContent>
         </Card>
+
+        <Card className="w-full max-w-2xl shrink-0">
+          <CardHeader>
+            <CardTitle>{m.about.licensesTitle}</CardTitle>
+            <CardDescription>{m.about.licensesDescription}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" onClick={() => setLicensesOpen(true)}>
+              {m.about.showLicenses}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      <ThirdPartyLicensesSheet open={licensesOpen} onOpenChange={setLicensesOpen} />
     </>
   );
 }

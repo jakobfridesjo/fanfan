@@ -39,7 +39,14 @@ describe("KnownWordsManager", () => {
     mockCommands({
       list_words: () => [
         makeWordEntry("你好", {
-          readings: [{ pinyin: "nǐ hǎo", definitions: ["hello", "hi"], properNoun: false }],
+          readings: [
+            {
+              pinyin: "nǐ hǎo",
+              zhuyin: "ㄋㄧˇ ㄏㄠˇ",
+              definitions: ["hello", "hi"],
+              properNoun: false,
+            },
+          ],
         }),
         makeWordEntry("学习", { status: "learning", dueAt: Date.now() - HOUR }),
       ],
@@ -58,17 +65,17 @@ describe("KnownWordsManager", () => {
       list_words: () => [
         makeWordEntry("阿拉伯语", { hskLevel: 7 }),
         makeWordEntry("北京大学生"),
-        makeWordEntry("学习", { hskLevel: 1, tocflLevel: "beginner" }),
+        makeWordEntry("学习", { hskLevel: 1, tbclLevel: 2 }),
       ],
     });
     await renderPageInRouter(<KnownWordsManager />);
 
-    await expect.element(screen.getByText("TOCFL Beginner")).toBeVisible();
+    await expect.element(screen.getByText("TBCL 2")).toBeVisible();
     await screen.getByRole("button", { name: "Sort ascending by Level" }).click();
     await expect
       .poll(() => bodyRows().map((row) => row.element().textContent))
       .toEqual([
-        expect.stringContaining("HSK 1TOCFL Beginner"),
+        expect.stringContaining("HSK 1TBCL 2"),
         expect.stringContaining("HSK 7–9"),
         expect.not.stringContaining("HSK"),
       ]);
@@ -84,7 +91,9 @@ describe("KnownWordsManager", () => {
     mockCommands({
       list_words: () => [
         makeWordEntry("你好", {
-          readings: [{ pinyin: "nǐ hǎo", definitions: ["hello"], properNoun: false }],
+          readings: [
+            { pinyin: "nǐ hǎo", zhuyin: "ㄋㄧˇ ㄏㄠˇ", definitions: ["hello"], properNoun: false },
+          ],
         }),
         makeWordEntry("学习", { status: "learning" }),
         makeWordEntry("中文"),
@@ -93,11 +102,14 @@ describe("KnownWordsManager", () => {
     await renderPageInRouter(<KnownWordsManager />);
     await expect.element(screen.getByRole("cell", { name: "中文" })).toBeVisible();
 
-    await userEvent.fill(screen.getByPlaceholder("Search words, pinyin or meanings"), "nihao");
+    await userEvent.fill(
+      screen.getByPlaceholder("Search words, pronunciations or meanings"),
+      "nihao"
+    );
     await expect.poll(() => bodyRows().length).toBe(1);
     await expect.element(screen.getByRole("cell", { name: "你好" })).toBeVisible();
 
-    await userEvent.clear(screen.getByPlaceholder("Search words, pinyin or meanings"));
+    await userEvent.clear(screen.getByPlaceholder("Search words, pronunciations or meanings"));
     await expect.poll(() => bodyRows().length).toBe(3);
 
     await screen.getByRole("combobox", { name: "Status" }).click();

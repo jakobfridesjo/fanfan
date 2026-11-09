@@ -1,11 +1,11 @@
 import { useSelector } from "@tanstack/react-store";
-import { TOCFL_LEVELS, type StudyCard } from "@/shared/api/commands.ts";
+import type { StudyCard } from "@/shared/api/commands.ts";
 import { shownExamsAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { cn } from "@/shared/lib/class-names.ts";
 import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 
-type WordLevels = Pick<StudyCard, "hskLevel" | "tocflLevel">;
+type WordLevels = Pick<StudyCard, "hskLevel" | "tbclLevel">;
 
 /** One tone per step, easiest first; both exams have seven. */
 const LEVEL_TONES = [
@@ -18,13 +18,13 @@ const LEVEL_TONES = [
   "bg-level-7/12 text-level-7",
 ] as const;
 
-/** The word's HSK and TOCFL levels, as far as the settings show them. */
+/** The word's HSK and TBCL levels, as far as the settings show them. */
 export function ExamLevels({ levels, className }: { levels: WordLevels; className?: string }) {
   const m = useMessages();
   const exams = useSelector(shownExamsAtom);
   const hsk = exams.includes("hsk") ? levels.hskLevel : null;
-  const tocfl = exams.includes("tocfl") ? levels.tocflLevel : null;
-  if (hsk === null && tocfl === null) return null;
+  const tbcl = exams.includes("tbcl") ? levels.tbclLevel : null;
+  if (hsk === null && tbcl === null) return null;
   return (
     <ul aria-label={m.word.examLevels} className={cn("flex flex-wrap gap-1.5", className)}>
       {hsk !== null && (
@@ -34,10 +34,10 @@ export function ExamLevels({ levels, className }: { levels: WordLevels; classNam
           </Badge>
         </li>
       )}
-      {tocfl !== null && (
+      {tbcl !== null && (
         <li>
-          <Badge variant="secondary" className={LEVEL_TONES[TOCFL_LEVELS.indexOf(tocfl)]}>
-            {m.word.tocflLevel(tocfl)}
+          <Badge variant="secondary" className={LEVEL_TONES[tbcl - 1]}>
+            {m.word.tbclLevel(tbcl)}
           </Badge>
         </li>
       )}

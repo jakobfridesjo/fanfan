@@ -4,6 +4,7 @@ import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
+import { CangjieCodes } from "@/entities/word/ui/CangjieCodes.tsx";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { Headword, Readings, SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import type { ReaderWordStatus } from "@/pages/reader/model/use-reader-manager.ts";
@@ -39,14 +40,13 @@ export function WordPanel({ word, card, loading, failed, status, onSetStatus }: 
           <>
             <div className="flex items-center gap-2">
               <Headword card={card} className="text-4xl" />
-              <SpeakButton word={card.word} />
-              {status && (
-                <Badge variant="outline" className="ml-auto">
-                  {m.reader.statuses[status]}
-                </Badge>
-              )}
+              <div className="ml-auto flex items-center gap-2">
+                {status && <Badge variant="outline">{m.reader.statuses[status]}</Badge>}
+                <SpeakButton word={card.word} />
+              </div>
             </div>
             <ExamLevels levels={card} />
+            <CangjieCodes card={card} />
             <Readings card={card} />
           </>
         )}

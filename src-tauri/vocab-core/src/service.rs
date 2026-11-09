@@ -7,10 +7,11 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::analysis::{Analysis, Piece, analyze, tokenize};
+use crate::cangjie::cangjie_of;
 use crate::dictionary::{Dictionary, Entry, Script};
 use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
-use crate::levels::{TocflLevel, levels_of};
+use crate::levels::levels_of;
 use crate::store::{
     DocumentSummary, DocumentWord, DueWord, NewDocument, Store, TrackedWord, WordStatus,
 };
@@ -58,6 +59,10 @@ pub struct StudyCard {
     pub display_word: String,
     /// The traditional form beside `display_word` when the learner reads both.
     pub alternate_word: Option<String>,
+    /// `display_word`'s Cangjie codes, one per character; null when a character has none.
+    pub cangjie: Option<String>,
+    /// `alternate_word`'s Cangjie codes.
+    pub alternate_cangjie: Option<String>,
     pub readings: Vec<Entry>,
     /// In the script the learner reads.
     pub example: String,
@@ -65,15 +70,14 @@ pub struct StudyCard {
     pub count: Option<u32>,
     /// HSK 3.0, 1 to 7, where 7 stands for levels 7-9.
     pub hsk_level: Option<u8>,
-    pub tocfl_level: Option<TocflLevel>,
+    /// TBCL, 1 to 7.
+    pub tbcl_level: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Deck {
     pub document: DocumentSummary,
-    pub words_to_95: u32,
-    pub words_to_98: u32,
     pub cards: Vec<StudyCard>,
 }
 
@@ -144,7 +148,8 @@ pub struct WordEntry {
     pub updated_at: i64,
     /// HSK 3.0, 1 to 7, where 7 stands for levels 7-9.
     pub hsk_level: Option<u8>,
-    pub tocfl_level: Option<TocflLevel>,
+    /// TBCL, 1 to 7.
+    pub tbcl_level: Option<u8>,
 }
 
 /// The SHA-256 of the file's bytes, which tells a re-import of the same file apart.
@@ -208,8 +213,6 @@ pub fn save_file(
 /// What a deck is built from.
 pub struct DeckSource {
     pub document: DocumentSummary,
-    pub words_to_95: u32,
-    pub words_to_98: u32,
     pub words: Vec<DocumentWord>,
 }
 
@@ -217,8 +220,6 @@ pub fn deck_source(store: &Store, document_id: i64, limit: u32) -> Result<DeckSo
     store.snapshot(|store| {
         Ok(DeckSource {
             document: store.document(document_id)?,
-            words_to_95: store.words_to_reach(document_id, 0.95)?,
-            words_to_98: store.words_to_reach(document_id, 0.98)?,
             words: store.unseen_words(document_id, Some(limit))?,
         })
     })
@@ -240,8 +241,6 @@ pub fn deck(source: DeckSource, dictionary: &Dictionary, script: Script) -> Deck
         .collect();
     Deck {
         document: source.document,
-        words_to_95: source.words_to_95,
-        words_to_98: source.words_to_98,
         cards,
     }
 }
@@ -408,7 +407,7 @@ pub fn word_list(
                 due_at: tracked.due_at,
                 updated_at: tracked.updated_at,
                 hsk_level: levels.hsk,
-                tocfl_level: levels.tocfl,
+                tbcl_level: levels.tbcl,
             }
         })
         .collect()
@@ -431,15 +430,19 @@ fn study_card(
     count: Option<u32>,
 ) -> StudyCard {
     let levels = levels_of(&word);
+    let display_word = dictionary.write_in(&word, script);
+    let alternate_word = dictionary.alternate_in(&word, script);
     StudyCard {
-        display_word: dictionary.write_in(&word, script),
-        alternate_word: dictionary.alternate_in(&word, script),
+        cangjie: cangjie_of(&display_word),
+        alternate_cangjie: alternate_word.as_deref().and_then(cangjie_of),
+        display_word,
+        alternate_word,
         readings: readings(dictionary, &word),
         example: dictionary.write_in(example, script),
         word,
         count,
         hsk_level: levels.hsk,
-        tocfl_level: levels.tocfl,
+        tbcl_level: levels.tbcl,
     }
 }
 
@@ -525,7 +528,6 @@ mod tests {
         assert_eq!(deck.cards[1].readings[0].pinyin, "Běi jīng");
         assert_eq!(deck.cards[1].example, "我们在北京学习中文。");
         assert_eq!(deck.document.known_tokens, 2);
-        assert!(deck.words_to_95 > 0 && deck.words_to_98 >= deck.words_to_95);
     }
 
     #[test]
@@ -714,10 +716,7 @@ mod tests {
             Script::Simplified,
         ))
         .unwrap();
-        assert_eq!(
-            keys(deck.clone()),
-            ["cards", "document", "wordsTo95", "wordsTo98"]
-        );
+        assert_eq!(keys(deck.clone()), ["cards", "document"]);
         assert_eq!(
             keys(deck["document"].clone()),
             [
@@ -761,14 +760,16 @@ mod tests {
         assert_eq!(
             keys(queue["cards"][0].clone()),
             [
+                "alternateCangjie",
                 "alternateWord",
+                "cangjie",
                 "count",
                 "displayWord",
                 "example",
                 "hskLevel",
                 "intervals",
                 "readings",
-                "tocflLevel",
+                "tbclLevel",
                 "word"
             ]
         );
@@ -835,7 +836,7 @@ mod tests {
                 "hskLevel",
                 "readings",
                 "status",
-                "tocflLevel",
+                "tbclLevel",
                 "updatedAt",
                 "word"
             ]
@@ -897,11 +898,13 @@ mod tests {
             word: "北京".into(),
             display_word: "北京".into(),
             alternate_word: None,
+            cangjie: cangjie_of("北京"),
+            alternate_cangjie: None,
             readings: language().dictionary.lookup("北京").to_vec(),
             example: "北京很好。".into(),
             count: Some(3),
             hsk_level: Some(1),
-            tocfl_level: Some(TocflLevel::Novice2),
+            tbcl_level: Some(2),
         };
         assert_eq!(
             serde_json::to_value(&card).unwrap(),
@@ -909,11 +912,18 @@ mod tests {
                 "word": "北京",
                 "displayWord": "北京",
                 "alternateWord": null,
-                "readings": [{ "pinyin": "Běi jīng", "definitions": ["Beijing"], "properNoun": true }],
+                "cangjie": "LMP YRF",
+                "alternateCangjie": null,
+                "readings": [{
+                    "pinyin": "Běi jīng",
+                    "zhuyin": "ㄅㄟˇ ㄐㄧㄥ",
+                    "definitions": ["Beijing"],
+                    "properNoun": true
+                }],
                 "example": "北京很好。",
                 "count": 3,
                 "hskLevel": 1,
-                "tocflLevel": "novice2"
+                "tbclLevel": 2
             })
         );
     }

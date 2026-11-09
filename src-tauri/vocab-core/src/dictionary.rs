@@ -5,7 +5,7 @@ use flate2::read::GzDecoder;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::pinyin::to_tone_marks;
+use crate::pinyin::{to_tone_marks, to_zhuyin};
 
 /// The character set a word is shown in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -25,6 +25,8 @@ pub struct Entry {
     #[serde(skip)]
     pub traditional: String,
     pub pinyin: String,
+    /// The same reading in zhuyin (bopomofo), as Taiwan writes it.
+    pub zhuyin: String,
     pub definitions: Vec<String>,
     /// CC-CEDICT capitalises the pinyin of names and places.
     pub proper_noun: bool,
@@ -199,6 +201,7 @@ fn parse_line(line: &str) -> Option<(&str, &str, Entry)> {
         traditional: traditional.to_owned(),
         proper_noun: pinyin.starts_with(|c: char| c.is_ascii_uppercase()),
         pinyin: to_tone_marks(pinyin),
+        zhuyin: to_zhuyin(pinyin),
         definitions,
     };
     Some((traditional, simplified, entry))

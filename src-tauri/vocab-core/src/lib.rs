@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod cangjie;
 pub mod dictionary;
 mod epub;
 pub mod error;

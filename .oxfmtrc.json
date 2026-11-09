@@ -4,5 +4,11 @@
   "useTabs": false,
   "singleQuote": false,
   "trailingComma": "es5",
-  "ignorePatterns": ["coverage", "src/app/routeTree.gen.ts", "src/shared/ui/shadcn/**"]
+  "ignorePatterns": [
+    "coverage",
+    "mise.toml",
+    "src/app/routeTree.gen.ts",
+    "src/pages/about/model/third-party-licenses.gen.json",
+    "src/shared/ui/shadcn/**"
+  ]
 }

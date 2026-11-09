@@ -4,7 +4,9 @@ import { matchesWordSearch } from "@/pages/known-words/model/word-search.ts";
 
 const nihao = makeWordEntry("你好", {
   displayWord: "你好",
-  readings: [{ pinyin: "nǐ hǎo", definitions: ["Hello!", "Hi!"], properNoun: false }],
+  readings: [
+    { pinyin: "nǐ hǎo", zhuyin: "ㄋㄧˇ ㄏㄠˇ", definitions: ["Hello!", "Hi!"], properNoun: false },
+  ],
 });
 const xuexi = makeWordEntry("学习", { displayWord: "學習" });
 
@@ -20,6 +22,13 @@ describe("matchesWordSearch", () => {
       expect(matchesWordSearch(nihao, query)).toBe(true);
     }
     expect(matchesWordSearch(nihao, "xue")).toBe(false);
+  });
+
+  it("finds zhuyin with or without tone marks", () => {
+    for (const query of ["ㄋㄧˇ ㄏㄠˇ", "ㄋㄧ", "ㄋㄧㄏㄠ"]) {
+      expect(matchesWordSearch(nihao, query)).toBe(true);
+    }
+    expect(matchesWordSearch(nihao, "ㄒㄩㄝ")).toBe(false);
   });
 
   it("finds a definition case-insensitively and matches everything when blank", () => {

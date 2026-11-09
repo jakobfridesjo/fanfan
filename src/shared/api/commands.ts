@@ -31,8 +31,10 @@ export interface Folder {
   name: string;
 }
 
-interface Reading {
+export interface Reading {
   pinyin: string;
+  /** The same reading in zhuyin (bopomofo). */
+  zhuyin: string;
   definitions: string[];
   properNoun: boolean;
 }
@@ -44,6 +46,10 @@ export interface StudyCard {
   displayWord: string;
   /** The traditional form beside `displayWord` when both scripts are shown and it differs. */
   alternateWord: string | null;
+  /** `displayWord`'s Cangjie codes, one per character ("HBND SMHA"); null when a character has none. */
+  cangjie: string | null;
+  /** `alternateWord`'s Cangjie codes. */
+  alternateCangjie: string | null;
   /** Most likely reading first; empty when CC-CEDICT lacks the word. */
   readings: Reading[];
   /** In the chosen script. */
@@ -52,26 +58,12 @@ export interface StudyCard {
   count: number | null;
   /** HSK 3.0, 1 to 7, where 7 stands for levels 7–9; null when the word is not on the list. */
   hskLevel: number | null;
-  /** Null when the word is not on the TOCFL 2023 list. */
-  tocflLevel: TocflLevel | null;
+  /** Taiwan's TBCL, 1 to 7; null when the word is not on the list. */
+  tbclLevel: number | null;
 }
-
-/** TOCFL 2023 levels, easiest first. */
-export const TOCFL_LEVELS = [
-  "novice1",
-  "novice2",
-  "beginner",
-  "basic",
-  "intermediate",
-  "advanced",
-  "fluent",
-] as const;
-export type TocflLevel = (typeof TOCFL_LEVELS)[number];
 
 export interface Deck {
   document: DocumentSummary;
-  wordsTo95: number;
-  wordsTo98: number;
   cards: StudyCard[];
 }
 
@@ -146,8 +138,8 @@ export interface WordEntry {
   updatedAt: number;
   /** HSK 3.0, 1 to 7, where 7 stands for levels 7–9; null when the word is not on the list. */
   hskLevel: number | null;
-  /** Null when the word is not on the TOCFL 2023 list. */
-  tocflLevel: TocflLevel | null;
+  /** Taiwan's TBCL, 1 to 7; null when the word is not on the list. */
+  tbclLevel: number | null;
 }
 
 export interface WordCounts {

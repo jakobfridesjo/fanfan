@@ -1,13 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, PartyPopper, Undo2, X } from "lucide-react";
-import type { Deck } from "@/shared/api/commands.ts";
+import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { StudySession, StudySkeleton, StudyStage } from "@/shared/ui/StudySession.tsx";
 import { SwipeCard } from "@/shared/ui/SwipeCard.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Button, buttonVariants } from "@/shared/ui/shadcn/button.tsx";
-import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import {
   Empty,
   EmptyContent,
@@ -16,7 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/shared/ui/shadcn/empty.tsx";
-import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { CoverageBar } from "@/entities/document/ui/CoverageBar.tsx";
 import { WordCard } from "@/entities/word/ui/WordCard.tsx";
 import { useDeckManager } from "@/pages/deck/model/use-deck-manager.ts";
@@ -48,31 +47,32 @@ function DeckManager({ documentId }: { documentId: number }) {
         </TooltipIconButton>
       </PageHeader>
 
-      <div className="-m-1 flex min-h-0 flex-1 flex-col items-center gap-6 overflow-x-hidden overflow-y-auto p-1">
-        {deck && <ProgressCard deck={deck} />}
-
+      <StudyStage status={deck && <DeckProgress document={deck.document} />}>
         {loading || refilling ? (
-          <Skeleton className="h-96 w-full max-w-xl rounded-3xl motion-reduce:animate-none" />
+          <StudySkeleton />
         ) : failed ? (
           <UnavailableState description={m.deck.loadFailedDescription} />
         ) : current ? (
-          <div className="flex w-full max-w-xl flex-1 flex-col gap-6 pb-6">
-            <div className="flex flex-1 flex-col justify-center">
-              <SwipeCard key={current.word} onSwipe={answer}>
+          <StudySession
+            card={
+              <SwipeCard key={current.word} onSwipe={answer} className="flex min-h-96 flex-col">
                 <WordCard card={current} />
               </SwipeCard>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" size="lg" onClick={() => answer("left")}>
-                <X data-icon="inline-start" />
-                {m.deck.learnIt}
-              </Button>
-              <Button type="button" size="lg" onClick={() => answer("right")}>
-                <Check data-icon="inline-start" />
-                {m.deck.knowIt}
-              </Button>
-            </div>
-          </div>
+            }
+            actions={
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" size="lg" onClick={() => answer("left")}>
+                  <X data-icon="inline-start" />
+                  {m.deck.learnIt}
+                </Button>
+                <Button type="button" size="lg" onClick={() => answer("right")}>
+                  <Check data-icon="inline-start" />
+                  {m.deck.knowIt}
+                </Button>
+              </div>
+            }
+            hint={m.deck.answerHint}
+          />
         ) : (
           <Empty>
             <EmptyHeader>
@@ -89,28 +89,20 @@ function DeckManager({ documentId }: { documentId: number }) {
             </EmptyContent>
           </Empty>
         )}
-      </div>
+      </StudyStage>
     </>
   );
 }
 
-function ProgressCard({ deck }: { deck: Deck }) {
+function DeckProgress({ document }: { document: DocumentSummary }) {
   const m = useMessages();
-  const { document, wordsTo95, wordsTo98 } = deck;
-  const goal =
-    wordsTo98 === 0
-      ? m.deck.goalReached
-      : wordsTo95 === 0
-        ? m.deck.goalTo98(wordsTo98)
-        : m.deck.goalTo95(wordsTo95, wordsTo98);
-
   return (
-    <Card size="sm" className="w-full max-w-xl shrink-0">
-      <CardContent className="flex flex-col gap-3">
-        <CoverageBar document={document} />
-        <p className="text-sm">{goal}</p>
-      </CardContent>
-    </Card>
+    <>
+      <CoverageBar document={document} />
+      <p className="text-sm text-muted-foreground">
+        {m.deck.sortedWords(document.uniqueWords - document.unseenWords, document.uniqueWords)}
+      </p>
+    </>
   );
 }
 

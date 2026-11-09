@@ -14,7 +14,8 @@ export const BACKGROUNDS = [
   "pyreflies",
   "plain",
 ] as const;
-export const EXAMS = ["hsk", "tocfl"] as const;
+export const EXAMS = ["hsk", "tbcl"] as const;
+export const NOTATIONS = ["pinyin", "zhuyin", "cangjie"] as const;
 
 /** `auto` follows the system's light or dark setting. */
 export type Theme = (typeof THEMES)[number];
@@ -24,6 +25,8 @@ export type Script = (typeof SCRIPTS)[number];
 export type Background = (typeof BACKGROUNDS)[number];
 /** Exams whose level each word card shows. */
 export type Exam = (typeof EXAMS)[number];
+/** What words are shown with besides their meanings: pinyin and zhuyin readings, Cangjie codes. */
+export type Notation = (typeof NOTATIONS)[number];
 
 /** A preference kept in `localStorage`, readable outside React (query keys, formatters). */
 function persistedAtom<T extends string>(key: string, values: readonly [T, ...T[]], fallback: T) {
@@ -38,16 +41,22 @@ export const languageAtom = persistedAtom<Language>("language", LANGUAGES, "en")
 export const scriptAtom = persistedAtom<Script>("script", SCRIPTS, "simplified");
 export const backgroundAtom = persistedAtom<Background>("background", BACKGROUNDS, "fireflies");
 
-const shownExams = persistedJson<Exam[]>({
-  key: "shownExams",
-  schema: z.array(z.enum(EXAMS)),
-  fallback: [...EXAMS],
-});
-const examsAtom = createAtom(shownExams.load());
-examsAtom.subscribe((exams) => shownExams.save(exams));
-export const shownExamsAtom = Object.assign(examsAtom, {
-  reset: () => examsAtom.set([...EXAMS]),
-}) satisfies Atom<Exam[]>;
+/** A list preference kept in `localStorage`; any combination of `values`, none included. */
+function persistedListAtom<T extends string>(
+  key: string,
+  values: readonly [T, ...T[]],
+  fallback: T[]
+) {
+  const stored = persistedJson<T[]>({ key, schema: z.array(z.enum(values)), fallback });
+  const atom = createAtom(stored.load());
+  atom.subscribe((value) => stored.save(value));
+  return Object.assign(atom, { reset: () => atom.set([...fallback]) }) satisfies Atom<T[]>;
+}
+
+export const shownExamsAtom = persistedListAtom<Exam>("shownExams", EXAMS, [...EXAMS]);
+export const shownNotationsAtom = persistedListAtom<Notation>("shownNotations", NOTATIONS, [
+  "pinyin",
+]);
 
 /** Back to the defaults, for tests that share one page. */
 export function resetPreferences() {
@@ -55,5 +64,6 @@ export function resetPreferences() {
   languageAtom.reset();
   scriptAtom.reset();
   backgroundAtom.reset();
+  shownNotationsAtom.reset();
   shownExamsAtom.reset();
 }

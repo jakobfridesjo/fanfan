@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { render as renderInPage } from "vitest-browser-react";
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
-import { shownExamsAtom } from "@/shared/config/preferences.ts";
+import { shownExamsAtom, shownNotationsAtom } from "@/shared/config/preferences.ts";
 import { makeCard, silentOpus } from "@/shared/test/fixtures.ts";
 import { createTestQueryClient } from "@/shared/test/query.tsx";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -24,15 +24,67 @@ function render(ui: ReactNode) {
 
 describe("WordCard", () => {
   it("shows the exam levels the settings ask for", async () => {
-    await render(<WordCard card={makeCard("学习", { hskLevel: 7, tocflLevel: "beginner" })} />);
+    await render(<WordCard card={makeCard("学习", { hskLevel: 7, tbclLevel: 2 })} />);
 
     const levels = page.getByRole("list", { name: "Exam levels" });
-    await expect.element(levels).toHaveTextContent("HSK 7–9TOCFL Beginner");
+    await expect.element(levels).toHaveTextContent("HSK 7–9TBCL 2");
 
-    shownExamsAtom.set(["tocfl"]);
-    await expect.element(levels).toHaveTextContent("TOCFL Beginner");
+    shownExamsAtom.set(["tbcl"]);
+    await expect.element(levels).toHaveTextContent("TBCL 2");
     shownExamsAtom.set([]);
     await expect.element(levels).not.toBeInTheDocument();
+  });
+
+  it("shows pinyin, zhuyin and Cangjie codes each as the settings turn them on", async () => {
+    await render(
+      <WordCard
+        card={makeCard("學習", {
+          cangjie: "HBND SMHA",
+          readings: [
+            {
+              pinyin: "xué xí",
+              zhuyin: "ㄒㄩㄝˊ ㄒㄧˊ",
+              definitions: ["to learn"],
+              properNoun: false,
+            },
+          ],
+        })}
+      />
+    );
+
+    await expect.element(page.getByText("xué xí")).toBeVisible();
+    await expect.element(page.getByText("ㄒㄩㄝˊ ㄒㄧˊ")).not.toBeInTheDocument();
+    await expect
+      .element(page.getByRole("group", { name: "Cangjie codes" }))
+      .not.toBeInTheDocument();
+
+    shownNotationsAtom.set(["zhuyin", "cangjie"]);
+    await expect.element(page.getByText("ㄒㄩㄝˊ ㄒㄧˊ")).toBeVisible();
+    await expect.element(page.getByText("xué xí")).not.toBeInTheDocument();
+    await expect.element(page.getByText("竹月弓木 尸一竹日")).toBeVisible();
+    await expect.element(page.getByText("HBND SMHA")).toBeVisible();
+
+    shownNotationsAtom.set([]);
+    await expect.element(page.getByText("ㄒㄩㄝˊ ㄒㄧˊ")).not.toBeInTheDocument();
+    await expect.element(page.getByText("to learn")).toBeVisible();
+  });
+
+  it("gives each form its own Cangjie codes when both scripts are shown", async () => {
+    shownNotationsAtom.set(["cangjie"]);
+    await render(
+      <WordCard
+        card={makeCard("学习", {
+          alternateWord: "學習",
+          cangjie: "FBND SIM",
+          alternateCangjie: "HBND SMHA",
+        })}
+      />
+    );
+
+    const codes = page.getByRole("group", { name: "Cangjie codes" });
+    await expect
+      .element(codes)
+      .toHaveTextContent("学习火月弓木 尸戈一FBND SIM學習竹月弓木 尸一竹日HBND SMHA");
   });
 
   it("shows the traditional form beside the word when both scripts are shown", async () => {
@@ -106,10 +158,11 @@ describe("WordCard", () => {
           readings: [
             {
               pinyin: "míng",
+              zhuyin: "ㄇㄧㄥˊ",
               definitions: ["bright", "clear", "open", "honest", "next"],
               properNoun: false,
             },
-            { pinyin: "Míng", definitions: ["Ming dynasty"], properNoun: true },
+            { pinyin: "Míng", zhuyin: "ㄇㄧㄥˊ", definitions: ["Ming dynasty"], properNoun: true },
           ],
         })}
       />

@@ -32,19 +32,9 @@ export const sv: Messages = {
     countInBook: (count) =>
       count === 1 ? "En gång i den här boken" : `${formatInteger(count)} gånger i den här boken`,
     examLevels: "Provnivåer",
+    cangjie: "Cangjie-koder",
     hskLevel: (level) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
-    tocflLevel: (level) =>
-      `TOCFL ${
-        {
-          novice1: "Förberedande 1",
-          novice2: "Förberedande 2",
-          beginner: "Nybörjare",
-          basic: "Grundläggande",
-          intermediate: "Mellannivå",
-          advanced: "Avancerad",
-          fluent: "Flytande",
-        }[level]
-      }`,
+    tbclLevel: (level) => `TBCL ${level}`,
   },
   coverage: {
     meter: "Kända ord",
@@ -101,14 +91,12 @@ export const sv: Messages = {
     loadFailedDescription: "Bokens ord kunde inte laddas.",
     learnIt: "Lär mig",
     knowIt: "Jag kan det",
+    answerHint: "Tryck → om du kan det och ← för att lära dig det, eller svep",
     doneTitle: "Alla ord sorterade",
     doneDescription:
       "Du har gått igenom alla ord i den här boken. Repetera dem du lär dig tills de sitter.",
     reviewWords: "Repetera ord",
-    goalReached: "Du kan eller lär dig 98 % av bokens text.",
-    goalTo98: (to98) => `${words(to98)} till tar dig till 98 % av texten.`,
-    goalTo95: (to95, to98) =>
-      `${words(to95)} till tar dig till 95 % av texten, ${formatInteger(to98)} till 98 %.`,
+    sortedWords: (sorted, total) => `${formatInteger(sorted)}/${words(total)}`,
     loadFailed: "Kunde inte ladda bokens ord",
     saveFailed: "Kunde inte spara svaret",
     undoFailed: "Kunde inte ångra",
@@ -147,8 +135,8 @@ export const sv: Messages = {
     loadFailedDescription: "Dina repetitioner kunde inte laddas.",
     ratings: { 1: "Igen", 2: "Svårt", 3: "Bra", 4: "Lätt" },
     showAnswer: "Visa svar",
-    rateHint: "Tryck 1–4 för att betygsätta, eller svep vänster för igen och höger för bra",
-    recallHint: "Kom ihåg uttal och betydelse, tryck sedan på mellanslag",
+    tapToReveal: "Tryck på kortet för att visa betydelsen",
+    sessionProgress: "Repetitioner klara denna session",
     emptyTitle: "Inget att repetera",
     startLearning: "Svep ord åt vänster i en boks kortlek för att börja lära dig dem.",
     nextReview: (when) => `Nästa repetition: ${when}.`,
@@ -166,12 +154,12 @@ export const sv: Messages = {
     level: "Nivå",
     status: "Status",
     word: "Ord",
-    pinyin: "Pinyin",
+    pronunciation: "Uttal",
     meaning: "Betydelse",
     nextReview: "Nästa repetition",
     dueNow: "Nu",
     changed: "Ändrad",
-    search: "Sök ord, pinyin eller betydelser",
+    search: "Sök ord, uttal eller betydelser",
     file: "Ordlistefil",
     loadFile: "Läs in fil",
     loadFileTooltip:
@@ -255,8 +243,12 @@ export const sv: Messages = {
     },
     examLevels: "Provnivåer",
     examLevelsDescription:
-      "Visa ordets nivå i HSK 3.0 och TOCFL på kortet. Ett ord som saknas i en lista får ingen nivå för den.",
-    exams: { hsk: "HSK", tocfl: "TOCFL" },
+      "Visa ordets nivå i HSK 3.0 (Fastlandskina) och TBCL (Taiwan) på kortet. Ett ord som saknas i en lista får ingen nivå för den.",
+    exams: { hsk: "HSK", tbcl: "TBCL" },
+    notations: "Uttal och inmatningskoder",
+    notationsDescription:
+      "Visa valfri kombination av pinyin, zhuyin (bopomofo, som i Taiwan) och Cangjie-inmatningskoder vid varje ord.",
+    notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
   },
   about: {
     title: "Om",
@@ -266,13 +258,20 @@ export const sv: Messages = {
     built: (date: string) => `Byggd ${date}`,
     creditsTitle: "Tack till",
     creditsDescription: "翻翻 fungerar offline tack vare dessa öppna data och bibliotek.",
+    licensesTitle: "Licenser för öppen källkod",
+    licensesDescription:
+      "翻翻 är licensierat under MIT eller Apache 2.0. Det innehåller dessa paket med öppen källkod, vart och ett under sin egen licens.",
+    showLicenses: "Visa licenser",
+    licensesLoadError: "Licenstexterna kunde inte läsas in.",
+    packages: (count: number) => `${formatInteger(count)} paket`,
     credits: {
       dictionary: "Ordbok",
       speech: "Tal",
       segmentation: "Ordsegmentering",
       scheduling: "Schemaläggning av repetitioner",
       hsk: "HSK 3.0-nivåer",
-      tocfl: "TOCFL-nivåer",
+      tbcl: "TBCL-nivåer",
+      cangjie: "Cangjie-koder",
     },
   },
   fallback: {

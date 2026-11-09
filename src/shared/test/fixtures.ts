@@ -38,19 +38,26 @@ export function makeCard(word: string, overrides: Partial<StudyCard> = {}): Stud
     word,
     displayWord: word,
     alternateWord: null,
+    cangjie: null,
+    alternateCangjie: null,
     readings: [
-      { pinyin: `${word}-pinyin`, definitions: [`meaning of ${word}`], properNoun: false },
+      {
+        pinyin: `${word}-pinyin`,
+        zhuyin: `${word}-zhuyin`,
+        definitions: [`meaning of ${word}`],
+        properNoun: false,
+      },
     ],
     example: `我们在这里${word}。`,
     count: 10,
     hskLevel: null,
-    tocflLevel: null,
+    tbclLevel: null,
     ...overrides,
   };
 }
 
 export function makeDeck(cards: StudyCard[], overrides: Partial<Deck> = {}): Deck {
-  return { document: makeDocument(), wordsTo95: 40, wordsTo98: 120, cards, ...overrides };
+  return { document: makeDocument(), cards, ...overrides };
 }
 
 const MINUTE = 60_000;
@@ -82,13 +89,18 @@ export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}):
     displayWord: word,
     alternateWord: null,
     readings: [
-      { pinyin: `${word}-pinyin`, definitions: [`meaning of ${word}`], properNoun: false },
+      {
+        pinyin: `${word}-pinyin`,
+        zhuyin: `${word}-zhuyin`,
+        definitions: [`meaning of ${word}`],
+        properNoun: false,
+      },
     ],
     status: "known",
     dueAt: null,
     updatedAt: Date.UTC(2026, 0, 1),
     hskLevel: null,
-    tocflLevel: null,
+    tbclLevel: null,
     ...overrides,
   };
 }

@@ -10,6 +10,7 @@ rust = { version = "1.99.1", components = "rustfmt,clippy" }
 
 hk = "2.11.1"
 pkl = "0.32.2"
+"github:EmbarkStudios/cargo-about" = "0.9.3"
 
 [env]
 HK_MISE = 1
@@ -37,6 +38,20 @@ auto = true
 description = "Download the Mandarin text-to-speech model, which the desktop app bundles"
 outputs = ["src-tauri/resources/voice/moss_tts_nano_lm.safetensors"]
 run = "mise run --no-deps voice:fetch"
+
+[deps.licenses]
+auto = true
+description = "Collect the third-party licence notices the About page shows"
+depends = ["web"]
+sources = [
+  "mise.toml",
+  "pnpm-lock.yaml",
+  "src-tauri/Cargo.lock",
+  "src-tauri/about.toml",
+  "src-tauri/vocab-core/data/UNICODE-LICENSE.txt",
+]
+outputs = ["src/pages/about/model/third-party-licenses.gen.json"]
+run = "mise run --no-deps licenses:generate"
 
 # The rest of `mise setup`. Without `auto`, these run only on `mise deps`, not
 # before every task; `--no-deps` keeps their tasks from re-entering `mise deps`.
@@ -138,46 +153,169 @@ gzip -t resources/cedict.txt.gz.part
 mv resources/cedict.txt.gz.part resources/cedict.txt.gz
 """
 
-[tasks."levels:update"]
-description = "Rebuild the vendored HSK 3.0 (MIT) and TOCFL 2023 word levels from their pinned sources"
+[tasks."data:update"]
+description = "Rebuild the vendored HSK 3.0 (MIT) and TBCL (NAER open data) word levels and Unihan's Cangjie codes (Unicode License v3) from their pinned sources"
 dir = "src-tauri/vocab-core/data"
-run = """
+run = '''
 node --input-type=module <<'SCRIPT'
-import { writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync, inflateRawSync } from "node:zlib";
 
 const hskUrl = "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.min.json";
-const tocflUrl = "https://raw.githubusercontent.com/ivankra/tocfl/1fb4a6ba132bacba4742cfdfeb13e12d0730e4ea/expanded/tocfl-202307.csv";
-// TOCFL ID prefixes, easiest first; `L0-1` and `L0-2` are the two novice levels.
-const tocflLevels = { "L0-1": "novice1", "L0-2": "novice2", L1: "beginner", L2: "basic", L3: "intermediate", L4: "advanced", L5: "fluent" };
-const tocflOrder = Object.values(tocflLevels);
+// 臺灣華語文能力基準 (TBCL) 三等七級詞語表, April 2025: https://coct.naer.edu.tw/page.jsp?ID=41
+const tbclUrl = "https://coct.naer.edu.tw/file/files/14452%E8%A9%9E%E8%AA%9E%E8%A1%A8202504.xlsx";
+const tbclSha256 = "0cf6666bd1ed9af62b452bc5306bdc4d4520aead9c31b404e2065e8e075dfbad";
+const unihanUrl = "https://www.unicode.org/Public/18.0.0/ucd/Unihan.zip";
+const unihanSha256 = "4c93ea9c1f636451729a840978f1667a53886af37ba854fdcce109721c63d43e";
+
+const download = async (url, sha256) => {
+  const bytes = Buffer.from(await (await fetch(url)).arrayBuffer());
+  const digest = createHash("sha256").update(bytes).digest("hex");
+  if (digest !== sha256) throw new Error(`${url} changed (sha256 ${digest}); check it, then update its URL and checksum`);
+  return bytes;
+};
 
 const levels = new Map();
 const entry = (word) => levels.get(word) ?? levels.set(word, {}).get(word);
+const lower = (e, list, level) => (e[list] = Math.min(e[list] ?? level, level));
 
 for (const word of await (await fetch(hskUrl)).json()) {
   // `n1`..`n7` are HSK 3.0 levels, `n7` standing for 7-9.
   const hsk = Math.min(...word.l.filter((l) => l.startsWith("n")).map((l) => Number(l.slice(1))));
   if (!Number.isFinite(hsk)) continue;
-  for (const form of new Set([word.s, ...word.f.map((f) => f.t)])) {
-    const e = entry(form);
-    e.hsk = Math.min(e.hsk ?? hsk, hsk);
+  for (const form of new Set([word.s, ...word.f.map((f) => f.t)])) lower(entry(form), "hsk", hsk);
+}
+
+// TBCL lists traditional forms only; CC-CEDICT gives their simplified ones,
+// character by character for a word it lacks.
+const simplified = new Map();
+for (const line of gunzipSync(readFileSync("../../resources/cedict.txt.gz")).toString().split("\n")) {
+  const [traditional, simple] = line.split(" ", 2);
+  if (line.startsWith("#") || !simple) continue;
+  (simplified.get(traditional) ?? simplified.set(traditional, new Set()).get(traditional)).add(simple);
+}
+const simplifiedForms = (word) =>
+  simplified.get(word) ?? [[...word].map((c) => [...(simplified.get(c) ?? [c])][0]).join("")];
+
+for (const row of sheetRows(await download(tbclUrl, tbclSha256)).slice(1)) {
+  // `第4*級` and `第4級` are both level 4; a digit after a word numbers its senses (和1, 和2).
+  const tbcl = Number(row.ji.match(/\d/)[0]);
+  for (const alternative of row.word.replace(/\d/g, "").split("/")) {
+    // 沒(有)用 stands for 沒有用 and 沒用.
+    const forms = [alternative.replace(/[()（）]/g, ""), alternative.replace(/[(（].*?[)）]/g, "")];
+    for (const form of new Set(forms.flatMap((form) => [form, ...simplifiedForms(form)]))) {
+      lower(entry(form), "tbcl", tbcl);
+    }
   }
 }
 
-const rows = (await (await fetch(tocflUrl)).text()).trim().split("\\n").slice(1);
-for (const row of rows) {
-  const [id, traditional, simplified] = row.split(",");
-  const tocfl = tocflLevels[id.slice(0, 4)] ?? tocflLevels[id.slice(0, 2)];
-  for (const form of new Set([traditional, simplified])) {
-    const e = entry(form);
-    if (e.tocfl === undefined || tocflOrder.indexOf(tocfl) < tocflOrder.indexOf(e.tocfl)) e.tocfl = tocfl;
+const lines = [...levels].sort(([a], [b]) => (a < b ? -1 : 1)).map(([word, e]) => `${word}\t${e.hsk ?? ""}\t${e.tbcl ?? ""}`.trimEnd());
+writeFileSync("levels.tsv", ["word\thsk\ttbcl", ...lines].join("\n") + "\n");
+
+// Unihan's kCangjie: `U+5B78\tkCangjie\tHBND`.
+const cangjie = [];
+for (const text of Object.values(unzip(await download(unihanUrl, unihanSha256)))) {
+  for (const [, codePoint, code] of text.matchAll(/^U\+([0-9A-F]+)\tkCangjie\t([A-Z]+)$/gm)) {
+    cangjie.push([String.fromCodePoint(parseInt(codePoint, 16)), code]);
   }
 }
+cangjie.sort(([a], [b]) => a.codePointAt(0) - b.codePointAt(0));
+writeFileSync("cangjie.tsv", ["character\tcangjie", ...cangjie.map((row) => row.join("\t"))].join("\n") + "\n");
+writeFileSync("UNICODE-LICENSE.txt", await (await fetch("https://www.unicode.org/license.txt")).text());
 
-const lines = [...levels].sort(([a], [b]) => (a < b ? -1 : 1)).map(([word, e]) => `${word}\\t${e.hsk ?? ""}\\t${e.tocfl ?? ""}`.trimEnd());
-writeFileSync("levels.tsv", ["word\\thsk\\ttocfl", ...lines].join("\\n") + "\\n");
+/** The first sheet of an .xlsx as objects keyed by its header row. */
+function sheetRows(xlsx) {
+  const files = unzip(xlsx);
+  const decode = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+  const strings = [...files["xl/sharedStrings.xml"].matchAll(/<si>([\s\S]*?)<\/si>/g)].map(([, si]) =>
+    decode([...si.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(([, t]) => t).join("")),
+  );
+  const rows = [...files["xl/worksheets/sheet1.xml"].matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)].map(([, row]) => {
+    const cells = {};
+    for (const [, column, attributes, inner = ""] of row.matchAll(/<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const value = inner.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? "";
+      cells[column] = attributes.includes('t="s"') ? strings[Number(value)] : decode(value);
+    }
+    return cells;
+  });
+  const header = rows[0];
+  return rows.map((cells) => Object.fromEntries(Object.entries(header).map(([column, name]) => [name, cells[column] ?? ""])));
+}
+
+/** The text files of a zip archive, by name. */
+function unzip(zip) {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const files = {};
+  let offset = zip.readUInt32LE(end + 16);
+  for (let index = 0; index < zip.readUInt16LE(end + 10); index++) {
+    const method = zip.readUInt16LE(offset + 10);
+    const size = zip.readUInt32LE(offset + 20);
+    const nameLength = zip.readUInt16LE(offset + 28);
+    const name = zip.toString("utf8", offset + 46, offset + 46 + nameLength);
+    const local = zip.readUInt32LE(offset + 42);
+    const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+    const data = zip.subarray(start, start + size);
+    files[name] = (method === 8 ? inflateRawSync(data) : data).toString("utf8");
+    offset += 46 + nameLength + zip.readUInt16LE(offset + 30) + zip.readUInt16LE(offset + 32);
+  }
+  return files;
+}
 SCRIPT
-"""
+'''
+
+[tasks."licenses:generate"]
+description = "Collect the licence notices of every Rust crate and npm package the app ships, for the About page"
+run = '''
+cargo fetch --locked --quiet --manifest-path src-tauri/Cargo.toml
+node --input-type=module <<'SCRIPT'
+import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const run = (command, args) => execFileSync(command, args, { encoding: "utf8", maxBuffer: 1 << 28 });
+const notices = new Map();
+const add = (license, text, name) => {
+  const key = `${license}\0${text}`;
+  const notice = notices.get(key) ?? notices.set(key, { license, text, packages: new Set() }).get(key);
+  notice.packages.add(name);
+};
+
+// Rust: every crate linked into the app on each platform it ships on (src-tauri/about.toml).
+const rust = JSON.parse(
+  run("cargo-about", ["generate", "--format", "json", "--frozen", "--manifest-path", "src-tauri/Cargo.toml"]),
+);
+for (const { id, text, used_by } of rust.licenses) {
+  for (const { crate } of used_by) add(id, text.trim(), `${crate.name} ${crate.version}`);
+}
+
+// npm: the runtime dependencies. `shadcn` is a CLI the app takes only a stylesheet from.
+const cliOnly = new Set(["shadcn"]);
+const seen = new Set();
+const visit = (dependencies = {}) => {
+  for (const [name, { version, path, dependencies: children }] of Object.entries(dependencies)) {
+    if (seen.has(path)) continue;
+    seen.add(path);
+    const manifest = JSON.parse(readFileSync(join(path, "package.json"), "utf8"));
+    const files = readdirSync(path).filter((file) => /^(licen[cs]e|copying|notice)/i.test(file)).sort();
+    const text = files.map((file) => readFileSync(join(path, file), "utf8").trim()).join("\n\n");
+    add(manifest.license ?? "UNKNOWN", text, `${name} ${version}`);
+    if (!cliOnly.has(name)) visit(children);
+  }
+};
+visit(JSON.parse(run("pnpm", ["list", "--prod", "--json", "--depth", "Infinity"]))[0].dependencies);
+
+// Data: Unihan's Cangjie codes (`mise data:update`), whose licence asks for its notice.
+add("Unicode-3.0", readFileSync("src-tauri/vocab-core/data/UNICODE-LICENSE.txt", "utf8").trim(), "Unihan 18.0.0");
+
+const collator = new Intl.Collator("en");
+const list = [...notices.values()]
+  .map(({ license, text, packages }) => ({ license, text, packages: [...packages].sort(collator.compare) }))
+  .sort((a, b) => collator.compare(a.license, b.license) || collator.compare(a.packages[0], b.packages[0]));
+writeFileSync("src/pages/about/model/third-party-licenses.gen.json", JSON.stringify(list) + "\n");
+console.log(`${list.length} notices for ${list.reduce((sum, n) => sum + n.packages.length, 0)} packages`);
+SCRIPT
+'''
 
 [tasks."voice:fetch"]
 description = "Download MOSS-TTS-Nano (Apache-2.0) and its Mandarin reference voice into the Tauri resources"

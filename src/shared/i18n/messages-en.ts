@@ -1,4 +1,3 @@
-import type { TocflLevel } from "@/shared/api/commands.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 
 const words = (count: number, word = "word") =>
@@ -33,19 +32,9 @@ export const en = {
     countInBook: (count: number) =>
       count === 1 ? "Once in this book" : `${formatInteger(count)} times in this book`,
     examLevels: "Exam levels",
+    cangjie: "Cangjie codes",
     hskLevel: (level: number) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
-    tocflLevel: (level: TocflLevel) =>
-      `TOCFL ${
-        {
-          novice1: "Novice 1",
-          novice2: "Novice 2",
-          beginner: "Beginner",
-          basic: "Basic",
-          intermediate: "Intermediate",
-          advanced: "Advanced",
-          fluent: "Fluent",
-        }[level]
-      }`,
+    tbclLevel: (level: number) => `TBCL ${level}`,
   },
   coverage: {
     meter: "Known words",
@@ -101,14 +90,12 @@ export const en = {
     loadFailedDescription: "This book's words could not be loaded.",
     learnIt: "Learn it",
     knowIt: "I know it",
+    answerHint: "Press → if you know it and ← to learn it, or swipe",
     doneTitle: "Every word sorted",
     doneDescription:
       "You have gone through every word in this book. Review the ones you are learning until they stick.",
     reviewWords: "Review words",
-    goalReached: "You know or are learning 98% of this book's text.",
-    goalTo98: (to98: number) => `${words(to98, "more word")} gets you to 98% of the text.`,
-    goalTo95: (to95: number, to98: number) =>
-      `${words(to95, "more word")} gets you to 95% of the text, ${formatInteger(to98)} to 98%.`,
+    sortedWords: (sorted: number, total: number) => `${formatInteger(sorted)}/${words(total)}`,
     loadFailed: "Failed to load this book's words",
     saveFailed: "Could not save the answer",
     undoFailed: "Could not undo",
@@ -147,8 +134,8 @@ export const en = {
     loadFailedDescription: "Your reviews could not be loaded.",
     ratings: { 1: "Again", 2: "Hard", 3: "Good", 4: "Easy" },
     showAnswer: "Show answer",
-    rateHint: "Press 1–4 to rate, or swipe left for again and right for good",
-    recallHint: "Recall the reading and meaning, then press space",
+    tapToReveal: "Tap the card to show the meaning",
+    sessionProgress: "Reviews done this session",
     emptyTitle: "Nothing to review",
     startLearning: "Swipe words left in a book's deck to start learning them.",
     nextReview: (when: string) => `Next review: ${when}.`,
@@ -166,12 +153,12 @@ export const en = {
     level: "Level",
     status: "Status",
     word: "Word",
-    pinyin: "Pinyin",
+    pronunciation: "Pronunciation",
     meaning: "Meaning",
     nextReview: "Next review",
     dueNow: "Due now",
     changed: "Changed",
-    search: "Search words, pinyin or meanings",
+    search: "Search words, pronunciations or meanings",
     file: "Word list file",
     loadFile: "Load file",
     loadFileTooltip:
@@ -255,8 +242,12 @@ export const en = {
     },
     examLevels: "Exam levels",
     examLevelsDescription:
-      "Show each word's HSK 3.0 and TOCFL level on its card. A word missing from a list shows no level for it.",
-    exams: { hsk: "HSK", tocfl: "TOCFL" },
+      "Show each word's HSK 3.0 level (mainland China) and TBCL level (Taiwan) on its card. A word missing from a list shows no level for it.",
+    exams: { hsk: "HSK", tbcl: "TBCL" },
+    notations: "Readings and input codes",
+    notationsDescription:
+      "Show any combination of pinyin, zhuyin (bopomofo, as taught in Taiwan) and Cangjie input codes with each word.",
+    notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
   },
   about: {
     title: "About",
@@ -266,13 +257,20 @@ export const en = {
     built: (date: string) => `Built ${date}`,
     creditsTitle: "Acknowledgements",
     creditsDescription: "翻翻 runs offline on these open data sets and libraries.",
+    licensesTitle: "Open-source licences",
+    licensesDescription:
+      "翻翻 is licensed under MIT or Apache 2.0. It includes these open-source packages, each under its own licence.",
+    showLicenses: "Show licences",
+    licensesLoadError: "The licence notices could not be loaded.",
+    packages: (count: number) => `${formatInteger(count)} ${count === 1 ? "package" : "packages"}`,
     credits: {
       dictionary: "Dictionary",
       speech: "Speech",
       segmentation: "Word segmentation",
       scheduling: "Review scheduling",
       hsk: "HSK 3.0 levels",
-      tocfl: "TOCFL levels",
+      tbcl: "TBCL levels",
+      cangjie: "Cangjie codes",
     },
   },
   fallback: {

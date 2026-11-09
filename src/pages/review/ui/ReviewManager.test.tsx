@@ -27,7 +27,14 @@ describe("ReviewManager", () => {
     mockQueue([
       makeCard("学习", {
         count: null,
-        readings: [{ pinyin: "xué xí", definitions: ["to learn"], properNoun: false }],
+        readings: [
+          {
+            pinyin: "xué xí",
+            zhuyin: "ㄒㄩㄝˊ ㄒㄧˊ",
+            definitions: ["to learn"],
+            properNoun: false,
+          },
+        ],
       }),
     ]);
     await renderPageInRouter(<ReviewManager />);
@@ -35,6 +42,7 @@ describe("ReviewManager", () => {
     await expect.element(screen.getByText("1 card due")).toBeVisible();
     await expect.element(screen.getByRole("button", { name: /^Good/ })).not.toBeInTheDocument();
 
+    await expect.element(screen.getByText("Tap the card to show the meaning")).toBeVisible();
     await screen.getByRole("button", { name: "Show answer" }).click();
     await expect.element(screen.getByText("xué xí")).toBeVisible();
     for (const [rating, interval] of [

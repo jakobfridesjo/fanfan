@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BACKGROUNDS, EXAMS, LANGUAGES, SCRIPTS } from "@/shared/config/preferences.ts";
+import { BACKGROUNDS, EXAMS, LANGUAGES, NOTATIONS, SCRIPTS } from "@/shared/config/preferences.ts";
 import { LANGUAGE_NAMES, useMessages } from "@/shared/i18n/messages.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import {
@@ -14,6 +14,12 @@ import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.
 
 /** A sample of each script, written in itself. */
 const SCRIPT_SAMPLES = { simplified: "汉语", traditional: "漢語", both: "汉/漢" } as const;
+/** 中文 written in each notation: Cangjie as the radicals its keys type. */
+const NOTATION_SAMPLES = {
+  pinyin: "zhōngwén",
+  zhuyin: "ㄓㄨㄥ ㄨㄣˊ",
+  cangjie: "中 卜大",
+} as const;
 
 function SettingsManager() {
   const m = useMessages();
@@ -22,6 +28,8 @@ function SettingsManager() {
     setLanguage,
     script,
     setScript,
+    shownNotations,
+    setShownNotations,
     background,
     setBackground,
     shownExams,
@@ -60,6 +68,23 @@ function SettingsManager() {
           />
         </SettingCard>
 
+        <SettingCard title={m.settings.notations} description={m.settings.notationsDescription}>
+          <Toggles
+            label={m.settings.notations}
+            options={NOTATIONS}
+            value={shownNotations}
+            onChange={setShownNotations}
+            render={(option) => (
+              <>
+                <span lang="zh" aria-hidden className="text-muted-foreground">
+                  {NOTATION_SAMPLES[option]}
+                </span>
+                {m.settings.notationNames[option]}
+              </>
+            )}
+          />
+        </SettingCard>
+
         <SettingCard title={m.settings.background} description={m.settings.backgroundDescription}>
           <Choices
             label={m.settings.background}
@@ -71,19 +96,13 @@ function SettingsManager() {
         </SettingCard>
 
         <SettingCard title={m.settings.examLevels} description={m.settings.examLevelsDescription}>
-          <ToggleGroup
-            aria-label={m.settings.examLevels}
-            variant="outline"
-            multiple
+          <Toggles
+            label={m.settings.examLevels}
+            options={EXAMS}
             value={shownExams}
-            onValueChange={(next) => setShownExams(EXAMS.filter((exam) => next.includes(exam)))}
-          >
-            {EXAMS.map((exam) => (
-              <ToggleGroupItem key={exam} value={exam} className="px-3">
-                {m.settings.exams[exam]}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+            onChange={setShownExams}
+            render={(exam) => m.settings.exams[exam]}
+          />
         </SettingCard>
       </div>
     </>
@@ -134,6 +153,38 @@ function Choices<T extends string>({
         const chosen = options.find((option) => option === next[0]);
         if (chosen) onChange(chosen);
       }}
+    >
+      {options.map((option) => (
+        <ToggleGroupItem key={option} value={option} className="px-3">
+          {render(option)}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
+
+/** Options each turned on and off on their own, kept in `options` order. */
+function Toggles<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  render,
+}: {
+  label: string;
+  options: readonly T[];
+  value: T[];
+  onChange: (value: T[]) => void;
+  render: (option: T) => ReactNode;
+}) {
+  return (
+    <ToggleGroup
+      aria-label={label}
+      variant="outline"
+      className="flex-wrap"
+      multiple
+      value={value}
+      onValueChange={(next) => onChange(options.filter((option) => next.includes(option)))}
     >
       {options.map((option) => (
         <ToggleGroupItem key={option} value={option} className="px-3">

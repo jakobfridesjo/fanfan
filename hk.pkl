@@ -13,7 +13,7 @@ local verbatimFiles = List("**/public/**", "**/*.svg")
 
 local generatedFiles =
   Regex(
-    #"^(dist/|coverage/|pnpm-lock\.yaml$|src/app/routeTree\.gen\.ts$|src/shared/ui/shadcn/|src-tauri/(target|gen)/)"#,
+    #"^(dist/|coverage/|pnpm-lock\.yaml$|src/app/routeTree\.gen\.ts$|src/pages/about/model/third-party-licenses\.gen\.json$|src/shared/ui/shadcn/|src-tauri/(target|gen)/)"#,
   )
 
 // Not `steps`: a local by that name resolves to Config's empty `steps` property.

@@ -81,23 +81,6 @@ impl Store {
         Ok(words)
     }
 
-    /// How many more unseen words, taken most frequent first, bring known plus
-    /// learning words to `target` (0–1) of the document's tokens.
-    pub fn words_to_reach(&self, document_id: i64, target: f64) -> Result<u32> {
-        let summary = self.document(document_id)?;
-        let goal = (f64::from(summary.total_tokens) * target).ceil() as u64;
-        let mut covered = u64::from(summary.known_tokens + summary.learning_tokens);
-        let mut needed = 0;
-        for word in self.unseen_words(document_id, None)? {
-            if covered >= goal {
-                break;
-            }
-            covered += u64::from(word.count);
-            needed += 1;
-        }
-        Ok(needed)
-    }
-
     /// An example sentence for a word from any document that contains it.
     pub fn example_for(&self, word: &str) -> Result<Option<String>> {
         Ok(self
@@ -394,17 +377,6 @@ mod tests {
                 },
             ]
         );
-    }
-
-    #[test]
-    fn counts_words_needed_for_a_coverage_target() {
-        let (mut store, id) = store_with_document();
-        assert_eq!(store.words_to_reach(id, 0.5).unwrap(), 1);
-        assert_eq!(store.words_to_reach(id, 0.95).unwrap(), 3);
-        assert_eq!(store.words_to_reach(id, 1.0).unwrap(), 4);
-        store.set_status("的", WordStatus::Known, now()).unwrap();
-        assert_eq!(store.words_to_reach(id, 0.5).unwrap(), 0);
-        assert_eq!(store.words_to_reach(id, 0.95).unwrap(), 2);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-import { LoaderCircle, Volume2 } from "lucide-react";
+import { LoaderCircle, Play } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StudyCard } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -7,42 +7,61 @@ import { Badge } from "@/shared/ui/shadcn/badge.tsx";
 import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
+import { CangjieCodes } from "@/entities/word/ui/CangjieCodes.tsx";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
+import { ReadingPronunciation } from "@/entities/word/ui/Pronunciation.tsx";
 import { WordForms } from "@/entities/word/ui/WordForms.tsx";
 
 const MAX_DEFINITIONS = 4;
 
 interface WordCardProps {
   card: StudyCard;
-  /** Hides pinyin and meanings for recall practice, keeping their space so revealing them moves nothing. */
+  /** Hides the pronunciation and meanings for recall practice, keeping their space so revealing them moves nothing. */
   hidden?: boolean;
+  /** Shown where the hidden meanings would be. */
+  hiddenHint?: string;
   footer?: ReactNode;
 }
 
-export function WordCard({ card, hidden = false, footer }: WordCardProps) {
+export function WordCard({ card, hidden = false, hiddenHint, footer }: WordCardProps) {
   const m = useMessages();
   return (
-    <Card className="min-h-96 w-full justify-between">
-      <CardContent className="flex flex-col items-center gap-6 pt-6 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Headword card={card} className="text-6xl" />
-            <SpeakButton word={card.word} />
-          </div>
+    <Card className="relative min-h-96 w-full justify-between">
+      <SpeakButton
+        word={card.word}
+        className="absolute top-(--card-spacing) right-(--card-spacing)"
+      />
+      <CardContent className="flex min-h-0 flex-col items-center gap-6 pt-6 text-center">
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <Headword card={card} className="text-6xl" />
           {card.count !== null && (
             <p className="text-xs text-muted-foreground">{m.word.countInBook(card.count)}</p>
           )}
           <ExamLevels levels={card} className="justify-center" />
+          <CangjieCodes card={card} className="items-center" />
         </div>
 
         {card.example && (
-          <p lang="zh" className="max-w-md text-lg leading-relaxed text-muted-foreground">
+          <p lang="zh" className="max-w-md shrink-0 text-lg leading-relaxed text-muted-foreground">
             <HighlightedWord sentence={card.example} word={card.displayWord} />
           </p>
         )}
 
-        <div inert={hidden} className={cn("flex w-full justify-center", hidden && "invisible")}>
-          <Readings card={card} />
+        <div className="relative flex min-h-0 w-full flex-col">
+          <div
+            inert={hidden}
+            className={cn(
+              "flex min-h-0 w-full justify-center overflow-y-auto",
+              hidden && "invisible"
+            )}
+          >
+            <Readings card={card} />
+          </div>
+          {hidden && hiddenHint && (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+              {hiddenHint}
+            </p>
+          )}
         </div>
       </CardContent>
       {footer && <div className="px-(--card-spacing)">{footer}</div>}
@@ -59,18 +78,28 @@ export function Headword({ card, className }: { card: StudyCard; className: stri
   );
 }
 
-export function SpeakButton({ word }: { word: string }) {
+/** A round play button, like the reader's; `ghost` sits quieter in a table row. */
+export function SpeakButton({
+  word,
+  variant = "outline",
+  className,
+}: {
+  word: string;
+  variant?: "outline" | "ghost";
+  className?: string;
+}) {
   const m = useMessages();
   const { speak, loading } = useSpeakWord(word);
   return (
     <TooltipIconButton
       label={m.word.playPronunciation}
-      variant="ghost"
+      variant={variant}
       size="icon"
+      className={className}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={() => void speak()}
     >
-      {loading ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <Volume2 />}
+      {loading ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <Play />}
     </TooltipIconButton>
   );
 }
@@ -97,7 +126,7 @@ export function Readings({ card }: { card: StudyCard }) {
       {card.readings.map((reading) => (
         <div key={`${reading.pinyin}/${reading.definitions[0]}`} className="flex flex-col gap-0.5">
           <dt className="flex items-center gap-2 text-lg font-medium">
-            {reading.pinyin}
+            <ReadingPronunciation reading={reading} />
             {reading.properNoun && <Badge variant="outline">{m.word.name}</Badge>}
           </dt>
           <dd className="text-sm text-muted-foreground">

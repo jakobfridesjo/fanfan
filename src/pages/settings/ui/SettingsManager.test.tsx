@@ -5,6 +5,7 @@ import {
   languageAtom,
   scriptAtom,
   shownExamsAtom,
+  shownNotationsAtom,
 } from "@/shared/config/preferences.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 import { renderPage } from "@/shared/test/render.tsx";
@@ -42,21 +43,37 @@ describe("SettingsManager", () => {
     expect(localStorage.getItem("background")).toBe("plain");
   });
 
+  it("turns pinyin, zhuyin and Cangjie on and off on their own", async () => {
+    await renderPage(<SettingsManager />);
+
+    const pinyin = screen.getByRole("button", { name: "Pinyin" });
+    await expect.element(pinyin).toHaveAttribute("aria-pressed", "true");
+
+    await screen.getByRole("button", { name: "Cangjie" }).click();
+    await screen.getByRole("button", { name: "Zhuyin" }).click();
+    expect(shownNotationsAtom.get()).toEqual(["pinyin", "zhuyin", "cangjie"]);
+
+    await pinyin.click();
+    await expect.element(pinyin).toHaveAttribute("aria-pressed", "false");
+    expect(shownNotationsAtom.get()).toEqual(["zhuyin", "cangjie"]);
+    expect(localStorage.getItem("shownNotations")).toBe('["zhuyin","cangjie"]');
+  });
+
   it("turns each exam's levels on and off on their own", async () => {
     await renderPage(<SettingsManager />);
 
     const hsk = screen.getByRole("button", { name: "HSK" });
-    const tocfl = screen.getByRole("button", { name: "TOCFL" });
+    const tbcl = screen.getByRole("button", { name: "TBCL" });
     await expect.element(hsk).toHaveAttribute("aria-pressed", "true");
 
     await hsk.click();
-    expect(shownExamsAtom.get()).toEqual(["tocfl"]);
-    await tocfl.click();
+    expect(shownExamsAtom.get()).toEqual(["tbcl"]);
+    await tbcl.click();
     expect(shownExamsAtom.get()).toEqual([]);
     expect(localStorage.getItem("shownExams")).toBe("[]");
 
-    await tocfl.click();
-    await expect.element(tocfl).toHaveAttribute("aria-pressed", "true");
-    expect(shownExamsAtom.get()).toEqual(["tocfl"]);
+    await tbcl.click();
+    await expect.element(tbcl).toHaveAttribute("aria-pressed", "true");
+    expect(shownExamsAtom.get()).toEqual(["tbcl"]);
   });
 });

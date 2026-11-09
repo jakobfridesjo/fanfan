@@ -37,7 +37,14 @@ describe("DeckManager", () => {
       makeCard("学习", {
         count: 15,
         example: "我们在北京学习中文。",
-        readings: [{ pinyin: "xué xí", definitions: ["to learn", "to study"], properNoun: false }],
+        readings: [
+          {
+            pinyin: "xué xí",
+            zhuyin: "ㄒㄩㄝˊ ㄒㄧˊ",
+            definitions: ["to learn", "to study"],
+            properNoun: false,
+          },
+        ],
       }),
       makeCard("中文"),
     ]);
@@ -49,17 +56,13 @@ describe("DeckManager", () => {
     await expect.element(screen.getByText("to learn; to study")).toBeVisible();
   });
 
-  it("states how many words reach 95% and 98% coverage", async () => {
+  it("counts the book's words sorted so far", async () => {
     mockDeck([makeCard("学习")], {
-      wordsTo95: 340,
-      wordsTo98: 1200,
-      document: makeDocument({ title: "三体" }),
+      document: makeDocument({ title: "三体", uniqueWords: 1200, unseenWords: 860 }),
     });
     await renderPageInRouter(<DeckManager documentId={1} />);
 
-    await expect
-      .element(screen.getByText("340 more words gets you to 95% of the text, 1,200 to 98%."))
-      .toBeVisible();
+    await expect.element(screen.getByText("340/1,200 words")).toBeVisible();
     await expect.element(screen.getByText("三体")).toBeVisible();
   });
 
@@ -136,22 +139,11 @@ describe("DeckManager", () => {
     await expect.element(undo).toBeEnabled();
   });
 
-  it("names the last stretch to 98%", async () => {
-    mockDeck([makeCard("学习")], { wordsTo95: 0, wordsTo98: 1 });
+  it("celebrates a fully sorted book", async () => {
+    mockDeck([]);
     await renderPageInRouter(<DeckManager documentId={1} />);
 
-    await expect
-      .element(screen.getByText("1 more word gets you to 98% of the text."))
-      .toBeVisible();
-  });
-
-  it("celebrates a fully sorted book that is 98% covered", async () => {
-    mockDeck([], { wordsTo95: 0, wordsTo98: 0 });
-    await renderPageInRouter(<DeckManager documentId={1} />);
-
-    await expect
-      .element(screen.getByText("You know or are learning 98% of this book's text."))
-      .toBeVisible();
+    await expect.element(screen.getByText("Every word sorted")).toBeVisible();
     await expect.element(screen.getByRole("link", { name: "Review words" })).toBeVisible();
   });
 

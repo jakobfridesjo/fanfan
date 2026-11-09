@@ -94,6 +94,7 @@ export function useReviewManager() {
     failed: queue.isError,
     current,
     refilling: !current && queue.isFetching,
+    reviewed: history.answered,
     remaining: Math.max((queue.data?.dueCount ?? 0) - history.pending.size, 0),
     nextDueAt: queue.data?.nextDueAt ?? null,
     revealed,
