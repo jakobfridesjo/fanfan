@@ -6,18 +6,18 @@ minimum_release_age = "3d"
 [tools]
 node = "26.13.0"
 pnpm = "12.16.1"
-rust = { version = "1.99.1", components = "rustfmt,clippy", targets = "aarch64-linux-android" }
-# The Android build (`mise android:*`): Gradle needs a JDK, Tauri the SDK and NDK.
-java = "temurin-21.0.13+9.0.LTS"
-android-sdk = "20.0"
+rust = { version = "1.99.1", components = "rustfmt,clippy" }
 
 hk = "2.11.1"
 pkl = "0.32.2"
 
 [env]
 HK_MISE = 1
-# Tauri finds the NDK through NDK_HOME; `mise android:sdk` installs this version.
-NDK_HOME = { value = "{{env.ANDROID_HOME}}/ndk/29.0.14206865", tools = true }
+
+# The Android tasks bring their own tools, installed on first run: Gradle needs a
+# JDK, Tauri the SDK and the NDK (`mise android:sdk` installs this version).
+[vars]
+ndk = "29.0.14206865"
 
 [deps.web]
 auto = true
@@ -84,16 +84,18 @@ pnpm tauri build --bundles app,dmg --config src-tauri/tauri.build.conf.json
 
 [tasks."android:sdk"]
 description = "Install the Android NDK and platform tools into the mise Android SDK"
+tools = { java = "temurin-21.0.13+9.0.LTS", android-sdk = "20.0" }
 run = """
 set -e
-[ -d "$NDK_HOME" ] && [ -d "$ANDROID_HOME/platform-tools" ] && exit 0
+[ -d "$ANDROID_HOME/ndk/{{vars.ndk}}" ] && [ -d "$ANDROID_HOME/platform-tools" ] && exit 0
 yes | sdkmanager --licenses > /dev/null
-sdkmanager --install platform-tools "ndk;${NDK_HOME##*/}"
+sdkmanager --install platform-tools "ndk;{{vars.ndk}}"
 """
 
 [tasks."android:keystore"]
 description = "Create the key that signs release APKs, kept in ~/.android outside the repo"
 dir = "src-tauri/gen/android"
+tools = { java = "temurin-21.0.13+9.0.LTS" }
 run = """
 set -e
 [ -f keystore.properties ] && exit 0
@@ -109,7 +111,10 @@ printf 'password=%s\\nkeyAlias=release\\nstoreFile=%s\\n' "$KEYSTORE_PASSWORD" "
 [tasks."android:build"]
 description = "Build a signed release APK for arm64 phones"
 depends = ["android:sdk", "android:keystore"]
+tools = { java = "temurin-21.0.13+9.0.LTS", android-sdk = "20.0", rust = { version = "1.99.1", targets = "aarch64-linux-android" } }
 run = """
+# Tauri finds the NDK through NDK_HOME.
+export NDK_HOME="$ANDROID_HOME/ndk/{{vars.ndk}}"
 # OpenSSL's vendored build looks for `<target>-ranlib`; the NDK ships only the LLVM one.
 export RANLIB_aarch64_linux_android="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
 # CMake (SentencePiece, Opus) finds the NDK by this name.
@@ -120,6 +125,7 @@ pnpm tauri android build --apk --target aarch64 --config src-tauri/tauri.build.c
 [tasks."android:install"]
 description = "Install the release APK on the phone adb is connected to (pair over Wi-Fi with `adb pair`)"
 dir = "src-tauri/gen/android/app/build/outputs/apk"
+tools = { android-sdk = "20.0" }
 run = "adb install -r universal/release/app-universal-release.apk"
 
 [tasks."dictionary:fetch"]

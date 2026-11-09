@@ -18,7 +18,13 @@ Building the Rust side needs the [Tauri prerequisites](https://v2.tauri.app/star
 sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel gcc-c++ cmake
 ```
 
-On an immutable host (Silverblue, Bazzite), install them in a toolbox and run the Rust tasks there.
+On Ubuntu or Debian (also under WSL):
+
+```bash
+sudo apt install libwebkit2gtk-4.1-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libgtk-3-dev build-essential pkg-config curl wget file cmake
+```
+
+On a Fedora Atomic Desktop, install them in a toolbox and run the Rust tasks there.
 
 ## Build
 
