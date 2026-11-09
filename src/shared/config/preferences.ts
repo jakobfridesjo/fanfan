@@ -4,7 +4,7 @@ import { persistedJson, persistedString } from "@/shared/lib/persisted-value.ts"
 
 export const THEMES = ["light", "dark", "auto"] as const;
 export const LANGUAGES = ["en", "sv", "zh"] as const;
-export const SCRIPTS = ["simplified", "traditional"] as const;
+export const SCRIPTS = ["simplified", "traditional", "both"] as const;
 export const BACKGROUNDS = [
   "fireflies",
   "sea",
@@ -19,7 +19,7 @@ export const EXAMS = ["hsk", "tocfl"] as const;
 /** `auto` follows the system's light or dark setting. */
 export type Theme = (typeof THEMES)[number];
 export type Language = (typeof LANGUAGES)[number];
-/** The characters Chinese words are shown in; Rust converts them. */
+/** The characters Chinese words are shown in; Rust converts them. `both` is simplified with traditional beside it. */
 export type Script = (typeof SCRIPTS)[number];
 export type Background = (typeof BACKGROUNDS)[number];
 /** Exams whose level each word card shows. */

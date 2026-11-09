@@ -239,8 +239,8 @@ export const sv: Messages = {
     languageDescription: "Språket i menyer, knappar och meddelanden.",
     script: "Kinesiska tecken",
     scriptDescription:
-      "Ord och exempelmeningar visas med dessa tecken, oavsett vilka boken använder.",
-    scripts: { simplified: "Förenklade", traditional: "Traditionella" },
+      "Ord och exempelmeningar visas med dessa tecken, oavsett vilka boken använder. Båda visar den traditionella formen bredvid varje förenklat ord som skiljer sig.",
+    scripts: { simplified: "Förenklade", traditional: "Traditionella", both: "Båda" },
     background: "Tema",
     backgroundDescription:
       "Färgerna och miljön bakom varje sida. Animationerna stannar när reducerad rörelse är på.",

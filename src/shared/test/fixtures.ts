@@ -37,6 +37,7 @@ export function makeCard(word: string, overrides: Partial<StudyCard> = {}): Stud
   return {
     word,
     displayWord: word,
+    alternateWord: null,
     readings: [
       { pinyin: `${word}-pinyin`, definitions: [`meaning of ${word}`], properNoun: false },
     ],
@@ -79,6 +80,7 @@ export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}):
   return {
     word,
     displayWord: word,
+    alternateWord: null,
     readings: [
       { pinyin: `${word}-pinyin`, definitions: [`meaning of ${word}`], properNoun: false },
     ],
@@ -114,6 +116,7 @@ export function makeSection(
 ): ReaderSection {
   const token = (text: string): ReaderToken => ({
     text,
+    alternate: null,
     word: /\p{Script=Han}/u.test(text) ? text : null,
   });
   const tokens = paragraphs.map((paragraph) => paragraph.split(" ").map(token));

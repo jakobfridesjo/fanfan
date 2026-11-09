@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
+import { WordForms } from "@/entities/word/ui/WordForms.tsx";
 
 const MAX_DEFINITIONS = 4;
 
@@ -25,9 +26,7 @@ export function WordCard({ card, hidden = false, footer }: WordCardProps) {
       <CardContent className="flex flex-col items-center gap-6 pt-6 text-center">
         <div className="flex flex-col items-center gap-2">
           <div className="flex items-center gap-2">
-            <p lang="zh" className="text-6xl font-medium tracking-wide">
-              {card.displayWord}
-            </p>
+            <Headword card={card} className="text-6xl" />
             <SpeakButton word={card.word} />
           </div>
           {card.count !== null && (
@@ -48,6 +47,15 @@ export function WordCard({ card, hidden = false, footer }: WordCardProps) {
       </CardContent>
       {footer && <div className="px-(--card-spacing)">{footer}</div>}
     </Card>
+  );
+}
+
+/** The word in the chosen script, with its traditional form beside it, alike, when both are shown. */
+export function Headword({ card, className }: { card: StudyCard; className: string }) {
+  return (
+    <p lang="zh" className={cn("font-medium tracking-wide", className)}>
+      <WordForms word={card.displayWord} alternate={card.alternateWord} />
+    </p>
   );
 }
 

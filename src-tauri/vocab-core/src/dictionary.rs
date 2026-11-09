@@ -13,6 +13,8 @@ use crate::pinyin::to_tone_marks;
 pub enum Script {
     Simplified,
     Traditional,
+    /// Simplified, with each word's traditional form beside it where it differs.
+    Both,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -96,6 +98,15 @@ impl Dictionary {
             .collect()
     }
 
+    /// `word`'s traditional form, when `script` shows both and it differs.
+    pub fn alternate_in(&self, word: &str, script: Script) -> Option<String> {
+        if script != Script::Both {
+            return None;
+        }
+        let traditional = self.write_in(word, Script::Traditional);
+        (traditional != self.write_in(word, Script::Simplified)).then_some(traditional)
+    }
+
     /// A word already written in `script` stays as it is; otherwise its most
     /// likely reading decides, since one simplified form can stand for several
     /// traditional ones (发: 發 or 髮).
@@ -133,7 +144,7 @@ impl Dictionary {
 impl Entry {
     fn written_in(&self, script: Script) -> &str {
         match script {
-            Script::Simplified => &self.simplified,
+            Script::Simplified | Script::Both => &self.simplified,
             Script::Traditional => &self.traditional,
         }
     }
@@ -271,6 +282,18 @@ pub(crate) mod tests {
         assert_eq!(dictionary.write_in("发", Script::Traditional), "發");
         assert_eq!(dictionary.write_in("头发", Script::Traditional), "頭髮");
         assert_eq!(dictionary.write_in("髮", Script::Traditional), "髮");
+        assert_eq!(dictionary.write_in("學習", Script::Both), "学习");
+    }
+
+    #[test]
+    fn gives_the_traditional_form_only_when_showing_both_and_it_differs() {
+        let dictionary = Dictionary::parse(SAMPLE);
+        assert_eq!(
+            dictionary.alternate_in("学习", Script::Both).as_deref(),
+            Some("學習")
+        );
+        assert_eq!(dictionary.alternate_in("中文", Script::Both), None);
+        assert_eq!(dictionary.alternate_in("学习", Script::Simplified), None);
     }
 
     #[test]

@@ -56,6 +56,8 @@ pub struct StudyCard {
     pub word: String,
     /// `word` in the script the learner reads.
     pub display_word: String,
+    /// The traditional form beside `display_word` when the learner reads both.
+    pub alternate_word: Option<String>,
     pub readings: Vec<Entry>,
     /// In the script the learner reads.
     pub example: String,
@@ -81,6 +83,8 @@ pub struct Deck {
 pub struct ReaderToken {
     /// In the script the learner reads.
     pub text: String,
+    /// The traditional form above `text` when the learner reads both.
+    pub alternate: Option<String>,
     /// The word as the store knows it; `None` for punctuation and other non-Chinese text.
     pub word: Option<String>,
 }
@@ -132,6 +136,8 @@ pub struct WordEntry {
     pub word: String,
     /// `word` in the script the learner reads.
     pub display_word: String,
+    /// The traditional form beside `display_word` when the learner reads both.
+    pub alternate_word: Option<String>,
     pub readings: Vec<Entry>,
     pub status: WordStatus,
     pub due_at: Option<i64>,
@@ -264,6 +270,10 @@ pub fn reader_section(
                     } else {
                         piece.text.to_owned()
                     },
+                    alternate: piece
+                        .is_word
+                        .then(|| dictionary.alternate_in(piece.text, script))
+                        .flatten(),
                     word: piece.is_word.then(|| piece.text.to_owned()),
                 })
                 .collect()
@@ -391,6 +401,7 @@ pub fn word_list(
             let levels = levels_of(&tracked.word);
             WordEntry {
                 display_word: dictionary.write_in(&tracked.word, script),
+                alternate_word: dictionary.alternate_in(&tracked.word, script),
                 readings: readings(dictionary, &tracked.word),
                 word: tracked.word,
                 status: tracked.status,
@@ -422,6 +433,7 @@ fn study_card(
     let levels = levels_of(&word);
     StudyCard {
         display_word: dictionary.write_in(&word, script),
+        alternate_word: dictionary.alternate_in(&word, script),
         readings: readings(dictionary, &word),
         example: dictionary.write_in(example, script),
         word,
@@ -640,6 +652,49 @@ mod tests {
         );
     }
 
+    #[test]
+    fn shows_both_scripts_as_simplified_with_traditional_beside_it() {
+        let language = language();
+        let mut store = Store::open_in_memory().unwrap();
+        let file = analyze(&write("both.txt", "我們學習中文。"), &language);
+        let summary = save_file(&mut store, &file, now()).unwrap();
+
+        let card = word_card(
+            &language.dictionary,
+            "學習".into(),
+            store.example_for("學習").unwrap(),
+            Script::Both,
+        );
+        assert_eq!(
+            (
+                card.display_word.as_str(),
+                card.alternate_word.as_deref(),
+                card.example.as_str()
+            ),
+            ("学习", Some("學習"), "我们学习中文。")
+        );
+
+        let section = reader_section(
+            store.section(summary.id, 0).unwrap(),
+            &language,
+            0,
+            Script::Both,
+        );
+        let tokens: Vec<(&str, Option<&str>)> = section.paragraphs[0]
+            .iter()
+            .map(|token| (token.text.as_str(), token.alternate.as_deref()))
+            .collect();
+        assert_eq!(
+            tokens,
+            [
+                ("我们", Some("我們")),
+                ("学习", Some("學習")),
+                ("中文", None),
+                ("。", None)
+            ]
+        );
+    }
+
     /// The field names `src/shared/api/commands.ts` reads.
     #[test]
     fn serializes_decks_and_queues_with_the_frontend_field_names() {
@@ -706,6 +761,7 @@ mod tests {
         assert_eq!(
             keys(queue["cards"][0].clone()),
             [
+                "alternateWord",
                 "count",
                 "displayWord",
                 "example",
@@ -773,6 +829,7 @@ mod tests {
         assert_eq!(
             keys(serde_json::to_value(&list[0]).unwrap()),
             [
+                "alternateWord",
                 "displayWord",
                 "dueAt",
                 "hskLevel",
@@ -800,7 +857,7 @@ mod tests {
         );
         assert_eq!(
             section["paragraphs"][0][0],
-            serde_json::json!({ "text": "我们", "word": "我们" })
+            serde_json::json!({ "text": "我们", "alternate": null, "word": "我们" })
         );
     }
 
@@ -839,6 +896,7 @@ mod tests {
         let card = StudyCard {
             word: "北京".into(),
             display_word: "北京".into(),
+            alternate_word: None,
             readings: language().dictionary.lookup("北京").to_vec(),
             example: "北京很好。".into(),
             count: Some(3),
@@ -850,6 +908,7 @@ mod tests {
             serde_json::json!({
                 "word": "北京",
                 "displayWord": "北京",
+                "alternateWord": null,
                 "readings": [{ "pinyin": "Běi jīng", "definitions": ["Beijing"], "properNoun": true }],
                 "example": "北京很好。",
                 "count": 3,

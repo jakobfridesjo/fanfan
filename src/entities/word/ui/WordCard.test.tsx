@@ -35,6 +35,12 @@ describe("WordCard", () => {
     await expect.element(levels).not.toBeInTheDocument();
   });
 
+  it("shows the traditional form beside the word when both scripts are shown", async () => {
+    await render(<WordCard card={makeCard("学习", { alternateWord: "學習" })} />);
+
+    await expect.element(page.getByText("学习/學習", { exact: true })).toBeVisible();
+  });
+
   it("highlights the word in its example and counts a single use", async () => {
     await render(<WordCard card={makeCard("北京", { count: 1, example: "我们在北京学习。" })} />);
 

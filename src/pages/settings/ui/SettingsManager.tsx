@@ -13,7 +13,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.ts
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
 
 /** A sample of each script, written in itself. */
-const SCRIPT_SAMPLES = { simplified: "汉语", traditional: "漢語" } as const;
+const SCRIPT_SAMPLES = { simplified: "汉语", traditional: "漢語", both: "汉/漢" } as const;
 
 function SettingsManager() {
   const m = useMessages();

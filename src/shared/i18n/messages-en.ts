@@ -239,8 +239,8 @@ export const en = {
     languageDescription: "The language of menus, buttons and messages.",
     script: "Chinese characters",
     scriptDescription:
-      "Words and example sentences are shown in this script, whichever one the book uses.",
-    scripts: { simplified: "Simplified", traditional: "Traditional" },
+      "Words and example sentences are shown in this script, whichever one the book uses. Both adds the traditional form beside each simplified word that differs.",
+    scripts: { simplified: "Simplified", traditional: "Traditional", both: "Both" },
     background: "Theme",
     backgroundDescription:
       "The colours and scenery behind every page. Animations stop when reduced motion is on.",

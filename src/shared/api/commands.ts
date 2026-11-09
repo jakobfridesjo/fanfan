@@ -42,6 +42,8 @@ export interface StudyCard {
   word: string;
   /** `word` in the chosen script. */
   displayWord: string;
+  /** The traditional form beside `displayWord` when both scripts are shown and it differs. */
+  alternateWord: string | null;
   /** Most likely reading first; empty when CC-CEDICT lacks the word. */
   readings: Reading[];
   /** In the chosen script. */
@@ -77,6 +79,8 @@ export interface Deck {
 export interface ReaderToken {
   /** In the chosen script. */
   text: string;
+  /** The traditional form above `text` when both scripts are shown and it differs. */
+  alternate: string | null;
   /** The stored word, the key for status commands; null between words. */
   word: string | null;
 }
@@ -131,6 +135,8 @@ export interface WordEntry {
   word: string;
   /** `word` in the chosen script. */
   displayWord: string;
+  /** The traditional form beside `displayWord` when both scripts are shown and it differs. */
+  alternateWord: string | null;
   /** Most likely reading first; empty when CC-CEDICT lacks the word. */
   readings: Reading[];
   status: WordStatus;

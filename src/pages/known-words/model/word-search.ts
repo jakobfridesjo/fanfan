@@ -12,6 +12,7 @@ export function matchesWordSearch(entry: WordEntry, query: string): boolean {
   const fields = [
     entry.word,
     entry.displayWord,
+    entry.alternateWord ?? "",
     ...entry.readings.flatMap((reading) => [reading.pinyin, ...reading.definitions]),
   ];
   return fields.some((field) => {

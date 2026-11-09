@@ -5,6 +5,7 @@ import { TOCFL_LEVELS, type WordEntry, type WordStatus } from "@/shared/api/comm
 import { shownExamsAtom, type Exam } from "@/shared/config/preferences.ts";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { SpeakButton } from "@/entities/word/ui/WordCard.tsx";
+import { WordForms } from "@/entities/word/ui/WordForms.tsx";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { formatShortDate } from "@/shared/lib/date.ts";
@@ -149,7 +150,7 @@ function wordColumns(
       meta: { primary: true, width: "8rem" },
       cell: ({ row }) => (
         <span lang="zh" className="text-lg">
-          {row.original.displayWord}
+          <WordForms word={row.original.displayWord} alternate={row.original.alternateWord} />
         </span>
       ),
     },

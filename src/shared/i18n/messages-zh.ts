@@ -231,8 +231,9 @@ export const zh: Messages = {
     language: "语言",
     languageDescription: "菜单、按钮和提示所用的语言。",
     script: "汉字字体",
-    scriptDescription: "无论书中使用哪种字体，词语和例句都以此显示。",
-    scripts: { simplified: "简体", traditional: "繁体" },
+    scriptDescription:
+      "无论书中使用哪种字体，词语和例句都以此显示。简繁并列会在每个写法不同的简体词旁注出繁体。",
+    scripts: { simplified: "简体", traditional: "繁体", both: "简繁并列" },
     background: "主题",
     backgroundDescription: "每个页面后面的颜色和场景。开启“减少动态效果”时动画会停止。",
     backgrounds: {

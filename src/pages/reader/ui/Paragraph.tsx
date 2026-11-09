@@ -62,7 +62,14 @@ export function Paragraph({
               isSpoken && SPOKEN_CLASS
             )}
           >
-            {token.text}
+            {token.alternate ? (
+              <ruby>
+                {token.text}
+                <rt className="text-[1em]">{token.alternate}</rt>
+              </ruby>
+            ) : (
+              token.text
+            )}
           </button>
         );
       })}
