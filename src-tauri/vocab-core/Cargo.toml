@@ -13,7 +13,6 @@ candle-core = "0.8"
 chardetng = "1.0"
 chrono = "0.4"
 encoding_rs = "0.8"
-epub = "2.1"
 flate2 = "1.1"
 jieba-rs = "0.11"
 # Not on crates.io; pinned to the commit the `mise voice:fetch` weights are for.
@@ -21,8 +20,10 @@ moss-tts-nano-rust-candle = { git = "https://github.com/ramishi/moss-tts-nano-ru
 ogg = "0.9"
 # libopus, built from source and linked statically (needs cmake).
 opus = "0.4"
+percent-encoding = "2.3"
 # `rendering` draws a PDF's first page as its cover.
 pdf_oxide = { version = "0.3", features = ["rendering"] }
+roxmltree = "0.20"
 rs-fsrs = { version = "1.2", features = ["serde"] }
 # rusqlite_migration 2.6 is built against rusqlite 0.40.
 rusqlite = { version = "0.40", features = ["bundled"] }
@@ -33,7 +34,8 @@ serde_json = "1.0"
 sha2 = "0.10"
 thiserror = "2.0"
 unicode-normalization = "0.1"
+# Reads EPUBs; only deflate, the one compression EPUB allows besides none.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 tempfile = "3"
-zip = "9"

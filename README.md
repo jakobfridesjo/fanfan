@@ -44,7 +44,7 @@ mise test   # Rust core, then frontend
 
 ## Licences
 
-CC-CEDICT (CC BY-SA 4.0) and MOSS-TTS-Nano (Apache-2.0) are downloaded by `mise setup` and bundled with the app. The HSK 3.0 word levels (from complete-hsk-vocabulary, MIT) and the TOCFL 2023 word levels (SC-TOP's published list, no open licence) are vendored in `src-tauri/vocab-core/data/levels.tsv`. The `epub` crate is GPL-3.0, which matters if you distribute the app.
+CC-CEDICT (CC BY-SA 4.0) and MOSS-TTS-Nano (Apache-2.0) are downloaded by `mise setup` and bundled with the app. The HSK 3.0 word levels (from complete-hsk-vocabulary, MIT) and the TOCFL 2023 word levels (SC-TOP's published list, no open licence) are vendored in `src-tauri/vocab-core/data/levels.tsv`. Every Rust and npm dependency is under a permissive licence or MPL-2.0.
 
 ## Docs
 

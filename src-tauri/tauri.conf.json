@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "App Template",
+  "productName": "FanFan",
   "version": "../package.json",
-  "identifier": "com.example.app-template",
+  "identifier": "io.github.jakobfridesjo.fanfan",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",

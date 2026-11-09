@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-use std::io::{Read, Seek};
-use std::path::{Path, PathBuf};
+use std::io::Read;
+use std::path::Path;
 
-use epub::doc::{EpubDoc, NavPoint};
 use scraper::{ElementRef, Html, Node};
 
 use crate::error::{Error, Result};
@@ -166,46 +164,19 @@ fn paragraphs(text: &str) -> String {
 }
 
 fn extract_epub(path: &Path) -> Result<(Option<String>, Vec<Section>, Option<Cover>)> {
-    let mut book = EpubDoc::new(path).map_err(|error| Error::Epub(error.to_string()))?;
-    let titles = toc_titles(&book);
-    let mut sections = Vec::new();
-    for chapter in 0..book.get_num_chapters() {
-        book.set_current_chapter(chapter);
-        if let Some((html, _mime)) = book.get_current_str() {
-            let document = Html::parse_document(&html);
-            sections.push(Section {
-                title: titles
-                    .get(&chapter)
-                    .cloned()
-                    .or_else(|| first_heading(&document)),
+    let book = crate::epub::read(path)?;
+    let sections = book
+        .chapters
+        .into_iter()
+        .map(|chapter| {
+            let document = Html::parse_document(&chapter.html);
+            Section {
+                title: chapter.toc_title.or_else(|| first_heading(&document)),
                 text: readable_text(document.root_element()),
-            });
-        }
-    }
-    let cover = book.get_cover().map(|(image, mime)| Cover { mime, image });
-    Ok((book.get_title(), sections, cover))
-}
-
-/// Spine chapter to the first table-of-contents label pointing into it. The
-/// epub crate reads only an EPUB 2 NCX table, so EPUB 3-only books have none.
-fn toc_titles<R: Read + Seek>(book: &EpubDoc<R>) -> HashMap<usize, String> {
-    fn visit<R: Read + Seek>(
-        book: &EpubDoc<R>,
-        points: &[NavPoint],
-        titles: &mut HashMap<usize, String>,
-    ) {
-        for point in points {
-            let file = point.content.to_string_lossy();
-            let file = PathBuf::from(file.split('#').next().unwrap_or_default());
-            if let Some(chapter) = book.resource_uri_to_chapter(&file) {
-                titles.entry(chapter).or_insert_with(|| point.label.clone());
             }
-            visit(book, &point.children, titles);
-        }
-    }
-    let mut titles = HashMap::new();
-    visit(book, &book.toc, &mut titles);
-    titles
+        })
+        .collect();
+    Ok((book.title, sections, book.cover))
 }
 
 fn first_heading(document: &Html) -> Option<String> {

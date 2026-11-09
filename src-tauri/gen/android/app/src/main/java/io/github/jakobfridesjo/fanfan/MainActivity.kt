@@ -1,4 +1,4 @@
-package com.example.app_template
+package io.github.jakobfridesjo.fanfan
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

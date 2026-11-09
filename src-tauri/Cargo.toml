@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "fanfan"
 version = "0.1.0"
 description = "Chinese vocabulary reader for desktop and Android"
 edition = "2024"
@@ -10,7 +10,7 @@ publish = false
 members = ["vocab-core"]
 
 [lib]
-name = "app_lib"
+name = "fanfan_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

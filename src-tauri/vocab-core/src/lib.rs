@@ -1,5 +1,6 @@
 pub mod analysis;
 pub mod dictionary;
+mod epub;
 pub mod error;
 pub mod extract;
 pub mod levels;

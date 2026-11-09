@@ -100,11 +100,11 @@ run = """
 set -e
 [ -f keystore.properties ] && exit 0
 umask 077
-store="$HOME/.android/app-template-release.jks"
+store="$HOME/.android/fanfan-release.jks"
 mkdir -p "$(dirname "$store")"
 export KEYSTORE_PASSWORD="$(head -c 24 /dev/urandom | base64 | tr -d '/+=')"
 keytool -genkeypair -keystore "$store" -alias release -keyalg RSA -keysize 4096 -validity 10000 \
-  -storepass:env KEYSTORE_PASSWORD -keypass:env KEYSTORE_PASSWORD -dname "CN=App Template"
+  -storepass:env KEYSTORE_PASSWORD -keypass:env KEYSTORE_PASSWORD -dname "CN=FanFan"
 printf 'password=%s\\nkeyAlias=release\\nstoreFile=%s\\n' "$KEYSTORE_PASSWORD" "$store" > keystore.properties
 """
 
