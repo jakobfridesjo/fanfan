@@ -47,7 +47,6 @@ export const sv: Messages = {
     deleteTitle: "Ta bort bok",
     deleteMessage: (title) =>
       `Ta bort ”${title}” från ditt bibliotek? Ord du kan eller håller på att lära dig påverkas inte.`,
-    deleteBook: (title) => `Ta bort ${title}`,
     importing: (fileName) => `Importerar ${fileName}`,
     stages: {
       dictionary: "Laddar ordboken…",
@@ -58,6 +57,8 @@ export const sv: Messages = {
     wordsToSort: (unseen, unique) =>
       `${formatInteger(unseen)} av ${words(unique)} kvar att sortera`,
     studyBook: (title) => `Studera ${title}`,
+    toSort: (unseen) => `${formatInteger(unseen)} att sortera`,
+    bookActions: (title) => `Åtgärder för ${title}`,
     read: "Läs",
     readBook: (title) => `Läs ${title}`,
     loadFailed: "Kunde inte ladda ditt bibliotek",
@@ -74,7 +75,6 @@ export const sv: Messages = {
     createFolder: "Skapa",
     renameFolder: "Byt namn",
     renameFolderLabel: "Byt namn på mappen",
-    takeOutOfFolder: (title) => `Ta ut ${title} ur mappen`,
     takeOut: "Ta ut ur mappen",
     folderFailed: "Kunde inte ändra mappen",
     movedToFolder: (title, folder) => `Flyttade ”${title}” till ”${folder}”`,

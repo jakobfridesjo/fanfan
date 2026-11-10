@@ -47,7 +47,6 @@ export const en = {
     deleteTitle: "Delete Book",
     deleteMessage: (title: string) =>
       `Delete “${title}” from your library? Words you know or are learning stay as they are.`,
-    deleteBook: (title: string) => `Delete ${title}`,
     importing: (fileName: string) => `Importing ${fileName}`,
     stages: {
       dictionary: "Loading the dictionary…",
@@ -58,6 +57,8 @@ export const en = {
     wordsToSort: (unseen: number, unique: number) =>
       `${formatInteger(unseen)} of ${words(unique)} to sort`,
     studyBook: (title: string) => `Study ${title}`,
+    toSort: (unseen: number) => `${formatInteger(unseen)} to sort`,
+    bookActions: (title: string) => `Actions for ${title}`,
     read: "Read",
     readBook: (title: string) => `Read ${title}`,
     loadFailed: "Failed to load your library",
@@ -73,7 +74,6 @@ export const en = {
     createFolder: "Create",
     renameFolder: "Rename",
     renameFolderLabel: "Rename folder",
-    takeOutOfFolder: (title: string) => `Take ${title} out of the folder`,
     takeOut: "Take out of folder",
     folderFailed: "Could not change the folder",
     movedToFolder: (title: string, folder: string) => `Moved “${title}” to “${folder}”`,

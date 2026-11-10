@@ -43,7 +43,6 @@ export const zh: Messages = {
       "导入中文的 .txt、.epub 或 .pdf 文件，阅读时每个词都按你的掌握程度着色。书中的词也会按出现频率排成卡组，供你在阅读前或阅读中学习。",
     deleteTitle: "删除书籍",
     deleteMessage: (title) => `从书库中删除“${title}”？你已认识或正在学习的词不受影响。`,
-    deleteBook: (title) => `删除 ${title}`,
     importing: (fileName) => `正在导入 ${fileName}`,
     stages: {
       dictionary: "正在加载词典…",
@@ -54,6 +53,8 @@ export const zh: Messages = {
     wordsToSort: (unseen, unique) =>
       `${formatInteger(unique)} 个词中还有 ${formatInteger(unseen)} 个待分类`,
     studyBook: (title) => `学习《${title}》`,
+    toSort: (unseen) => `${formatInteger(unseen)} 个待分类`,
+    bookActions: (title) => `《${title}》的操作`,
     read: "阅读",
     readBook: (title) => `阅读《${title}》`,
     loadFailed: "无法加载书库",
@@ -69,7 +70,6 @@ export const zh: Messages = {
     createFolder: "创建",
     renameFolder: "重命名",
     renameFolderLabel: "重命名文件夹",
-    takeOutOfFolder: (title) => `将《${title}》移出文件夹`,
     takeOut: "移出文件夹",
     folderFailed: "无法更改文件夹",
     movedToFolder: (title, folder) => `已将《${title}》移到“${folder}”`,

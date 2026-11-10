@@ -17,7 +17,7 @@ describe("LibraryManager", () => {
     await expect.element(screen.getByRole("button", { name: "Import book" })).toBeVisible();
   });
 
-  it("shelves books as covers that open the reader, with a corner that opens the deck", async () => {
+  it("shelves books as covers that open the reader, with a link that opens the deck", async () => {
     const calls = mockCommands({
       list_documents: () => [
         makeDocument({
@@ -69,7 +69,7 @@ describe("LibraryManager", () => {
     await expect.poll(() => router.state.location.pathname).toBe("/read/3");
   });
 
-  it("studies a book's words from its corner", async () => {
+  it("studies a book's words from the link below its cover", async () => {
     mockCommands({
       list_documents: () => [makeDocument({ id: 3, title: "三体" })],
       list_folders: () => [],
@@ -151,7 +151,8 @@ describe("LibraryManager", () => {
     });
     await renderPageInRouter(<LibraryManager />);
 
-    await screen.getByRole("button", { name: "Delete 活着" }).click();
+    await screen.getByRole("button", { name: "Actions for 活着" }).click();
+    await screen.getByRole("menuitem", { name: "Delete" }).click();
     await expect.element(screen.getByText(/Words you know or are learning stay/)).toBeVisible();
     await screen.getByRole("button", { name: "Delete", exact: true }).click();
 
@@ -167,7 +168,8 @@ describe("LibraryManager", () => {
     });
     await renderPageInRouter(<LibraryManager />);
 
-    await screen.getByRole("button", { name: "Delete 活着" }).click();
+    await screen.getByRole("button", { name: "Actions for 活着" }).click();
+    await screen.getByRole("menuitem", { name: "Delete" }).click();
     await screen.getByRole("button", { name: "Cancel" }).click();
 
     await expect.element(screen.getByRole("alertdialog")).not.toBeInTheDocument();
@@ -183,7 +185,8 @@ describe("LibraryManager", () => {
     });
     await renderPageInRouter(<LibraryManager />);
 
-    await screen.getByRole("button", { name: "Delete 活着" }).click();
+    await screen.getByRole("button", { name: "Actions for 活着" }).click();
+    await screen.getByRole("menuitem", { name: "Delete" }).click();
     await screen.getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect.element(screen.getByText("Document 4 does not exist")).toBeVisible();
@@ -341,11 +344,13 @@ describe("LibraryManager", () => {
       await expect.element(screen.getByText("科幻")).toBeVisible();
       expect(callsTo(calls, "rename_folder")).toEqual([{ id: 7, name: "科幻" }]);
 
-      await screen.getByRole("button", { name: "Take 三体 out of the folder" }).click();
+      await screen.getByRole("button", { name: "Actions for 三体" }).click();
+      await screen.getByRole("menuitem", { name: "Take out of folder" }).click();
       await expect.element(screen.getByRole("link", { name: "Read 三体" })).not.toBeInTheDocument();
 
       // Taking out the last book empties the folder, which leaves the shelf with loose books.
-      await screen.getByRole("button", { name: "Take 活着 out of the folder" }).click();
+      await screen.getByRole("button", { name: "Actions for 活着" }).click();
+      await screen.getByRole("menuitem", { name: "Take out of folder" }).click();
       await expect.element(screen.getByRole("link", { name: "Read 围城" })).toBeVisible();
       await expect.element(screen.getByRole("link", { name: "Read 三体" })).toBeVisible();
       expect(callsTo(calls, "move_document")).toEqual([
