@@ -12,7 +12,7 @@ mise setup    # dependencies, CC-CEDICT, voice model, git hooks, test browser
 mise desktop  # run the app with hot reload
 ```
 
-Building the Rust side needs the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) plus `cmake` and `gcc-c++` (the speech model compiles SentencePiece). On Fedora:
+Building the Rust side needs the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) plus `cmake` and `gcc-c++` (the speech model compiles SentencePiece and libopus). On Fedora:
 
 ```bash
 sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel gcc-c++ cmake
