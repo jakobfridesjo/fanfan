@@ -145,6 +145,8 @@ export NDK_HOME="$ANDROID_HOME/ndk/{{vars.ndk}}"
 export RANLIB_aarch64_linux_android="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib"
 # CMake (SentencePiece, Opus) finds the NDK by this name.
 export ANDROID_NDK_ROOT="$NDK_HOME"
+# Tauri copies the bundle resources into the Android assets but never removes old ones.
+rm -rf src-tauri/gen/android/app/src/main/assets/resources
 pnpm tauri android build --apk --target aarch64 --config src-tauri/tauri.build.conf.json
 """
 
