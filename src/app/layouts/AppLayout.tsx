@@ -23,7 +23,7 @@ function AppLayout({ children }: { children: ReactNode }) {
     >
       <PageBackground />
       {!isMobile && <AppSidebar />}
-      <SidebarInset className="relative z-0 min-h-0 min-w-0 overflow-hidden">
+      <SidebarInset className="relative z-0 min-h-0 min-w-0 overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
         <div className="min-h-0 flex-1">{children}</div>
         {isMobile && <BottomNav />}
       </SidebarInset>
