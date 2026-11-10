@@ -35,6 +35,8 @@ sha2 = "0.10"
 thiserror = "2.0"
 # Runs MOSS-TTS-Nano's ONNX graphs on the CPU.
 tract-onnx = "0.23.10"
+# tract's own kernels; `multithread-mm` lets them split matrix products over every core.
+tract-linalg = { version = "0.23.10", features = ["multithread-mm"] }
 unicode-normalization = "0.1"
 # Reads EPUBs; only deflate, the one compression EPUB allows besides none.
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }

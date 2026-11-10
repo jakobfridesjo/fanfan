@@ -5552,6 +5552,7 @@ dependencies = [
  "minijinja",
  "num-traits",
  "pastey",
+ "rayon",
  "tract-data",
  "walkdir",
 ]
@@ -5834,6 +5835,7 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "thiserror 2.0.21",
+ "tract-linalg",
  "tract-onnx",
  "unicode-normalization",
  "zip",

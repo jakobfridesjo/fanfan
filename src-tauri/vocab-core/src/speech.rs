@@ -5,6 +5,7 @@ use std::fs;
 use std::iter;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::thread;
 
 use anyhow::{Context, bail};
 use ogg::{PacketWriteEndInfo, PacketWriter};
@@ -12,6 +13,7 @@ use opus::{Application, Bitrate, Channels, Encoder};
 use sentencepiece::SentencePieceProcessor;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use tract_linalg::multithread::{Executor, multithread_tract_scope};
 use tract_onnx::prelude::*;
 
 use crate::error::{Error, Result};
@@ -97,8 +99,9 @@ struct BuiltinVoice {
 }
 
 /// MOSS-TTS-Nano from `mise voice:fetch`, its language model quantized to
-/// int8, run on the CPU by tract and speaking in the `VOICE` voice.
+/// int8, run on every CPU core by tract and speaking in the `VOICE` voice.
 pub struct Voice {
+    executor: Executor,
     dir: PathBuf,
     tokenizer: SentencePieceProcessor,
     ids: TokenIds,
@@ -120,11 +123,13 @@ impl Voice {
         if let Some(missing) = FILES.iter().find(|name| !dir.join(name).is_file()) {
             return Err(Error::Voice(format!("{} has no {missing}", dir.display())));
         }
-        Self::load_files(dir)
+        let cores = thread::available_parallelism().map_or(1, |cores| cores.get());
+        let executor = Executor::multithread_with_name(cores, "speech");
+        multithread_tract_scope(executor.clone(), || Self::load_files(dir, executor))
             .map_err(|error| Error::Voice(format!("could not load {}: {error:#}", dir.display())))
     }
 
-    fn load_files(dir: &Path) -> TractResult<Self> {
+    fn load_files(dir: &Path, executor: Executor) -> TractResult<Self> {
         let manifest: Manifest = serde_json::from_slice(&fs::read(dir.join(MANIFEST))?)?;
         let ids = manifest.tts_config;
         let codes = manifest
@@ -152,6 +157,7 @@ impl Voice {
             .chain([ids.audio_start_token_id])
             .collect();
         Ok(Self {
+            executor,
             tokenizer: SentencePieceProcessor::open(dir.join(TOKENIZER))?,
             decode_step: graph::load(
                 dir,
@@ -187,10 +193,11 @@ impl Voice {
     pub fn speak(&self, text: &str) -> Result<Vec<u8>> {
         let could_not_speak =
             |reason: String| Error::Voice(format!("could not speak \"{text}\"{reason}"));
-        let samples = self
-            .generate(text)
-            .and_then(|frames| self.decode_audio(&frames))
-            .map_err(|error| could_not_speak(format!(": {error:#}")))?;
+        let samples = multithread_tract_scope(self.executor.clone(), || {
+            self.generate(text)
+                .and_then(|frames| self.decode_audio(&frames))
+        })
+        .map_err(|error| could_not_speak(format!(": {error:#}")))?;
         if samples.is_empty() {
             return Err(could_not_speak(String::new()));
         }
