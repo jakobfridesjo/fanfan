@@ -5,6 +5,7 @@ import {
   EXAMS,
   LANGUAGES,
   NOTATIONS,
+  READER_NOTATIONS,
   SCRIPTS,
   SPEAKERS,
   THEMES,
@@ -53,6 +54,8 @@ function SettingsManager() {
     setScript,
     shownNotations,
     setShownNotations,
+    readerNotation,
+    setReaderNotation,
     speaker,
     setSpeaker,
     theme,
@@ -116,6 +119,19 @@ function SettingsManager() {
                 {m.settings.notationNames[option]}
               </>
             )}
+          />
+        </SettingCard>
+
+        <SettingCard
+          title={m.settings.readerNotation}
+          description={m.settings.readerNotationDescription}
+        >
+          <Choices
+            label={m.settings.readerNotation}
+            options={READER_NOTATIONS}
+            value={readerNotation}
+            onChange={setReaderNotation}
+            render={(option) => m.settings.readerNotationNames[option]}
           />
         </SettingCard>
 

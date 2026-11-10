@@ -243,6 +243,10 @@ export const en = {
     notationsDescription:
       "Show any combination of pinyin, zhuyin (bopomofo, as taught in Taiwan) and Cangjie input codes with each word.",
     notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
+    readerNotation: "Readings in the reader",
+    readerNotationDescription:
+      "Write each character's pinyin or zhuyin small above it while you read.",
+    readerNotationNames: { off: "Off", pinyin: "Pinyin", zhuyin: "Zhuyin" },
     voice: "Voice",
     voiceDescription:
       "Who reads words and books aloud. A voice makes each sentence the first time you hear it, so a new voice starts slower.",

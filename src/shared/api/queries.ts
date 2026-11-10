@@ -1,6 +1,6 @@
 import { queryOptions, skipToken, type QueryClient } from "@tanstack/react-query";
 import { commands } from "@/shared/api/commands.ts";
-import type { Script, Speaker } from "@/shared/config/preferences.ts";
+import type { ReaderNotation, Script, Speaker } from "@/shared/config/preferences.ts";
 
 /** Cards fetched per deck or review batch; the rest load as these are used up. */
 const CARD_BATCH = 30;
@@ -34,11 +34,18 @@ export const sectionsQuery = (documentId: number, script: Script) =>
   });
 
 /** Skipped until the reading position is known. */
-export const sectionQuery = (documentId: number, position: number | null, script: Script) =>
+export const sectionQuery = (
+  documentId: number,
+  position: number | null,
+  script: Script,
+  notation: ReaderNotation
+) =>
   queryOptions({
-    queryKey: ["section", documentId, position, script],
+    queryKey: ["section", documentId, position, script, notation],
     queryFn:
-      position === null ? skipToken : () => commands.getSection(documentId, position, script),
+      position === null
+        ? skipToken
+        : () => commands.getSection(documentId, position, script, notation),
     staleTime: "static",
   });
 

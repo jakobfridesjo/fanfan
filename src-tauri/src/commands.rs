@@ -7,7 +7,7 @@ use chrono::{NaiveDate, Utc};
 use serde::{Serialize, Serializer};
 use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Manager};
-use vocab_core::dictionary::Script;
+use vocab_core::dictionary::{Notation, Script};
 use vocab_core::service::{
     self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard, WordEntry,
 };
@@ -276,6 +276,7 @@ pub async fn get_section(
     document_id: i64,
     position: u32,
     script: Script,
+    notation: Option<Notation>,
 ) -> CommandResult<ReaderSection> {
     blocking(app, move |state| {
         let section = state.reader()?.section(document_id, position)?;
@@ -284,6 +285,7 @@ pub async fn get_section(
             state.language()?,
             position,
             script,
+            notation,
         ))
     })
     .await

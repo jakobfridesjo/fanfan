@@ -244,6 +244,10 @@ export const sv: Messages = {
     notationsDescription:
       "Visa valfri kombination av pinyin, zhuyin (bopomofo, som i Taiwan) och Cangjie-inmatningskoder vid varje ord.",
     notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
+    readerNotation: "Uttal i läsaren",
+    readerNotationDescription:
+      "Skriv varje teckens pinyin eller zhuyin i liten stil ovanför det medan du läser.",
+    readerNotationNames: { off: "Av", pinyin: "Pinyin", zhuyin: "Zhuyin" },
     voice: "Röst",
     voiceDescription:
       "Vem som läser ord och böcker högt. En röst skapar varje mening första gången du hör den, så en ny röst börjar långsammare.",

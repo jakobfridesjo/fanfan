@@ -18,7 +18,7 @@ import {
   wordCardQuery,
   wordStatusesQuery,
 } from "@/shared/api/queries.ts";
-import { scriptAtom } from "@/shared/config/preferences.ts";
+import { readerNotationAtom, scriptAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { actionToasts } from "@/shared/lib/toast.ts";
 import { useKeyBindings } from "@/shared/lib/use-key-bindings.ts";
@@ -52,6 +52,7 @@ export function useReaderManager(documentId: number) {
   const queryClient = useQueryClient();
   const m = useMessages();
   const script = useSelector(scriptAtom);
+  const notation = useSelector(readerNotationAtom);
 
   const documents = useQuery(documentsQuery());
   const document = documents.data?.find((entry) => entry.id === documentId);
@@ -59,7 +60,7 @@ export function useReaderManager(documentId: number) {
 
   const [chosenSection, setChosenSection] = useState<number | null>(null);
   const position = chosenSection ?? document?.readingSection ?? null;
-  const section = useQuery(sectionQuery(documentId, position, script));
+  const section = useQuery(sectionQuery(documentId, position, script, notation));
   useQueryErrorToast(section.error ? m.reader.loadFailed : null, "reader-section");
 
   const words = useMemo(() => distinctWords(section.data), [section.data]);
@@ -133,7 +134,7 @@ export function useReaderManager(documentId: number) {
   const sectionAfter = (from: number) => async (): Promise<Reading | null> => {
     const next = from + 1;
     if (next >= sectionCount) return null;
-    const data = await queryClient.query(sectionQuery(documentId, next, script));
+    const data = await queryClient.query(sectionQuery(documentId, next, script, notation));
     return { phrases: data.phrases, begin: () => showSection(next), next: sectionAfter(next) };
   };
 

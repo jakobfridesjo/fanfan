@@ -1,4 +1,4 @@
-import { LoaderCircle, Play } from "lucide-react";
+import { LoaderCircle, Volume2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { StudyCard } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -99,7 +99,7 @@ export function SpeakButton({
       onPointerDown={(event) => event.stopPropagation()}
       onClick={() => void speak()}
     >
-      {loading ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <Play />}
+      {loading ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <Volume2 />}
     </TooltipIconButton>
   );
 }

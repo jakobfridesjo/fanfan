@@ -85,7 +85,7 @@ export function Paragraph({
               washClass(spoken, index, SPOKEN_CLASS)
             )}
           >
-            {token.text}
+            <CharacterReadings text={token.text} reading={token.reading} />
           </span>
         );
         if (!token.word) {
@@ -101,6 +101,8 @@ export function Paragraph({
             key={key}
             type="button"
             aria-pressed={index === selectedToken}
+            // Each character's own ruby would otherwise have the word read out a character at a time.
+            aria-label={token.reading.length > 0 ? token.text : undefined}
             data-token={index}
             data-status={status ?? undefined}
             {...spokenProps}
@@ -128,4 +130,21 @@ export function Paragraph({
       })}
     </p>
   );
+}
+
+/** Each character with its syllable small above it, when the reader shows readings. */
+function CharacterReadings({ text, reading }: { text: string; reading: string[] }) {
+  const characters = Array.from(text);
+  if (reading.length !== characters.length) return text;
+  return characters.map((character, index) => {
+    const syllable = reading[index];
+    if (!syllable) return character;
+    const key = `${index}`;
+    return (
+      <ruby key={key} className="[ruby-align:center]">
+        {character}
+        <rt className="px-[0.15em] text-[0.5em] font-normal text-muted-foreground">{syllable}</rt>
+      </ruby>
+    );
+  });
 }

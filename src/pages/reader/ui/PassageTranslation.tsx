@@ -1,4 +1,4 @@
-import { Play } from "lucide-react";
+import { Volume2 } from "lucide-react";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
@@ -35,7 +35,7 @@ export function PassageTranslation({
           className="rounded-full"
           onClick={onListen}
         >
-          <Play />
+          <Volume2 />
         </TooltipIconButton>
       </div>
       <section aria-label={m.reader.translation} className="flex flex-col gap-2">

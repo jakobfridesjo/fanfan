@@ -1,5 +1,5 @@
 import { Channel, invoke as tauriInvoke, type InvokeArgs } from "@tauri-apps/api/core";
-import type { Script, Speaker } from "@/shared/config/preferences.ts";
+import type { ReaderNotation, Script, Speaker } from "@/shared/config/preferences.ts";
 
 // Mirrors the serde types in src-tauri (camelCase). Keep the two in step.
 
@@ -73,6 +73,11 @@ export interface ReaderToken {
   text: string;
   /** The traditional form above `text` when both scripts are shown and it differs. */
   alternate: string | null;
+  /**
+   * One syllable for each character of `text` in the notation asked for, empty where a character
+   * has none; no syllables when none was asked for, or between words.
+   */
+  reading: string[];
   /** The stored word, the key for status commands; null between words. */
   word: string | null;
 }
@@ -256,8 +261,13 @@ export const commands = {
     invoke<(string | null)[]>("list_sections", { documentId, script }),
 
   /** A section split into words exactly as its deck counted them, a paragraph per entry. */
-  getSection: (documentId: number, position: number, script: Script) =>
-    invoke<ReaderSection>("get_section", { documentId, position, script }),
+  getSection: (documentId: number, position: number, script: Script, notation: ReaderNotation) =>
+    invoke<ReaderSection>("get_section", {
+      documentId,
+      position,
+      script,
+      notation: notation === "off" ? null : notation,
+    }),
 
   setReadingPosition: (documentId: number, section: number, paragraph: number) =>
     invoke<null>("set_reading_position", { documentId, section, paragraph }),

@@ -17,6 +17,14 @@ pub enum Script {
     Both,
 }
 
+/// The reading the reader writes above each character.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Notation {
+    Pinyin,
+    Zhuyin,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
@@ -109,6 +117,24 @@ impl Dictionary {
         (traditional != self.write_in(word, Script::Simplified)).then_some(traditional)
     }
 
+    /// `word`'s most likely reading in `notation`, one syllable per character;
+    /// empty for a character the dictionary has no reading for.
+    pub fn syllables_of(&self, word: &str, notation: Notation) -> Vec<String> {
+        let whole = |word: &str| {
+            self.lookup(word)
+                .first()?
+                .syllables(notation, word.chars().count())
+        };
+        whole(word).unwrap_or_else(|| {
+            self.split_into_words(word)
+                .into_iter()
+                .flat_map(|part| {
+                    whole(part).unwrap_or_else(|| vec![String::new(); part.chars().count()])
+                })
+                .collect()
+        })
+    }
+
     /// A word already written in `script` stays as it is; otherwise its most
     /// likely reading decides, since one simplified form can stand for several
     /// traditional ones (发: 發 or 髮).
@@ -144,6 +170,16 @@ impl Dictionary {
 }
 
 impl Entry {
+    /// The reading in `notation` split into syllables, when it has one per character.
+    fn syllables(&self, notation: Notation, characters: usize) -> Option<Vec<String>> {
+        let reading = match notation {
+            Notation::Pinyin => &self.pinyin,
+            Notation::Zhuyin => &self.zhuyin,
+        };
+        let syllables: Vec<String> = reading.split(' ').map(str::to_owned).collect();
+        (syllables.len() == characters).then_some(syllables)
+    }
+
     fn written_in(&self, script: Script) -> &str {
         match script {
             Script::Simplified | Script::Both => &self.simplified,
@@ -297,6 +333,28 @@ pub(crate) mod tests {
         );
         assert_eq!(dictionary.alternate_in("中文", Script::Both), None);
         assert_eq!(dictionary.alternate_in("学习", Script::Simplified), None);
+    }
+
+    #[test]
+    fn reads_each_character_by_its_word() {
+        let dictionary = Dictionary::parse(SAMPLE);
+        assert_eq!(
+            dictionary.syllables_of("头发", Notation::Pinyin),
+            ["tóu", "fa"]
+        );
+        assert_eq!(
+            dictionary.syllables_of("學習", Notation::Zhuyin),
+            ["ㄒㄩㄝˊ", "ㄒㄧˊ"]
+        );
+        assert_eq!(dictionary.syllables_of("了", Notation::Pinyin), ["le"]);
+        assert_eq!(
+            dictionary.syllables_of("不难", Notation::Pinyin),
+            ["bù", "nán"]
+        );
+        assert_eq!(
+            dictionary.syllables_of("我们俩", Notation::Pinyin),
+            ["wǒ", "men", ""]
+        );
     }
 
     #[test]

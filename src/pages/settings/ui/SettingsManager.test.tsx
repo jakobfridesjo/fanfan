@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   backgroundAtom,
   languageAtom,
+  readerNotationAtom,
   scriptAtom,
   shownExamsAtom,
   shownNotationsAtom,
@@ -50,17 +51,31 @@ describe("SettingsManager", () => {
   it("turns pinyin, zhuyin and Cangjie on and off on their own", async () => {
     await renderPageInRouter(<SettingsManager />);
 
-    const pinyin = screen.getByRole("button", { name: "Pinyin" });
+    const notations = screen.getByRole("group", { name: "Readings and input codes" });
+    const pinyin = notations.getByRole("button", { name: "Pinyin" });
     await expect.element(pinyin).toHaveAttribute("aria-pressed", "true");
 
-    await screen.getByRole("button", { name: "Cangjie" }).click();
-    await screen.getByRole("button", { name: "Zhuyin" }).click();
+    await notations.getByRole("button", { name: "Cangjie" }).click();
+    await notations.getByRole("button", { name: "Zhuyin" }).click();
     expect(shownNotationsAtom.get()).toEqual(["pinyin", "zhuyin", "cangjie"]);
 
     await pinyin.click();
     await expect.element(pinyin).toHaveAttribute("aria-pressed", "false");
     expect(shownNotationsAtom.get()).toEqual(["zhuyin", "cangjie"]);
     expect(localStorage.getItem("shownNotations")).toBe('["zhuyin","cangjie"]');
+  });
+
+  it("chooses the reading the reader writes above each character", async () => {
+    await renderPageInRouter(<SettingsManager />);
+
+    const readings = screen.getByRole("group", { name: "Readings in the reader" });
+    await expect
+      .element(readings.getByRole("button", { name: "Off" }))
+      .toHaveAttribute("aria-pressed", "true");
+
+    await readings.getByRole("button", { name: "Zhuyin" }).click();
+    expect(readerNotationAtom.get()).toBe("zhuyin");
+    expect(localStorage.getItem("readerNotation")).toBe("zhuyin");
   });
 
   it("turns each exam's levels on and off on their own", async () => {

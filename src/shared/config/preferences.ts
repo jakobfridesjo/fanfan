@@ -16,6 +16,7 @@ export const BACKGROUNDS = [
 ] as const;
 export const EXAMS = ["hsk", "tbcl"] as const;
 export const NOTATIONS = ["pinyin", "zhuyin", "cangjie"] as const;
+export const READER_NOTATIONS = ["off", "pinyin", "zhuyin"] as const;
 export const SPEAKERS = ["lingyu", "weiguo", "junhao", "zhiming", "xiaoyu", "yuewen"] as const;
 
 /** `auto` follows the system's light or dark setting. */
@@ -28,6 +29,8 @@ export type Background = (typeof BACKGROUNDS)[number];
 export type Exam = (typeof EXAMS)[number];
 /** What words are shown with besides their meanings: pinyin and zhuyin readings, Cangjie codes. */
 export type Notation = (typeof NOTATIONS)[number];
+/** The reading the reader writes small above each character. */
+export type ReaderNotation = (typeof READER_NOTATIONS)[number];
 /** The voice that reads aloud; Rust keeps each one's audio apart. */
 export type Speaker = (typeof SPEAKERS)[number];
 
@@ -44,6 +47,11 @@ export const languageAtom = persistedAtom<Language>("language", LANGUAGES, "en")
 export const scriptAtom = persistedAtom<Script>("script", SCRIPTS, "simplified");
 export const backgroundAtom = persistedAtom<Background>("background", BACKGROUNDS, "fireflies");
 export const speakerAtom = persistedAtom<Speaker>("speaker", SPEAKERS, "lingyu");
+export const readerNotationAtom = persistedAtom<ReaderNotation>(
+  "readerNotation",
+  READER_NOTATIONS,
+  "off"
+);
 
 /** A list preference kept in `localStorage`; any combination of `values`, none included. */
 function persistedListAtom<T extends string>(
@@ -69,6 +77,7 @@ export function resetPreferences() {
   scriptAtom.reset();
   backgroundAtom.reset();
   speakerAtom.reset();
+  readerNotationAtom.reset();
   shownNotationsAtom.reset();
   shownExamsAtom.reset();
 }

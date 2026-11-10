@@ -235,6 +235,9 @@ export const zh: Messages = {
     notations: "读音与输入码",
     notationsDescription: "在每个词旁显示拼音、注音符号（台湾通行）和仓颉输入码，可任意组合。",
     notationNames: { pinyin: "拼音", zhuyin: "注音", cangjie: "仓颉" },
+    readerNotation: "阅读时的注音",
+    readerNotationDescription: "阅读时在每个汉字上方以小字标注拼音或注音符号。",
+    readerNotationNames: { off: "关闭", pinyin: "拼音", zhuyin: "注音" },
     voice: "朗读声音",
     voiceDescription:
       "朗读单词和书本的声音。每句话第一次朗读时才生成，所以换新声音后起初会慢一些。",

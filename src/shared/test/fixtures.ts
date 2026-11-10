@@ -129,6 +129,7 @@ export function makeSection(
   const token = (text: string): ReaderToken => ({
     text,
     alternate: null,
+    reading: [],
     word: /\p{Script=Han}/u.test(text) ? text : null,
   });
   const tokens = paragraphs.map((paragraph) => paragraph.split(" ").map(token));

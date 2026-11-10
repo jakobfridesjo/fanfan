@@ -52,7 +52,7 @@ describe("routes", () => {
     await expect.element(screen.getByRole("button", { name: "宝玉" })).toBeVisible();
     await expect.element(screen.getByText("红楼梦")).toBeVisible();
     expect(callsTo(calls, "get_section")).toEqual([
-      { documentId: 7, position: 2, script: "simplified" },
+      { documentId: 7, position: 2, script: "simplified", notation: null },
     ]);
   });
 

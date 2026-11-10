@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 
 use crate::analysis::{Analysis, Piece, analyze, tokenize};
 use crate::cangjie::cangjie_of;
-use crate::dictionary::{Dictionary, Entry, Script};
+use crate::dictionary::{Dictionary, Entry, Notation, Script};
 use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
 use crate::levels::levels_of;
@@ -89,6 +89,9 @@ pub struct ReaderToken {
     pub text: String,
     /// The traditional form above `text` when the learner reads both.
     pub alternate: Option<String>,
+    /// One syllable for each character of `text` in the notation the reader shows,
+    /// empty where a character has none; no syllables when it shows none, or between words.
+    pub reading: Vec<String>,
     /// The word as the store knows it; `None` for punctuation and other non-Chinese text.
     pub word: Option<String>,
 }
@@ -251,6 +254,7 @@ pub fn reader_section(
     language: &Language,
     position: u32,
     script: Script,
+    notation: Option<Notation>,
 ) -> ReaderSection {
     let dictionary = &language.dictionary;
     let mut phrases = Vec::new();
@@ -273,6 +277,12 @@ pub fn reader_section(
                         .is_word
                         .then(|| dictionary.alternate_in(piece.text, script))
                         .flatten(),
+                    reading: match notation {
+                        Some(notation) if piece.is_word => {
+                            dictionary.syllables_of(piece.text, notation)
+                        }
+                        _ => Vec::new(),
+                    },
                     word: piece.is_word.then(|| piece.text.to_owned()),
                 })
                 .collect()
@@ -545,8 +555,11 @@ mod tests {
             &language,
             1,
             Script::Traditional,
+            Some(Notation::Zhuyin),
         );
         assert_eq!(section.title.as_deref(), Some("第一章"));
+        assert_eq!(section.paragraphs[1][1].reading, ["ㄒㄩㄝˊ", "ㄒㄧˊ"]);
+        assert!(section.paragraphs[1][3].reading.is_empty());
         let paragraphs: Vec<Vec<(&str, Option<&str>)>> = section
             .paragraphs
             .iter()
@@ -681,6 +694,7 @@ mod tests {
             &language,
             0,
             Script::Both,
+            None,
         );
         let tokens: Vec<(&str, Option<&str>)> = section.paragraphs[0]
             .iter()
@@ -849,6 +863,7 @@ mod tests {
             &language,
             0,
             Script::Simplified,
+            Some(Notation::Pinyin),
         );
         let section = serde_json::to_value(section).unwrap();
         assert_eq!(
@@ -861,7 +876,12 @@ mod tests {
         );
         assert_eq!(
             section["paragraphs"][0][0],
-            serde_json::json!({ "text": "我们", "alternate": null, "word": "我们" })
+            serde_json::json!({
+                "text": "我们",
+                "alternate": null,
+                "reading": ["wǒ", "men"],
+                "word": "我们"
+            })
         );
     }
 

@@ -1,6 +1,7 @@
 import { page, page as screen, userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WordStatus } from "@/shared/api/commands.ts";
+import { readerNotationAtom } from "@/shared/config/preferences.ts";
 import { makeCard, makeDocument, makeSection, silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
 import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
@@ -288,7 +289,31 @@ describe("ReaderManager", () => {
     await expect.element(word("中文")).toHaveAttribute("data-status", "unseen");
     await expect.element(screen.getByText("三体")).toBeVisible();
     expect(callsTo(calls, "get_section")).toEqual([
-      { documentId: 1, position: 1, script: "simplified" },
+      { documentId: 1, position: 1, script: "simplified", notation: null },
+    ]);
+  });
+
+  it("writes each character's reading above it once the settings ask for one", async () => {
+    readerNotationAtom.set("pinyin");
+    const section = makeSection(["我们 学习 。"]);
+    const readings = [["wǒ", "men"], ["xué", "xí"], []];
+    section.paragraphs[0]?.forEach((token, index) => {
+      token.reading = readings[index] ?? [];
+    });
+    const calls = mockCommands({
+      list_documents: () => [makeDocument({ id: 1 })],
+      list_sections: () => [null],
+      get_section: () => section,
+      get_word_statuses: () => ({}),
+    });
+    await renderPageInRouter(<ReaderManager documentId={1} />);
+
+    await expect.element(word("我们").getByText("wǒ")).toBeVisible();
+    expect(
+      [...document.querySelectorAll("[data-token] rt")].map((reading) => reading.textContent)
+    ).toEqual(["wǒ", "men", "xué", "xí"]);
+    expect(callsTo(calls, "get_section")).toEqual([
+      { documentId: 1, position: 0, script: "simplified", notation: "pinyin" },
     ]);
   });
 
