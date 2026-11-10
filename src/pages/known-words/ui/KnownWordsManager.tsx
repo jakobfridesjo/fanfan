@@ -25,7 +25,7 @@ import { RowActionButton, RowActions } from "@/shared/ui/data-table/RowActions.t
 import { CenteredEmpty, UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import { StatusBadge } from "@/shared/ui/StatusBadge.tsx";
-import { Button } from "@/shared/ui/shadcn/button.tsx";
+import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Spinner } from "@/shared/ui/shadcn/spinner.tsx";
 import { matchesWordSearch } from "@/pages/known-words/model/word-search.ts";
 import {
@@ -82,22 +82,19 @@ function KnownWordsManager() {
             />
           </>
         }
-      >
-        <Button
-          type="button"
-          title={m.knownWords.loadFileTooltip}
-          onClick={() => fileInput.current?.click()}
-          disabled={manager.importing}
-        >
-          {manager.importing ? (
-            <Spinner data-icon="inline-start" />
-          ) : (
-            <Upload data-icon="inline-start" />
-          )}
-          {m.knownWords.loadFile}
-        </Button>
-      </PageHeader>
-      {/* Outside the header, which moves its actions into a menu on narrow screens. */}
+        action={
+          <TooltipIconButton
+            label={m.knownWords.loadFile}
+            tooltip={m.knownWords.loadFileTooltip}
+            variant="outline"
+            size="icon"
+            onClick={() => fileInput.current?.click()}
+            disabled={manager.importing}
+          >
+            {manager.importing ? <Spinner /> : <Upload />}
+          </TooltipIconButton>
+        }
+      />
       <input
         ref={fileInput}
         type="file"

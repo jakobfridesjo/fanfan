@@ -77,10 +77,11 @@ export const wordListQuery = (script: Script) =>
     queryFn: () => commands.listWords(script),
   });
 
-export const statisticsQuery = (days: number) =>
+/** Statistics for the calendar days `from` to `to` (`YYYY-MM-DD`), both included. */
+export const statisticsQuery = (from: string, to: string) =>
   queryOptions({
-    queryKey: ["statistics", days],
-    queryFn: () => commands.getStatistics(days),
+    queryKey: ["statistics", from, to],
+    queryFn: () => commands.getStatistics(from, to),
   });
 
 /**

@@ -57,17 +57,23 @@ pub struct StabilityBucket {
     pub count: u32,
 }
 
-/// Study statistics over the `days` days ending today, bucketed by `now`'s calendar days.
-pub fn statistics<Tz: TimeZone>(store: &Store, now: DateTime<Tz>, days: u32) -> Result<Statistics> {
+/// Study statistics for the calendar days `first_day` to `last_day`, both included,
+/// bucketed by `now`'s calendar days; the counts, streak and forecast are as of `now`.
+pub fn statistics<Tz: TimeZone>(
+    store: &Store,
+    now: DateTime<Tz>,
+    first_day: NaiveDate,
+    last_day: NaiveDate,
+) -> Result<Statistics> {
     let zone = now.timezone();
     let local_date = |millis: i64| zone.timestamp_millis_opt(millis).unwrap().date_naive();
     let today = now.date_naive();
-    let first_day = today - Days::new(u64::from(days.max(1) - 1));
+    let day_count = u32::try_from((last_day - first_day).num_days() + 1).unwrap_or(0);
 
     // A day earlier than `first_day` begins, whatever the time zone does; `per_day` drops the extra.
-    let from = now.to_utc() - Duration::days(i64::from(days.max(1)) + 1);
+    let from = now.to_utc() - Duration::days((today - first_day).num_days() + 2);
     let reviews = store.reviews_since(from.timestamp_millis())?;
-    let mut per_day: BTreeMap<NaiveDate, ReviewDay> = dates(first_day, days.max(1))
+    let mut per_day: BTreeMap<NaiveDate, ReviewDay> = dates(first_day, day_count)
         .map(|date| (date, review_day(date)))
         .collect();
     for &(reviewed_at, rating) in &reviews {
@@ -195,6 +201,14 @@ mod tests {
     use crate::store::WordStatus;
     use chrono::{Duration, FixedOffset, Utc};
 
+    fn today() -> NaiveDate {
+        now().date_naive()
+    }
+
+    fn days_ending_today(count: u64) -> NaiveDate {
+        today() - Days::new(count - 1)
+    }
+
     /// 23:30 on 10 January in UTC+2, which is still 21:30 in UTC.
     fn now() -> DateTime<FixedOffset> {
         FixedOffset::east_opt(2 * 3600)
@@ -229,7 +243,7 @@ mod tests {
             .unwrap();
         store.review("中文", 3, now().to_utc()).unwrap();
 
-        let statistics = statistics(&store, now(), 3).unwrap();
+        let statistics = statistics(&store, now(), days_ending_today(3), today()).unwrap();
 
         assert_eq!(
             statistics.reviews_per_day,
@@ -262,9 +276,34 @@ mod tests {
     }
 
     #[test]
+    fn counts_only_the_reviews_between_the_first_and_last_day() {
+        let mut store = Store::open_in_memory().unwrap();
+        learning(&mut store, "中文", now() - Duration::days(5));
+        for days_ago in [4, 2, 0] {
+            store
+                .review("中文", 3, (now() - Duration::days(days_ago)).to_utc())
+                .unwrap();
+        }
+
+        let yesterday = today() - Days::new(1);
+        let statistics = statistics(&store, now(), days_ending_today(4), yesterday).unwrap();
+
+        let dates: Vec<_> = statistics
+            .reviews_per_day
+            .iter()
+            .map(|day| (day.date.as_str(), day.good))
+            .collect();
+        assert_eq!(
+            dates,
+            [("2026-01-07", 0), ("2026-01-08", 1), ("2026-01-09", 0)]
+        );
+        assert_eq!(statistics.streak, 1);
+    }
+
+    #[test]
     fn has_no_retention_without_reviews_in_range() {
         let store = Store::open_in_memory().unwrap();
-        let statistics = statistics(&store, now(), 7).unwrap();
+        let statistics = statistics(&store, now(), days_ending_today(7), today()).unwrap();
         assert_eq!(statistics.reviews_per_day.len(), 7);
         assert_eq!(statistics.retention, None);
         assert_eq!(statistics.streak, 0);
@@ -279,7 +318,12 @@ mod tests {
                 .review("中文", 3, (now() - Duration::days(days_ago)).to_utc())
                 .unwrap();
         }
-        assert_eq!(statistics(&store, now(), 7).unwrap().streak, 3);
+        assert_eq!(
+            statistics(&store, now(), days_ending_today(7), today())
+                .unwrap()
+                .streak,
+            3
+        );
     }
 
     #[test]
@@ -290,7 +334,7 @@ mod tests {
         learning(&mut store, "远", now());
         let due_far = store.review("远", 4, now().to_utc()).unwrap().due_at;
 
-        let statistics = statistics(&store, now(), 7).unwrap();
+        let statistics = statistics(&store, now(), days_ending_today(7), today()).unwrap();
 
         assert_eq!(statistics.due_forecast.len(), FORECAST_DAYS as usize);
         assert_eq!(
@@ -331,7 +375,7 @@ mod tests {
 
         let mut store = Store::open_in_memory().unwrap();
         learning(&mut store, "新", now());
-        let total: u32 = statistics(&store, now(), 7)
+        let total: u32 = statistics(&store, now(), days_ending_today(7), today())
             .unwrap()
             .stability
             .iter()

@@ -290,7 +290,8 @@ export const commands = {
   /** Every known or learning word, most recently changed first. */
   listWords: (script: Script) => invoke<WordEntry[]>("list_words", { script }),
 
-  getStatistics: (days: number) => invoke<Statistics>("get_statistics", { days }),
+  /** `from` and `to` are local calendar days (`YYYY-MM-DD`), both included. */
+  getStatistics: (from: string, to: string) => invoke<Statistics>("get_statistics", { from, to }),
 
   /** A word or phrase spoken aloud, as an Ogg Opus file; Rust saves it, so each is generated once. */
   speak: (text: string) => invoke<ArrayBuffer>("speak", { text }),

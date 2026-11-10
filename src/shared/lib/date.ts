@@ -70,6 +70,18 @@ export function formatWireDateShort(isoDate: string): string {
   return format(parseWireDate(isoDate), MONTH_DAY_OPTIONS);
 }
 
+/** Month and day of both ends, with the year unless both are in this year. */
+export function formatWireDateRange(from: string, to: string): string {
+  const start = parseWireDate(from);
+  const end = parseWireDate(to);
+  const thisYear = new Date().getFullYear();
+  const options =
+    start.getFullYear() === thisYear && end.getFullYear() === thisYear
+      ? MONTH_DAY_OPTIONS
+      : SHORT_DATE_OPTIONS;
+  return new Intl.DateTimeFormat(appLocale(), options).formatRange(start, end);
+}
+
 export function formatLongDate(isoDate: string): string {
   return format(parseWireDate(isoDate), { dateStyle: "long" });
 }

@@ -782,8 +782,11 @@ mod tests {
             serde_json::to_value(store.counts(now()).unwrap()).unwrap(),
             serde_json::json!({ "known": 0, "learning": 1, "due": 0 })
         );
-        let statistics =
-            serde_json::to_value(crate::statistics::statistics(&store, now(), 1).unwrap()).unwrap();
+        let statistics = serde_json::to_value(
+            crate::statistics::statistics(&store, now(), now().date_naive(), now().date_naive())
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(
             keys(statistics.clone()),
             [

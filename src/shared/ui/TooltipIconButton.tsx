@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Tooltip } from "@base-ui/react/tooltip";
-import { Button } from "@/shared/ui/shadcn/button.tsx";
+import { Link, type LinkProps } from "@tanstack/react-router";
+import { Button, buttonVariants } from "@/shared/ui/shadcn/button.tsx";
 import { TooltipContent } from "@/shared/ui/shadcn/tooltip.tsx";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
@@ -36,6 +37,32 @@ export function TooltipIconButton({
       delay={0}
       data-slot="tooltip-trigger"
       render={<Button aria-label={label} {...buttonProps} />}
+    >
+      {children}
+    </Tooltip.Trigger>
+  );
+}
+
+interface TooltipIconLinkProps extends Pick<LinkProps, "to"> {
+  label: string;
+  children: ReactNode;
+}
+
+/** An outline icon button that navigates: a real link, so it keeps the link role. */
+export function TooltipIconLink({ label, to, children }: TooltipIconLinkProps) {
+  return (
+    <Tooltip.Trigger
+      handle={iconTooltip}
+      payload={label}
+      delay={0}
+      data-slot="tooltip-trigger"
+      render={
+        <Link
+          to={to}
+          aria-label={label}
+          className={buttonVariants({ variant: "outline", size: "icon" })}
+        />
+      }
     >
       {children}
     </Tooltip.Trigger>

@@ -2,31 +2,27 @@ import { noop } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import * as z from "zod/mini";
 import { statisticsQuery } from "@/shared/api/queries.ts";
-import {
-  DEFAULT_RANGE,
-  RANGES,
-  type Range,
-} from "@/pages/statistics/model/use-statistics-manager.ts";
+import { type DateRange, rangeOrDefault } from "@/pages/statistics/model/date-range.ts";
 import StatisticsManager from "@/pages/statistics/ui/StatisticsManager.tsx";
 
-const rangeSchema = z.catch(z._default(z.literal(RANGES), DEFAULT_RANGE), DEFAULT_RANGE);
+const wireDate = z.catch(z.optional(z.string()), undefined);
 
 export const Route = createFileRoute("/_app/statistics")({
-  validateSearch: z.object({ days: rangeSchema }),
-  loaderDeps: ({ search }) => ({ days: search.days }),
+  validateSearch: z.object({ from: wireDate, to: wireDate }),
+  loaderDeps: ({ search }) => rangeOrDefault(search.from, search.to),
   loader: ({ context, deps }) => {
-    void context.queryClient.query(statisticsQuery(deps.days)).catch(noop);
+    void context.queryClient.query(statisticsQuery(deps.from, deps.to)).catch(noop);
   },
   component: StatisticsRoute,
 });
 
 function StatisticsRoute() {
-  const { days } = Route.useSearch();
+  const { from, to } = Route.useSearch();
   const navigate = Route.useNavigate();
   return (
     <StatisticsManager
-      days={days}
-      onDaysChange={(next: Range) => void navigate({ search: { days: next }, replace: true })}
+      range={rangeOrDefault(from, to)}
+      onRangeChange={(next: DateRange) => void navigate({ search: next, replace: true })}
     />
   );
 }

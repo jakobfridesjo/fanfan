@@ -34,10 +34,12 @@ const studied: Statistics = makeStatistics({
   streak: 4,
 });
 
+const JANUARY = { from: "2026-01-01", to: "2026-01-31" };
+
 describe("StatisticsManager", () => {
   it("shows the headline figures and a chart for each section", async () => {
     mockCommands({ get_statistics: () => studied });
-    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
+    await renderPageInRouter(<StatisticsManager range={JANUARY} onRangeChange={noop} />);
 
     const figure = (label: string) => screen.getByRole("group", { name: label, exact: true });
     await expect.element(figure("Known").getByText("2,500", { exact: true })).toBeVisible();
@@ -55,20 +57,23 @@ describe("StatisticsManager", () => {
     }
   });
 
-  it("fetches the given range and reports a newly chosen one", async () => {
+  it("fetches the given range and reports the two days picked in the calendar", async () => {
     const calls = mockCommands({ get_statistics: () => studied });
-    const onDaysChange = vi.fn();
-    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={onDaysChange} />);
+    const onRangeChange = vi.fn();
+    await renderPageInRouter(<StatisticsManager range={JANUARY} onRangeChange={onRangeChange} />);
 
-    await screen.getByRole("button", { name: "90 days" }).click();
+    await screen.getByRole("button", { name: /^Range: Jan 1/ }).click();
+    await screen.getByRole("button", { name: /January 20th, 2026/ }).click();
+    expect(onRangeChange).not.toHaveBeenCalled();
+    await screen.getByRole("button", { name: /January 10th, 2026/ }).click();
 
-    expect(onDaysChange).toHaveBeenCalledWith(90);
-    expect(callsTo(calls, "get_statistics")).toEqual([{ days: 30 }]);
+    expect(onRangeChange).toHaveBeenCalledWith({ from: "2026-01-10", to: "2026-01-20" });
+    expect(callsTo(calls, "get_statistics")).toEqual([JANUARY]);
   });
 
   it("explains each empty chart before the first review", async () => {
     mockCommands({ get_statistics: () => makeStatistics() });
-    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
+    await renderPageInRouter(<StatisticsManager range={JANUARY} onRangeChange={noop} />);
 
     await expect.element(screen.getByText("No reviews in this range")).toBeVisible();
     await expect.element(screen.getByText("Nothing due in the next 30 days")).toBeVisible();
@@ -90,7 +95,7 @@ describe("StatisticsManager", () => {
         return studied;
       },
     });
-    await renderPageInRouter(<StatisticsManager days={30} onDaysChange={noop} />);
+    await renderPageInRouter(<StatisticsManager range={JANUARY} onRangeChange={noop} />);
 
     fail = false;
     await userEvent.click(screen.getByRole("button", { name: "Try again" }).first());

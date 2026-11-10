@@ -40,18 +40,21 @@ function ReviewManager() {
 
   return (
     <>
-      <PageHeader title={m.review.title}>
-        <TooltipIconButton
-          label={m.review.undo}
-          tooltip={m.review.undoTooltip}
-          variant="outline"
-          size="icon"
-          onClick={undo}
-          disabled={!canUndo}
-        >
-          <Undo2 />
-        </TooltipIconButton>
-      </PageHeader>
+      <PageHeader
+        title={m.review.title}
+        action={
+          <TooltipIconButton
+            label={m.review.undo}
+            tooltip={m.review.undoTooltip}
+            variant="outline"
+            size="icon"
+            onClick={undo}
+            disabled={!canUndo}
+          >
+            <Undo2 />
+          </TooltipIconButton>
+        }
+      />
 
       <StudyStage status={current && <ReviewProgress reviewed={reviewed} remaining={remaining} />}>
         {loading || refilling ? (

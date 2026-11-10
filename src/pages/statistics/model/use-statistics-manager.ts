@@ -2,15 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { statisticsQuery } from "@/shared/api/queries.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { useQueryErrorToast } from "@/shared/lib/use-query-error-toast.ts";
+import type { DateRange } from "@/pages/statistics/model/date-range.ts";
 
-export const RANGES = [7, 30, 90, 365] as const;
-export type Range = (typeof RANGES)[number];
-export const DEFAULT_RANGE: Range = 30;
-
-export function useStatisticsManager(days: Range) {
+export function useStatisticsManager(range: DateRange) {
   const m = useMessages();
   const statistics = useQuery({
-    ...statisticsQuery(days),
+    ...statisticsQuery(range.from, range.to),
     placeholderData: (previous) => previous,
   });
   useQueryErrorToast(statistics.error ? m.statistics.loadFailed : null, "statistics-query");

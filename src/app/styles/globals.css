@@ -392,6 +392,27 @@
   @apply aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
 }
 
+/* The calendar marks its range the same way: chosen ends washed and outlined, the days between washed. */
+[data-slot="calendar"] {
+  .rdp-range_start,
+  .rdp-range_end,
+  .rdp-range_start::after,
+  .rdp-range_end::after {
+    @apply bg-sidebar-primary/10;
+  }
+  [data-range-start="true"],
+  [data-range-end="true"],
+  [data-selected-single="true"] {
+    @apply border border-primary-text/40 bg-sidebar-primary/18 text-primary-text;
+  }
+  [data-range-middle="true"] {
+    @apply bg-transparent text-primary-text;
+  }
+  .rdp-range_middle {
+    @apply bg-sidebar-primary/10;
+  }
+}
+
 /* Navigation links mark the current page like the sidebar does: the accent wash, not opaque grey. */
 [data-slot="navigation-menu-link"] {
   &:focus {

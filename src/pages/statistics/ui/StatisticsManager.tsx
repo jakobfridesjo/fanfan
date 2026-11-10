@@ -4,12 +4,9 @@ import { formatInteger } from "@/shared/lib/number-format.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import { ChartCard } from "@/pages/statistics/ui/ChartCard.tsx";
 import { KpiCard } from "@/pages/statistics/ui/KpiCard.tsx";
-import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
-import {
-  RANGES,
-  type Range,
-  useStatisticsManager,
-} from "@/pages/statistics/model/use-statistics-manager.ts";
+import { RangePicker } from "@/pages/statistics/ui/RangePicker.tsx";
+import { type DateRange, dayCount } from "@/pages/statistics/model/date-range.ts";
+import { useStatisticsManager } from "@/pages/statistics/model/use-statistics-manager.ts";
 import {
   DueForecastChart,
   ReviewsChart,
@@ -20,45 +17,24 @@ function formatPercent(share: number): string {
   return share.toLocaleString(appLocale(), { style: "percent", maximumFractionDigits: 0 });
 }
 
-function RangePicker({ value, onChange }: { value: Range; onChange: (range: Range) => void }) {
-  const m = useMessages();
-  return (
-    <ToggleGroup
-      aria-label={m.statistics.range}
-      variant="outline"
-      size="sm"
-      value={[String(value)]}
-      // Pressing the chosen range again would leave nothing chosen.
-      onValueChange={(next) => {
-        const chosen = RANGES.find((range) => String(range) === next[0]);
-        if (chosen) onChange(chosen);
-      }}
-    >
-      {RANGES.map((range) => (
-        <ToggleGroupItem key={range} value={String(range)} className="px-3">
-          {m.statistics.ranges[range]}
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  );
-}
-
 interface StatisticsManagerProps {
-  days: Range;
-  onDaysChange: (days: Range) => void;
+  range: DateRange;
+  onRangeChange: (range: DateRange) => void;
 }
 
-function StatisticsManager({ days, onDaysChange }: StatisticsManagerProps) {
+function StatisticsManager({ range, onRangeChange }: StatisticsManagerProps) {
   const m = useMessages();
-  const { statistics, isLoading, isError, retry, reviewCount } = useStatisticsManager(days);
+  const { statistics, isLoading, isError, retry, reviewCount } = useStatisticsManager(range);
+  const days = dayCount(range);
   const chartState = { isLoading, isError, onRetry: retry };
   const figure = (value: number | undefined) => (value === undefined ? "—" : formatInteger(value));
 
   return (
     <>
-      <PageHeader title={m.statistics.title}>
-        <RangePicker value={days} onChange={onDaysChange} />
-      </PageHeader>
+      <PageHeader
+        title={m.statistics.title}
+        action={<RangePicker value={range} onChange={onRangeChange} />}
+      />
 
       <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1 scroll-fade">
         <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -80,7 +56,7 @@ function StatisticsManager({ days, onDaysChange }: StatisticsManagerProps) {
           <KpiCard
             label={m.statistics.reviews}
             value={figure(statistics && reviewCount)}
-            unit={m.statistics.ranges[days]}
+            unit={`${formatInteger(days)} ${m.statistics.days(days)}`}
             isLoading={isLoading}
           />
           <KpiCard
@@ -95,7 +71,7 @@ function StatisticsManager({ days, onDaysChange }: StatisticsManagerProps) {
           <KpiCard
             label={m.statistics.streak}
             value={figure(statistics?.streak)}
-            unit={m.statistics.streakDays(statistics?.streak ?? 0)}
+            unit={m.statistics.days(statistics?.streak ?? 0)}
             isLoading={isLoading}
           />
         </div>

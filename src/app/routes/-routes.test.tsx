@@ -95,13 +95,17 @@ describe("routes", () => {
 
   it("keeps the statistics range in the URL", async () => {
     const calls = mockCommands({ get_statistics: () => makeStatistics() });
-    const { router } = await renderRoute("/statistics?days=7");
+    const { router } = await renderRoute("/statistics?from=2026-01-01&to=2026-01-07");
 
-    await expect.poll(() => callsTo(calls, "get_statistics")).toEqual([{ days: 7 }]);
-    await screen.getByRole("button", { name: "90 days" }).click();
+    const january = { from: "2026-01-01", to: "2026-01-07" };
+    await expect.poll(() => callsTo(calls, "get_statistics")).toEqual([january]);
+    const picked = { from: "2026-01-02", to: "2026-01-05" };
+    await screen.getByRole("button", { name: /^Range/ }).click();
+    await screen.getByRole("button", { name: /January 2nd, 2026/ }).click();
+    await screen.getByRole("button", { name: /January 5th, 2026/ }).click();
 
-    await expect.poll(() => router.state.location.search).toEqual({ days: 90 });
-    await expect.poll(() => callsTo(calls, "get_statistics")).toContainEqual({ days: 90 });
+    await expect.poll(() => router.state.location.search).toEqual(picked);
+    await expect.poll(() => callsTo(calls, "get_statistics")).toContainEqual(picked);
   });
 
   it("shows the not-found page for an unknown path or a malformed book id", async () => {

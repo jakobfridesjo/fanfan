@@ -3,7 +3,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
-use chrono::Utc;
+use chrono::{NaiveDate, Utc};
 use serde::{Serialize, Serializer};
 use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Manager};
@@ -401,12 +401,16 @@ pub async fn list_words(app: AppHandle, script: Script) -> CommandResult<Vec<Wor
 
 /// Review history, due forecast and memory stability over the `days` days ending today.
 #[tauri::command]
-pub async fn get_statistics(app: AppHandle, days: u32) -> CommandResult<Statistics> {
+pub async fn get_statistics(
+    app: AppHandle,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> CommandResult<Statistics> {
     blocking(app, move |state| {
         let now = Utc::now().with_timezone(&chrono::Local);
         Ok(state
             .reader()?
-            .snapshot(|store| statistics::statistics(store, now, days))?)
+            .snapshot(|store| statistics::statistics(store, now, from, to))?)
     })
     .await
 }

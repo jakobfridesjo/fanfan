@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
 import { Info } from "lucide-react";
 import {
   BACKGROUNDS,
@@ -11,6 +10,7 @@ import {
 } from "@/shared/config/preferences.ts";
 import { LANGUAGE_NAMES, useMessages } from "@/shared/i18n/messages.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { TooltipIconLink } from "@/shared/ui/TooltipIconButton.tsx";
 import {
   Card,
   CardContent,
@@ -18,7 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/shadcn/card.tsx";
-import { buttonVariants } from "@/shared/ui/shadcn/button.tsx";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
 
@@ -50,7 +49,14 @@ function SettingsManager() {
 
   return (
     <>
-      <PageHeader title={m.settings.title} />
+      <PageHeader
+        title={m.settings.title}
+        action={
+          <TooltipIconLink label={m.settings.about} to="/about">
+            <Info />
+          </TooltipIconLink>
+        }
+      />
 
       <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1 scroll-fade">
         <SettingCard title={m.settings.language} description={m.settings.languageDescription}>
@@ -126,11 +132,6 @@ function SettingsManager() {
             render={(exam) => m.settings.exams[exam]}
           />
         </SettingCard>
-
-        <Link to="/about" className={buttonVariants({ variant: "ghost" })}>
-          <Info data-icon="inline-start" />
-          {m.settings.about}
-        </Link>
       </div>
     </>
   );
