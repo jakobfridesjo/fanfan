@@ -163,14 +163,13 @@ export function useSectionScroll({
       const height = bottom - top;
       const at = token.getBoundingClientRect().top - top;
       if (at >= height * SPOKEN_BAND.top && at <= height * SPOKEN_BAND.bottom) return;
-      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-      virtualizer.scrollBy(at - height * SPOKEN_BAND.rest, {
-        behavior: smooth ? "smooth" : "auto",
-      });
+      const to = element.scrollTop + at - height * SPOKEN_BAND.rest;
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) element.scrollTop = to;
+      else glide.to(element, to);
     };
     center(false);
     return () => cancelAnimationFrame(frame);
-  }, [virtualizer, spokenParagraph, spokenToken, following]);
+  }, [virtualizer, glide, spokenParagraph, spokenToken, following]);
 
   return {
     scrollRef,
@@ -189,39 +188,57 @@ export function useSectionScroll({
 }
 
 /**
- * A `scrollToFn` that animates smooth scrolls itself, frame by frame, instead of leaving them to
- * the webview: WebKitGTK may jump where Android's WebView glides.
+ * Glides the text frame by frame instead of leaving smooth scrolls to the webview, which on
+ * WebKitGTK may jump. It goes around the virtualizer: while that runs a smooth scroll of its own
+ * it stops measuring paragraphs away from the target, which then overlap at their estimated
+ * heights. Its `scrollToFn` carries a glide along when a paragraph above resizes.
  */
 function createGlide() {
   let frame = 0;
-  const stop = () => cancelAnimationFrame(frame);
+  let glide: { from: number; to: number; written: number } | null = null;
+  const stop = () => {
+    cancelAnimationFrame(frame);
+    glide = null;
+  };
+  const to = (element: HTMLElement, target: number) => {
+    stop();
+    const from = element.scrollTop;
+    const duration = glideDuration(target - from);
+    const started = performance.now();
+    const current = { from, to: target, written: from };
+    glide = current;
+    const step = (now: number) => {
+      // Something else moved the text, such as the reader dragging the scrollbar: let it be.
+      if (Math.abs(element.scrollTop - current.written) > 2) {
+        glide = null;
+        return;
+      }
+      const progress = Math.min(1, (now - started) / duration);
+      element.scrollTop = current.from + (current.to - current.from) * easeInOutCubic(progress);
+      current.written = element.scrollTop;
+      if (progress < 1) frame = requestAnimationFrame(step);
+      else glide = null;
+    };
+    frame = requestAnimationFrame(step);
+  };
   const scrollToFn = (
     offset: number,
     options: { adjustments?: number; behavior?: ScrollBehavior },
     instance: Virtualizer<HTMLDivElement, Element>
   ) => {
-    stop();
-    const element = instance.scrollElement;
-    if (options.behavior !== "smooth" || !element) {
-      elementScroll(offset, options, instance);
+    const shift = options.adjustments ?? 0;
+    if (glide && shift !== 0) {
+      glide.from += shift;
+      glide.to += shift;
+      glide.written += shift;
+      // The virtualizer's offset may lag the glide by a frame: shift what the glide last wrote.
+      if (instance.scrollElement) instance.scrollElement.scrollTop = glide.written;
       return;
     }
-    const from = element.scrollTop;
-    const to = offset + (options.adjustments ?? 0);
-    const duration = glideDuration(to - from);
-    const started = performance.now();
-    let written = from;
-    const step = (now: number) => {
-      // Something else moved the text, such as the reader dragging the scrollbar: let it be.
-      if (Math.abs(element.scrollTop - written) > 2) return;
-      const progress = Math.min(1, (now - started) / duration);
-      element.scrollTop = from + (to - from) * easeInOutCubic(progress);
-      written = element.scrollTop;
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
+    stop();
+    elementScroll(offset, options, instance);
   };
-  return { scrollToFn, stop };
+  return { to, scrollToFn, stop };
 }
 
 /** The part of `element` the text shows in, above whatever its scroll padding leaves for. */
