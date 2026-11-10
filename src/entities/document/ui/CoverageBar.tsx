@@ -1,9 +1,24 @@
 import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
+import { cn } from "@/shared/lib/class-names.ts";
 import { coverageOf, formatShare } from "@/entities/document/model/coverage.ts";
 
+const TRACKS = {
+  bar: "h-2 rounded-full bg-foreground/10",
+  /** Thin, for the foot of a cover. */
+  strip: "h-1.5 bg-black/45",
+};
+
 /** How much of the document's text is known, and how much is being learned. */
-export function CoverageBar({ document }: { document: DocumentSummary }) {
+export function CoverageBar({
+  document,
+  variant = "bar",
+  className,
+}: {
+  document: DocumentSummary;
+  variant?: keyof typeof TRACKS;
+  className?: string;
+}) {
   const m = useMessages();
   const { known, learning } = coverageOf(document);
 
@@ -15,7 +30,7 @@ export function CoverageBar({ document }: { document: DocumentSummary }) {
       aria-valuemax={100}
       aria-valuenow={Math.floor(known * 100)}
       aria-valuetext={`${m.coverage.known(formatShare(known))}, ${m.coverage.learning(formatShare(learning))}`}
-      className="flex h-2 overflow-hidden rounded-full bg-foreground/10"
+      className={cn("flex overflow-hidden", TRACKS[variant], className)}
     >
       <div className="bg-success" style={{ width: `${known * 100}%` }} />
       <div className="bg-warning" style={{ width: `${learning * 100}%` }} />

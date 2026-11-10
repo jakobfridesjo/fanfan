@@ -21,7 +21,6 @@ import { type DataTableColumnDef, useDataTable } from "@/shared/lib/table.ts";
 import { DataTableFacetedFilter } from "@/shared/ui/data-table/DataTableFacetedFilter.tsx";
 import { DataTablePanel } from "@/shared/ui/data-table/DataTablePanel.tsx";
 import { DebouncedSearchInput } from "@/shared/ui/DebouncedSearchInput.tsx";
-import { EmptyCell } from "@/shared/ui/data-table/EmptyCell.tsx";
 import { RowActionButton, RowActions } from "@/shared/ui/data-table/RowActions.tsx";
 import { UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
@@ -268,3 +267,7 @@ function WordActions({ entry, setStatus }: { entry: WordEntry; setStatus: SetSta
 }
 
 export default KnownWordsManager;
+
+function EmptyCell() {
+  return <span className="text-muted-foreground">—</span>;
+}

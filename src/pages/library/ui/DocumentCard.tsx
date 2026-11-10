@@ -4,7 +4,7 @@ import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { cn } from "@/shared/lib/class-names.ts";
 import { coverageOf, formatShare } from "@/entities/document/model/coverage.ts";
-import { CoverageStrip } from "@/entities/document/ui/CoverageStrip.tsx";
+import { CoverageBar } from "@/entities/document/ui/CoverageBar.tsx";
 import { DocumentCover } from "@/entities/document/ui/DocumentCover.tsx";
 import {
   dropTargetProps,
@@ -77,7 +77,7 @@ export function DocumentCard({
         className={cn(POSTER, "bg-muted", landing && LANDING, drag && "shadow-xl")}
       >
         <DocumentCover document={document} />
-        <CoverageStrip document={document} className="absolute inset-x-0 bottom-0" />
+        <CoverageBar document={document} variant="strip" className="absolute inset-x-0 bottom-0" />
       </Link>
       {!drag && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl transition-transform group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">

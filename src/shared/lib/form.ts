@@ -4,15 +4,13 @@ import {
   getFormHookHelpers,
   type StandardSchemaV1,
 } from "@tanstack/react-form";
-import { CheckboxField, TextareaField, TextField } from "@/shared/ui/FormFields.tsx";
+import { TextField } from "@/shared/ui/FormFields.tsx";
 
 const { fieldComponent } = getFormHookHelpers();
 
 const { useAppForm, appFormOptions } = createFormHook({
   fieldComponents: {
     TextField: fieldComponent.strict(TextField, "field"),
-    TextareaField: fieldComponent.strict(TextareaField, "field"),
-    CheckboxField: fieldComponent.strict(CheckboxField, "field"),
   },
   formComponents: {},
   defaultFormOptions: {

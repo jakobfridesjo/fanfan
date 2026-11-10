@@ -2,8 +2,8 @@ import { useMessages } from "@/shared/i18n/messages.ts";
 import { appLocale } from "@/shared/lib/locale.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
-import { ChartCard } from "@/shared/ui/charts/ChartCard.tsx";
-import { KpiCard } from "@/shared/ui/charts/KpiCard.tsx";
+import { ChartCard } from "@/pages/statistics/ui/ChartCard.tsx";
+import { KpiCard } from "@/pages/statistics/ui/KpiCard.tsx";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import {
   RANGES,

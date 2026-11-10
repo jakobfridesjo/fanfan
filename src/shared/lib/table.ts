@@ -112,10 +112,7 @@ export function clickableRowProps<TData>(
   if (!onRowClick) return {};
   return {
     tabIndex: 0,
-    onClick: () => {
-      if (window.getSelection()?.toString()) return;
-      onRowClick(row);
-    },
+    onClick: () => onRowClick(row),
     onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
       if (event.target !== event.currentTarget) return;
       if (event.key !== "Enter" && event.key !== " ") return;

@@ -42,16 +42,3 @@ it("activates a clickable row from the keyboard without double-firing from inner
   await userEvent.keyboard("{Enter}");
   expect(onRowClick).toHaveBeenCalledTimes(3);
 });
-
-it("ignores row clicks that end a text selection", async () => {
-  const onRowClick = vi.fn();
-  await render(<Harness onRowClick={onRowClick} />);
-
-  const cell = screen.getByRole("cell", { name: "Alice" }).element();
-  await screen.getByRole("cell", { name: "Alice" }).click();
-  expect(onRowClick).toHaveBeenCalledTimes(1);
-
-  window.getSelection()?.selectAllChildren(cell);
-  await screen.getByRole("cell", { name: "Alice" }).click();
-  expect(onRowClick).toHaveBeenCalledTimes(1);
-});
