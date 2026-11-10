@@ -52,7 +52,7 @@ function SettingsManager() {
     <>
       <PageHeader title={m.settings.title} />
 
-      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1">
+      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1 scroll-fade">
         <SettingCard title={m.settings.language} description={m.settings.languageDescription}>
           <Choices
             label={m.settings.language}

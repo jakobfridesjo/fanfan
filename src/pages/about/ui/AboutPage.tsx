@@ -34,7 +34,7 @@ function AboutPage() {
     <>
       <PageHeader title={m.about.title} onBack={() => void navigate({ to: "/settings" })} />
 
-      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1">
+      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1 scroll-fade">
         <Card className="w-full max-w-2xl shrink-0">
           <CardContent className="flex flex-col items-center gap-3 py-4 text-center">
             <AppLogo className="size-16" />

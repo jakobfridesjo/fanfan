@@ -27,7 +27,7 @@ function LicensesPage() {
     <>
       <PageHeader title={m.about.licensesTitle} onBack={() => void navigate({ to: "/about" })} />
 
-      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1">
+      <div className="-m-1 flex min-h-0 flex-col items-center gap-4 overflow-y-auto p-1 scroll-fade">
         <Card className="w-full max-w-2xl shrink-0">
           <CardHeader>
             <CardTitle>{m.about.licensesTitle}</CardTitle>

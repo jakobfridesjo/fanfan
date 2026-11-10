@@ -51,7 +51,7 @@ export function WordCard({ card, hidden = false, hiddenHint, footer }: WordCardP
           <div
             inert={hidden}
             className={cn(
-              "flex min-h-0 w-full justify-center overflow-y-auto",
+              "flex min-h-0 w-full justify-center overflow-y-auto scroll-fade",
               hidden && "invisible"
             )}
           >

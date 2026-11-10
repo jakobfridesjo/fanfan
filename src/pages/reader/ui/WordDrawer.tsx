@@ -32,7 +32,7 @@ export function WordDrawer({ onClose, ...panel }: WordDrawerProps) {
     >
       <DrawerContent initialFocus={false} finalFocus={false}>
         {word && (
-          <div className="flex flex-col gap-4 overflow-y-auto p-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))]">
+          <div className="flex flex-col gap-4 overflow-y-auto scroll-fade p-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))]">
             <DrawerTitle className="sr-only" lang="zh">
               {word}
             </DrawerTitle>

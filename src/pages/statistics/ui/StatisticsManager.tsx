@@ -60,7 +60,7 @@ function StatisticsManager({ days, onDaysChange }: StatisticsManagerProps) {
         <RangePicker value={days} onChange={onDaysChange} />
       </PageHeader>
 
-      <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1">
+      <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1 scroll-fade">
         <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
           <KpiCard
             label={m.statistics.known}

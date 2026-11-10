@@ -114,7 +114,7 @@ function ReaderManager({ documentId }: { documentId: number }) {
         </div>
 
         {!isMobile && (
-          <aside className="-m-1 w-80 shrink-0 overflow-y-auto p-1">
+          <aside className="-m-1 w-80 shrink-0 overflow-y-auto p-1 scroll-fade">
             <WordPanel {...wordPanel} />
           </aside>
         )}

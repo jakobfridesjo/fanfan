@@ -41,7 +41,10 @@ export function SectionText({
   return (
     <div
       ref={scrollRef}
-      className={cn("min-h-0 flex-1 overflow-y-auto", drawerOpen && "scroll-pb-[45dvh]")}
+      className={cn(
+        "min-h-0 flex-1 overflow-y-auto scroll-fade",
+        drawerOpen && "scroll-pb-[45dvh]"
+      )}
       data-testid="reader-text"
     >
       <div className="relative mx-auto w-full max-w-2xl" style={{ height: totalSize }}>
