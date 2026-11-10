@@ -11,6 +11,7 @@ export const BACKGROUNDS = [
   "cherry",
   "mist",
   "sunset",
+  "ink",
   "pyreflies",
   "plain",
 ] as const;

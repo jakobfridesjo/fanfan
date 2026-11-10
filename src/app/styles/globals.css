@@ -104,6 +104,11 @@
   --theme-hue: 45;
 }
 
+:root[data-background="ink"] {
+  --theme-hue: 250;
+  --theme-chroma: 0.4;
+}
+
 :root[data-background="pyreflies"] {
   --theme-hue: 225;
 }
@@ -309,6 +314,20 @@
   --sunset-bottom: oklch(0.32 0.09 35);
   --sunset-glow: oklch(0.62 0.17 45 / 0.5);
   --sunset-ray: oklch(0.75 0.13 60 / 0.22);
+}
+
+/* Ink wash: ink on warm rice paper in daylight, dark ranges in a sepia night. */
+.ink-wash {
+  --ink-paper: oklch(0.94 0.035 85);
+  --ink-stroke: oklch(0.24 0.015 70 / 0.78);
+  --ink-mist: oklch(0.97 0.022 88 / 0.85);
+  background: linear-gradient(to bottom, var(--ink-paper), oklch(from var(--ink-mist) l c h));
+}
+
+.dark .ink-wash {
+  --ink-paper: oklch(0.24 0.014 80);
+  --ink-stroke: oklch(0.09 0.008 70 / 0.8);
+  --ink-mist: oklch(0.32 0.016 82 / 0.6);
 }
 
 /* Pyreflies: a blue-green night with a cold teal haze over the middle; misty and pale in daylight. */

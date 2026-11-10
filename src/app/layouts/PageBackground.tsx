@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { useSelector } from "@tanstack/react-store";
 import { backgroundAtom, type Background } from "@/shared/config/preferences.ts";
 import { FirefliesBackground } from "@/app/layouts/FirefliesBackground.tsx";
+import { InkBackground } from "@/app/layouts/InkBackground.tsx";
 import { MistBackground } from "@/app/layouts/MistBackground.tsx";
 import { PyrefliesBackground } from "@/app/layouts/PyrefliesBackground.tsx";
 import { SunsetBackground } from "@/app/layouts/SunsetBackground.tsx";
@@ -14,6 +15,7 @@ const BACKGROUND_COMPONENTS: Record<Background, ComponentType | null> = {
   cherry: CherryBackground,
   mist: MistBackground,
   sunset: SunsetBackground,
+  ink: InkBackground,
   pyreflies: PyrefliesBackground,
   plain: null,
 };

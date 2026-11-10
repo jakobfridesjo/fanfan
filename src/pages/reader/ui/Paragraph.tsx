@@ -143,7 +143,7 @@ function CharacterReadings({ text, reading }: { text: string; reading: string[] 
     return (
       <ruby key={key} className="[ruby-align:center]">
         {character}
-        <rt className="px-[0.15em] text-[0.5em] font-normal text-muted-foreground">{syllable}</rt>
+        <rt className="px-[0.15em] text-[0.5em] font-normal">{syllable}</rt>
       </ruby>
     );
   });
