@@ -44,7 +44,11 @@ pub fn run() {
             // on Android this first copies the bundled files out of the APK.
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                if let Err(error) = handle.state::<AppState>().language() {
+                let state = handle.state::<AppState>();
+                if let Err(error) = state.language() {
+                    log::error!("{error:?}");
+                }
+                if let Err(error) = state.tidy_speech_cache() {
                     log::error!("{error:?}");
                 }
             });

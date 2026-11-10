@@ -11,7 +11,7 @@ use vocab_core::dictionary::Script;
 use vocab_core::service::{
     self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard, WordEntry,
 };
-use vocab_core::speech::{Speaker, SpeechCache, Voice};
+use vocab_core::speech::{SPEECH_CACHE_BYTES, Speaker, SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
 use vocab_core::store::{DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus};
 use vocab_core::text::parse_word_list;
@@ -87,6 +87,11 @@ impl AppState {
             })
             .as_ref()
             .map_err(|message| CommandError(message.clone()))
+    }
+
+    /// Keeps saved speech within `SPEECH_CACHE_BYTES`, dropping what was played longest ago.
+    pub fn tidy_speech_cache(&self) -> vocab_core::error::Result<()> {
+        self.speech.tidy(SPEECH_CACHE_BYTES)
     }
 
     /// Loads the text-to-speech voice once, on the first word spoken.

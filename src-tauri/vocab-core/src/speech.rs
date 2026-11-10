@@ -4,6 +4,7 @@ use std::iter;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread;
+use std::time::SystemTime;
 
 use anyhow::{Context, bail};
 use ogg::{PacketWriteEndInfo, PacketWriter};
@@ -461,9 +462,14 @@ impl Random {
     }
 }
 
+/// How much saved audio `SpeechCache::tidy` keeps: a few thousand words and
+/// sentences, though only part of a book read aloud.
+pub const SPEECH_CACHE_BYTES: u64 = 200 * 1024 * 1024;
+
 /// Spoken text saved as `<speaker>/<hex of the text>.opus` (`sha256-<hex of
 /// its hash>.opus` when long), so each is generated once in each voice.
 pub struct SpeechCache {
+    root: PathBuf,
     dir: PathBuf,
 }
 
@@ -471,8 +477,47 @@ impl SpeechCache {
     /// Keeps audio under `root/MODEL_ID`.
     pub fn new(root: &Path) -> Self {
         Self {
+            root: root.to_path_buf(),
             dir: root.join(MODEL_ID),
         }
+    }
+
+    /// Deletes audio from earlier models, then the least recently played
+    /// clips until the rest fit in `max_bytes`.
+    pub fn tidy(&self, max_bytes: u64) -> Result<()> {
+        let Ok(entries) = fs::read_dir(&self.root) else {
+            return Ok(());
+        };
+        for entry in entries {
+            let entry = entry?;
+            if entry.file_name() != MODEL_ID {
+                remove(&entry.path())?;
+            }
+        }
+
+        let mut clips = Vec::new();
+        for speaker in fs::read_dir(&self.dir).into_iter().flatten() {
+            for clip in fs::read_dir(speaker?.path())? {
+                let path = clip?.path();
+                if path
+                    .extension()
+                    .is_some_and(|extension| extension == "opus")
+                {
+                    let metadata = fs::metadata(&path)?;
+                    clips.push((metadata.modified()?, metadata.len(), path));
+                }
+            }
+        }
+        clips.sort();
+        let mut total: u64 = clips.iter().map(|(_, len, _)| len).sum();
+        for (_, len, path) in clips {
+            if total <= max_bytes {
+                break;
+            }
+            fs::remove_file(path)?;
+            total -= len;
+        }
+        Ok(())
     }
 
     /// The saved audio for `text` in `speaker`'s voice, or `speak(text)` saved for next time.
@@ -484,6 +529,11 @@ impl SpeechCache {
     ) -> Result<Vec<u8>> {
         let path = self.path(text, speaker);
         if let Ok(audio) = fs::read(&path) {
+            // `tidy` keeps the clips played most recently.
+            let _ = fs::File::options()
+                .write(true)
+                .open(&path)
+                .and_then(|file| file.set_modified(SystemTime::now()));
             return Ok(audio);
         }
         let audio = speak(text)?;
@@ -502,6 +552,14 @@ impl SpeechCache {
             format!("sha256-{}", hex(&Sha256::digest(text)))
         };
         self.dir.join(speaker.name()).join(format!("{name}.opus"))
+    }
+}
+
+fn remove(path: &Path) -> std::io::Result<()> {
+    if path.is_dir() {
+        fs::remove_dir_all(path)
+    } else {
+        fs::remove_file(path)
     }
 }
 
@@ -577,6 +635,7 @@ fn opus_tags() -> Vec<u8> {
 mod tests {
     use std::cell::Cell;
     use std::io::Cursor;
+    use std::time::Duration;
 
     use ogg::PacketReader;
     use opus::Decoder;
@@ -662,6 +721,52 @@ mod tests {
         let name = cache.path(&sentence, Speaker::Lingyu);
         let name = name.file_name().unwrap().to_str().unwrap();
         assert!(name.starts_with("sha256-") && name.len() < 100, "{name}");
+    }
+
+    #[test]
+    fn tidies_away_old_models_and_the_least_recently_played_clips() {
+        let root = tempfile::tempdir().unwrap();
+        let cache = SpeechCache::new(root.path());
+        let old_model = root.path().join("moss-tts-nano-old").join("Lingyu");
+        fs::create_dir_all(&old_model).unwrap();
+        fs::write(old_model.join("e5ada6e4b9a0.opus"), b"old").unwrap();
+
+        let started = SystemTime::now() - Duration::from_secs(3600);
+        for (minute, word) in ["学", "习", "中", "文"].into_iter().enumerate() {
+            cache
+                .get_or_speak(word, Speaker::Lingyu, |_| Ok(vec![0; 100]))
+                .unwrap();
+            fs::File::options()
+                .write(true)
+                .open(cache.path(word, Speaker::Lingyu))
+                .unwrap()
+                .set_modified(started + Duration::from_secs(60 * minute as u64))
+                .unwrap();
+        }
+        let unspoken = |_: &str| -> Result<Vec<u8>> { panic!("the clip was saved") };
+        cache.get_or_speak("学", Speaker::Lingyu, unspoken).unwrap();
+
+        cache.tidy(250).unwrap();
+
+        assert!(!root.path().join("moss-tts-nano-old").exists());
+        let kept: Vec<bool> = ["学", "习", "中", "文"]
+            .into_iter()
+            .map(|word| cache.path(word, Speaker::Lingyu).exists())
+            .collect();
+        assert_eq!(
+            kept,
+            [true, false, false, true],
+            "keeps the two played last"
+        );
+    }
+
+    #[test]
+    fn tidies_a_cache_never_written() {
+        let root = tempfile::tempdir().unwrap();
+        SpeechCache::new(&root.path().join("speech"))
+            .tidy(0)
+            .unwrap();
+        SpeechCache::new(root.path()).tidy(0).unwrap();
     }
 
     #[test]
