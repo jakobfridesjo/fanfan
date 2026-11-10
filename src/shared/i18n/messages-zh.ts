@@ -173,8 +173,6 @@ export const zh: Messages = {
     range: "期间",
     known: "已认识",
     learning: "学习中",
-    dueNow: "待复习",
-    reviews: "复习次数",
     retention: "记住率",
     streak: "连续天数",
     days: () => "天",

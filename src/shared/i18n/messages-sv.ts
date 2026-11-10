@@ -180,8 +180,6 @@ export const sv: Messages = {
     range: "Period",
     known: "Kända",
     learning: "Lär mig",
-    dueNow: "Att repetera nu",
-    reviews: "Repetitioner",
     retention: "Minnesgrad",
     streak: "Svit",
     days: (count: number) => (count === 1 ? "dag" : "dagar"),

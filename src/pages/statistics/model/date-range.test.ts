@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { dayCount, lastDays, rangeOrDefault } from "@/pages/statistics/model/date-range.ts";
+import { lastDays, rangeOrDefault } from "@/pages/statistics/model/date-range.ts";
 
 describe("date ranges", () => {
-  it("counts both ends, across a daylight saving change", () => {
-    expect(dayCount({ from: "2026-03-28", to: "2026-03-30" })).toBe(3);
-    expect(dayCount({ from: "2026-11-10", to: "2026-11-10" })).toBe(1);
-  });
-
   it("ends the last days today", () => {
     expect(lastDays(7, new Date(2026, 0, 3))).toEqual({ from: "2025-12-28", to: "2026-01-03" });
   });

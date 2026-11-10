@@ -5,7 +5,7 @@ import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import { ChartCard } from "@/pages/statistics/ui/ChartCard.tsx";
 import { KpiCard } from "@/pages/statistics/ui/KpiCard.tsx";
 import { RangePicker } from "@/pages/statistics/ui/RangePicker.tsx";
-import { type DateRange, dayCount } from "@/pages/statistics/model/date-range.ts";
+import type { DateRange } from "@/pages/statistics/model/date-range.ts";
 import { useStatisticsManager } from "@/pages/statistics/model/use-statistics-manager.ts";
 import {
   DueForecastChart,
@@ -25,7 +25,6 @@ interface StatisticsManagerProps {
 function StatisticsManager({ range, onRangeChange }: StatisticsManagerProps) {
   const m = useMessages();
   const { statistics, isLoading, isError, retry, reviewCount } = useStatisticsManager(range);
-  const days = dayCount(range);
   const chartState = { isLoading, isError, onRetry: retry };
   const figure = (value: number | undefined) => (value === undefined ? "—" : formatInteger(value));
 
@@ -37,7 +36,7 @@ function StatisticsManager({ range, onRangeChange }: StatisticsManagerProps) {
       />
 
       <div className="-m-1 flex min-h-0 flex-col gap-4 overflow-y-auto p-1 scroll-fade">
-        <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid shrink-0 grid-cols-2 gap-2 xl:grid-cols-4">
           <KpiCard
             label={m.statistics.known}
             value={figure(statistics?.counts.known)}
@@ -46,17 +45,6 @@ function StatisticsManager({ range, onRangeChange }: StatisticsManagerProps) {
           <KpiCard
             label={m.statistics.learning}
             value={figure(statistics?.counts.learning)}
-            isLoading={isLoading}
-          />
-          <KpiCard
-            label={m.statistics.dueNow}
-            value={figure(statistics?.counts.due)}
-            isLoading={isLoading}
-          />
-          <KpiCard
-            label={m.statistics.reviews}
-            value={figure(statistics && reviewCount)}
-            unit={`${formatInteger(days)} ${m.statistics.days(days)}`}
             isLoading={isLoading}
           />
           <KpiCard

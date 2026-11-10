@@ -34,18 +34,19 @@ function DeckManager({ documentId }: { documentId: number }) {
         title={<span lang="zh">{deck?.document.title ?? m.deck.book}</span>}
         onBack={backToLibrary}
         backLabel={m.deck.backToLibrary}
-      >
-        <TooltipIconButton
-          label={m.deck.undo}
-          tooltip={m.deck.undoTooltip}
-          variant="outline"
-          size="icon"
-          onClick={undo}
-          disabled={!canUndo}
-        >
-          <Undo2 />
-        </TooltipIconButton>
-      </PageHeader>
+        action={
+          <TooltipIconButton
+            label={m.deck.undo}
+            tooltip={m.deck.undoTooltip}
+            variant="outline"
+            size="icon"
+            onClick={undo}
+            disabled={!canUndo}
+          >
+            <Undo2 />
+          </TooltipIconButton>
+        }
+      />
 
       <StudyStage status={deck && <DeckProgress document={deck.document} />}>
         {loading || refilling ? (

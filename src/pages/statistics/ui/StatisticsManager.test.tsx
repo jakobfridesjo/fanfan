@@ -43,8 +43,6 @@ describe("StatisticsManager", () => {
 
     const figure = (label: string) => screen.getByRole("group", { name: label, exact: true });
     await expect.element(figure("Known").getByText("2,500", { exact: true })).toBeVisible();
-    await expect.element(figure("Due now").getByText("12", { exact: true })).toBeVisible();
-    await expect.element(figure("Reviews").getByText("10", { exact: true })).toBeVisible();
     await expect.element(figure("Retention").getByText("90%", { exact: true })).toBeVisible();
     await expect.element(figure("Streak").getByText("4", { exact: true })).toBeVisible();
 

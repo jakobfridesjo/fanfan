@@ -179,8 +179,6 @@ export const en = {
     range: "Range",
     known: "Known",
     learning: "Learning",
-    dueNow: "Due now",
-    reviews: "Reviews",
     retention: "Retention",
     streak: "Streak",
     days: (count: number): string => (count === 1 ? "day" : "days"),
