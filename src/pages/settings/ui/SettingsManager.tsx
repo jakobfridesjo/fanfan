@@ -1,24 +1,27 @@
 import type { ReactNode } from "react";
-import { Info } from "lucide-react";
+import { Info, LoaderCircle, Volume2 } from "lucide-react";
 import {
   BACKGROUNDS,
   EXAMS,
   LANGUAGES,
   NOTATIONS,
   SCRIPTS,
+  SPEAKERS,
   THEMES,
 } from "@/shared/config/preferences.ts";
 import { LANGUAGE_NAMES, useMessages } from "@/shared/i18n/messages.ts";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
-import { TooltipIconLink } from "@/shared/ui/TooltipIconButton.tsx";
+import { TooltipIconButton, TooltipIconLink } from "@/shared/ui/TooltipIconButton.tsx";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/shared/ui/shadcn/card.tsx";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
+import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
 
 /** A sample of each script, written in itself. */
@@ -28,6 +31,17 @@ const NOTATION_SAMPLES = {
   pinyin: "zhōngwén",
   zhuyin: "ㄓㄨㄥ ㄨㄣˊ",
   cangjie: "中 卜大",
+} as const;
+/** What a voice reads to show how it sounds. */
+const VOICE_SAMPLE = "你好！我们一起来读这本书吧。";
+/** Each voice's name as upstream gives it. */
+const SPEAKER_NAMES = {
+  lingyu: "Lingyu",
+  weiguo: "Weiguo",
+  junhao: "Junhao",
+  zhiming: "Zhiming",
+  xiaoyu: "Xiaoyu",
+  yuewen: "Yuewen",
 } as const;
 
 function SettingsManager() {
@@ -39,6 +53,8 @@ function SettingsManager() {
     setScript,
     shownNotations,
     setShownNotations,
+    speaker,
+    setSpeaker,
     theme,
     setTheme,
     background,
@@ -103,6 +119,25 @@ function SettingsManager() {
           />
         </SettingCard>
 
+        <SettingCard
+          title={m.settings.voice}
+          description={m.settings.voiceDescription}
+          action={<VoiceSample />}
+        >
+          <Choices
+            label={m.settings.voice}
+            options={SPEAKERS}
+            value={speaker}
+            onChange={setSpeaker}
+            render={(option) => (
+              <>
+                {SPEAKER_NAMES[option]}
+                <span className="text-muted-foreground">{m.settings.voices[option]}</span>
+              </>
+            )}
+          />
+        </SettingCard>
+
         <SettingCard title={m.settings.appearance} description={m.settings.appearanceDescription}>
           <Choices
             label={m.settings.appearance}
@@ -137,13 +172,32 @@ function SettingsManager() {
   );
 }
 
+function VoiceSample() {
+  const m = useMessages();
+  const { speak, loading } = useSpeakWord(VOICE_SAMPLE);
+  return (
+    <TooltipIconButton
+      label={m.settings.playSample}
+      variant="outline"
+      size="icon"
+      disabled={loading}
+      onClick={() => void speak()}
+    >
+      {loading ? <LoaderCircle className="animate-spin motion-reduce:animate-none" /> : <Volume2 />}
+    </TooltipIconButton>
+  );
+}
+
 function SettingCard({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
   description: string;
+  /** A button at the card's top right. */
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -151,6 +205,7 @@ function SettingCard({
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
+        {action && <CardAction>{action}</CardAction>}
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>

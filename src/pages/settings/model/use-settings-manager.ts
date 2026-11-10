@@ -5,12 +5,14 @@ import {
   scriptAtom,
   shownExamsAtom,
   shownNotationsAtom,
+  speakerAtom,
   themeAtom,
   type Background,
   type Exam,
   type Language,
   type Notation,
   type Script,
+  type Speaker,
   type Theme,
 } from "@/shared/config/preferences.ts";
 
@@ -21,6 +23,8 @@ export function useSettingsManager() {
     setLanguage: (language: Language) => languageAtom.set(language),
     script: useSelector(scriptAtom),
     setScript: (script: Script) => scriptAtom.set(script),
+    speaker: useSelector(speakerAtom),
+    setSpeaker: (speaker: Speaker) => speakerAtom.set(speaker),
     shownNotations: useSelector(shownNotationsAtom),
     setShownNotations: (notations: Notation[]) => shownNotationsAtom.set(notations),
     theme: useSelector(themeAtom),

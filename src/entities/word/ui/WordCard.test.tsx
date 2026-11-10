@@ -108,7 +108,7 @@ describe("WordCard", () => {
 
     await expect.element(page.getByRole("mark")).toHaveTextContent("學習");
     await page.getByRole("button", { name: "Play pronunciation" }).click();
-    await expect.poll(() => callsTo(calls, "speak")).toEqual([{ text: "学习" }]);
+    await expect.poll(() => callsTo(calls, "speak")).toEqual([{ text: "学习", speaker: "lingyu" }]);
   });
 
   it("shows an example that lacks the word as is, and no count outside a book", async () => {
@@ -135,7 +135,7 @@ describe("WordCard", () => {
     await play.click();
     await play.click();
 
-    await expect.poll(() => callsTo(calls, "speak")).toEqual([{ text: "学习" }]);
+    await expect.poll(() => callsTo(calls, "speak")).toEqual([{ text: "学习", speaker: "lingyu" }]);
     await expect.poll(() => document.querySelectorAll("[data-sonner-toast]").length).toBe(0);
   });
 

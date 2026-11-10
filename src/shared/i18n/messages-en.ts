@@ -243,6 +243,18 @@ export const en = {
     notationsDescription:
       "Show any combination of pinyin, zhuyin (bopomofo, as taught in Taiwan) and Cangjie input codes with each word.",
     notationNames: { pinyin: "Pinyin", zhuyin: "Zhuyin", cangjie: "Cangjie" },
+    voice: "Voice",
+    voiceDescription:
+      "Who reads words and books aloud. A voice makes each sentence the first time you hear it, so a new voice starts slower.",
+    voices: {
+      lingyu: "Calm radio host",
+      weiguo: "Storyteller",
+      junhao: "Lively",
+      zhiming: "Beijing chat",
+      xiaoyu: "Bright",
+      yuewen: "Sassy",
+    },
+    playSample: "Play a sample",
     appearance: "Appearance",
     appearanceDescription: "Light or dark, or follow the system.",
     appearances: { light: "Light", dark: "Dark", auto: "Automatic" },

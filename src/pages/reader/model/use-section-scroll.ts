@@ -6,16 +6,22 @@ import {
   useRef,
   useState,
 } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { elementScroll, useVirtualizer, type Virtualizer } from "@tanstack/react-virtual";
 
 /** A first guess at a paragraph's height in pixels, before it is measured. */
 const ESTIMATED_PARAGRAPH_HEIGHT = 96;
 
 /**
  * Where in the view, as fractions of its height, the spoken phrase may start before the text
- * glides it back to the middle: a little drift between moves keeps the text from crawling.
+ * glides it back to `rest`, just above the middle so the phrase's lines read around the middle:
+ * a little drift between moves keeps the text from crawling.
  */
-const SPOKEN_BAND = { top: 0.3, bottom: 0.6 };
+const SPOKEN_BAND = { top: 0.2, rest: 0.35, bottom: 0.45 };
+
+/** How long a smooth scroll glides, in milliseconds: longer for a longer way, within bounds. */
+const glideDuration = (distance: number) => Math.min(700, 250 + Math.abs(distance) * 0.6);
+
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 
 /** A token in the section, as `data-paragraph` and `data-token` mark it in the text. */
 interface TextPosition {
@@ -54,12 +60,14 @@ export function useSectionScroll({
 }: SectionScrollOptions) {
   "use no memo";
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [glide] = useState(createGlide);
   // oxlint-disable-next-line react/incompatible-library -- "use no memo" above, and callers get only fresh values and the stable measureElement
   const virtualizer = useVirtualizer({
     count: paragraphCount,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_PARAGRAPH_HEIGHT,
     overscan: 6,
+    scrollToFn: glide.scrollToFn,
     onChange: (instance) => {
       const first = instance.range?.startIndex;
       if (first !== undefined) onParagraphReached(first);
@@ -123,9 +131,17 @@ export function useSectionScroll({
       const top = element.scrollTop;
       setFollowing(item.end > top && item.start < top + element.clientHeight);
     };
+    // The reader's own touch, wheel or key takes over from a glide under way.
+    const takeOver = () => glide.stop();
+    const inputs = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
     element.addEventListener("scroll", onScroll, { passive: true });
-    return () => element.removeEventListener("scroll", onScroll);
-  }, [virtualizer]);
+    for (const input of inputs) element.addEventListener(input, takeOver, { passive: true });
+    return () => {
+      element.removeEventListener("scroll", onScroll);
+      for (const input of inputs) element.removeEventListener(input, takeOver);
+      glide.stop();
+    };
+  }, [virtualizer, glide]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -148,7 +164,9 @@ export function useSectionScroll({
       const at = token.getBoundingClientRect().top - top;
       if (at >= height * SPOKEN_BAND.top && at <= height * SPOKEN_BAND.bottom) return;
       const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-      element.scrollBy({ top: at - height / 2, behavior: smooth ? "smooth" : "instant" });
+      virtualizer.scrollBy(at - height * SPOKEN_BAND.rest, {
+        behavior: smooth ? "smooth" : "auto",
+      });
     };
     center(false);
     return () => cancelAnimationFrame(frame);
@@ -168,6 +186,42 @@ export function useSectionScroll({
           : ("below" as const),
     followSpoken: () => setFollowing(true),
   };
+}
+
+/**
+ * A `scrollToFn` that animates smooth scrolls itself, frame by frame, instead of leaving them to
+ * the webview: WebKitGTK may jump where Android's WebView glides.
+ */
+function createGlide() {
+  let frame = 0;
+  const stop = () => cancelAnimationFrame(frame);
+  const scrollToFn = (
+    offset: number,
+    options: { adjustments?: number; behavior?: ScrollBehavior },
+    instance: Virtualizer<HTMLDivElement, Element>
+  ) => {
+    stop();
+    const element = instance.scrollElement;
+    if (options.behavior !== "smooth" || !element) {
+      elementScroll(offset, options, instance);
+      return;
+    }
+    const from = element.scrollTop;
+    const to = offset + (options.adjustments ?? 0);
+    const duration = glideDuration(to - from);
+    const started = performance.now();
+    let written = from;
+    const step = (now: number) => {
+      // Something else moved the text, such as the reader dragging the scrollbar: let it be.
+      if (Math.abs(element.scrollTop - written) > 2) return;
+      const progress = Math.min(1, (now - started) / duration);
+      element.scrollTop = from + (to - from) * easeInOutCubic(progress);
+      written = element.scrollTop;
+      if (progress < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+  };
+  return { scrollToFn, stop };
 }
 
 /** The part of `element` the text shows in, above whatever its scroll padding leaves for. */

@@ -6,10 +6,13 @@ import {
   scriptAtom,
   shownExamsAtom,
   shownNotationsAtom,
+  speakerAtom,
   themeAtom,
 } from "@/shared/config/preferences.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
+import { silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
+import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
 import SettingsManager from "@/pages/settings/ui/SettingsManager.tsx";
 
 describe("SettingsManager", () => {
@@ -86,6 +89,22 @@ describe("SettingsManager", () => {
 
     await expect.element(dark).toHaveAttribute("aria-pressed", "true");
     expect(themeAtom.get()).toBe("dark");
+  });
+
+  it("reads a sample in the chosen voice", async () => {
+    const calls = mockCommands({ speak: () => silentOpus() });
+    await renderPageInRouter(<SettingsManager />);
+
+    const storyteller = screen.getByRole("button", { name: "Weiguo Storyteller" });
+    await storyteller.click();
+    await expect.element(storyteller).toHaveAttribute("aria-pressed", "true");
+    expect(speakerAtom.get()).toBe("weiguo");
+    expect(localStorage.getItem("speaker")).toBe("weiguo");
+
+    await screen.getByRole("button", { name: "Play a sample" }).click();
+    await expect
+      .poll(() => callsTo(calls, "speak"))
+      .toEqual([{ text: "你好！我们一起来读这本书吧。", speaker: "weiguo" }]);
   });
 
   it("links to the about page", async () => {

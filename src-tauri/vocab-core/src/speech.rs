@@ -37,12 +37,52 @@ pub const FILES: [&str; 9] = [
     "moss_audio_tokenizer_decode_shared.data",
 ];
 
-/// Names the model, voice and generation settings. Change it when any of
-/// them change, so cached audio from the old voice is not played.
-pub const VOICE_ID: &str = "moss-tts-nano-int8-23fd1979-junhao-v2";
+/// Names the model and generation settings. Change it when either changes,
+/// so cached audio from the old model is not played.
+pub const MODEL_ID: &str = "moss-tts-nano-int8-23fd1979-v2";
 
-/// Upstream's `zh_1.wav`, which the manifest carries already encoded.
-const VOICE: &str = "Junhao";
+/// The manifest's built-in Chinese voices, each a short recording it carries
+/// already encoded. The others speak Chinese with an English or Japanese accent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Speaker {
+    /// `zh_1.wav`, a lively promotional line.
+    Junhao,
+    /// `zh_3.wav`, chatting in a Beijing alley (京味胡同闲聊).
+    Zhiming,
+    /// `zh_10.wav`, a storyteller (说书).
+    Weiguo,
+    /// `zh_11.wav`, a celebrity (明星).
+    Xiaoyu,
+    /// `zh_4.wav`, sassy (机车).
+    Yuewen,
+    /// `zh_6.wav`, a late-night radio host (深夜电台): calm and even.
+    Lingyu,
+}
+
+impl Speaker {
+    pub const ALL: [Self; 6] = [
+        Self::Junhao,
+        Self::Zhiming,
+        Self::Weiguo,
+        Self::Xiaoyu,
+        Self::Yuewen,
+        Self::Lingyu,
+    ];
+
+    /// The voice's name in the manifest, and its folder in the speech cache.
+    fn name(self) -> &'static str {
+        match self {
+            Self::Junhao => "Junhao",
+            Self::Zhiming => "Zhiming",
+            Self::Weiguo => "Weiguo",
+            Self::Xiaoyu => "Xiaoyu",
+            Self::Yuewen => "Yuewen",
+            Self::Lingyu => "Lingyu",
+        }
+    }
+}
+
 const SEED: u64 = 40;
 
 /// 2 seconds at 12.5 frames a second: more than any word needs, and where
@@ -98,14 +138,14 @@ struct BuiltinVoice {
 }
 
 /// MOSS-TTS-Nano from `mise voice:fetch`, its language model quantized to
-/// int8, run on every CPU core by tract and speaking in the `VOICE` voice.
+/// int8, run on every CPU core by tract and speaking in any `Speaker`'s voice.
 pub struct Voice {
     executor: Executor,
     dir: PathBuf,
     tokenizer: SentencePieceProcessor,
     ids: TokenIds,
-    /// The prompt's rows before the text: instructions and the voice sample.
-    prompt_start: Vec<i32>,
+    /// Each speaker's prompt rows before the text: instructions and their voice sample.
+    prompt_starts: HashMap<Speaker, Vec<i32>>,
     /// The prompt's tokens between the voice sample and the text.
     before_text: Vec<i32>,
     /// The prompt's tokens after the text, up to where speech starts.
@@ -131,21 +171,26 @@ impl Voice {
     fn load_files(dir: &Path, executor: Executor) -> TractResult<Self> {
         let manifest: Manifest = serde_json::from_slice(&fs::read(dir.join(MANIFEST))?)?;
         let ids = manifest.tts_config;
-        let codes = manifest
-            .builtin_voices
-            .into_iter()
-            .find(|voice| voice.voice == VOICE)
-            .with_context(|| format!("{MANIFEST} has no voice {VOICE}"))?
-            .prompt_audio_codes;
         let templates = manifest.prompt_templates;
-        let mut prompt_start: Vec<i32> = templates
+        let instructions: Vec<i32> = templates
             .user_prompt_prefix_token_ids
             .iter()
             .chain([&ids.audio_start_token_id])
             .flat_map(|&token| ids.text_row(token))
             .collect();
-        for frame in codes {
-            prompt_start.extend(ids.audio_row(ids.audio_user_slot_token_id, &frame));
+        let mut prompt_starts = HashMap::new();
+        for speaker in Speaker::ALL {
+            let codes = &manifest
+                .builtin_voices
+                .iter()
+                .find(|voice| voice.voice == speaker.name())
+                .with_context(|| format!("{MANIFEST} has no voice {}", speaker.name()))?
+                .prompt_audio_codes;
+            let mut prompt_start = instructions.clone();
+            for frame in codes {
+                prompt_start.extend(ids.audio_row(ids.audio_user_slot_token_id, frame));
+            }
+            prompt_starts.insert(speaker, prompt_start);
         }
         let before_text = iter::once(ids.audio_end_token_id)
             .chain(templates.user_prompt_after_reference_token_ids)
@@ -184,19 +229,19 @@ impl Voice {
             prefills: Mutex::default(),
             dir: dir.to_owned(),
             ids,
-            prompt_start,
+            prompt_starts,
             before_text,
             after_text,
         })
     }
 
-    /// Speaks `text`, a word or a phrase, as a mono Ogg Opus file. A fixed
-    /// seed makes it sound the same every time.
-    pub fn speak(&self, text: &str) -> Result<Vec<u8>> {
+    /// Speaks `text`, a word or a phrase, as a mono Ogg Opus file in
+    /// `speaker`'s voice. A fixed seed makes it sound the same every time.
+    pub fn speak(&self, text: &str, speaker: Speaker) -> Result<Vec<u8>> {
         let could_not_speak =
             |reason: String| Error::Voice(format!("could not speak \"{text}\"{reason}"));
         let samples = multithread_tract_scope(self.executor.clone(), || {
-            self.generate(text)
+            self.generate(text, speaker)
                 .and_then(|frames| self.decode_audio(&frames))
         })
         .map_err(|error| could_not_speak(format!(": {error:#}")))?;
@@ -207,14 +252,18 @@ impl Voice {
     }
 
     /// The audio codes of `text` spoken, `n_vq` to a frame.
-    fn generate(&self, text: &str) -> TractResult<Vec<i32>> {
+    fn generate(&self, text: &str, speaker: Speaker) -> TractResult<Vec<i32>> {
         let text = with_sentence_end(text);
         let text_ids = self
             .tokenizer
             .encode(&text)?
             .into_iter()
             .map(|piece| piece.id as i32);
-        let mut prompt = self.prompt_start.clone();
+        let mut prompt = self
+            .prompt_starts
+            .get(&speaker)
+            .context("the speaker's voice was not loaded")?
+            .clone();
         for token in self
             .before_text
             .iter()
@@ -412,32 +461,33 @@ impl Random {
     }
 }
 
-/// Spoken text saved as `<dir>/<hex of the text>.opus` (`sha256-<hex of its
-/// hash>.opus` when long), so each is generated once.
+/// Spoken text saved as `<speaker>/<hex of the text>.opus` (`sha256-<hex of
+/// its hash>.opus` when long), so each is generated once in each voice.
 pub struct SpeechCache {
     dir: PathBuf,
 }
 
 impl SpeechCache {
-    /// Keeps audio under `root/VOICE_ID`.
+    /// Keeps audio under `root/MODEL_ID`.
     pub fn new(root: &Path) -> Self {
         Self {
-            dir: root.join(VOICE_ID),
+            dir: root.join(MODEL_ID),
         }
     }
 
-    /// The saved audio for `text`, or `speak(text)` saved for next time.
+    /// The saved audio for `text` in `speaker`'s voice, or `speak(text)` saved for next time.
     pub fn get_or_speak(
         &self,
         text: &str,
+        speaker: Speaker,
         speak: impl FnOnce(&str) -> Result<Vec<u8>>,
     ) -> Result<Vec<u8>> {
-        let path = self.path(text);
+        let path = self.path(text, speaker);
         if let Ok(audio) = fs::read(&path) {
             return Ok(audio);
         }
         let audio = speak(text)?;
-        fs::create_dir_all(&self.dir)?;
+        fs::create_dir_all(path.parent().unwrap_or(&self.dir))?;
         // Renaming into place means a crash never leaves half a file behind.
         let partial = path.with_extension("opus.part");
         fs::write(&partial, &audio)?;
@@ -445,13 +495,13 @@ impl SpeechCache {
         Ok(audio)
     }
 
-    fn path(&self, text: &str) -> PathBuf {
+    fn path(&self, text: &str, speaker: Speaker) -> PathBuf {
         let name = if text.len() <= MAX_HEX_NAMED_BYTES {
             hex(text.as_bytes())
         } else {
             format!("sha256-{}", hex(&Sha256::digest(text)))
         };
-        self.dir.join(format!("{name}.opus"))
+        self.dir.join(speaker.name()).join(format!("{name}.opus"))
     }
 }
 
@@ -583,26 +633,33 @@ mod tests {
             Ok(word.as_bytes().to_vec())
         };
 
+        for speaker in [Speaker::Lingyu, Speaker::Lingyu, Speaker::Weiguo] {
+            assert_eq!(
+                cache.get_or_speak("学习", speaker, speak).unwrap(),
+                "学习".as_bytes()
+            );
+        }
         assert_eq!(
-            cache.get_or_speak("学习", speak).unwrap(),
-            "学习".as_bytes()
+            cache.get_or_speak("行", Speaker::Lingyu, speak).unwrap(),
+            "行".as_bytes()
         );
-        assert_eq!(
-            cache.get_or_speak("学习", speak).unwrap(),
-            "学习".as_bytes()
-        );
-        assert_eq!(cache.get_or_speak("行", speak).unwrap(), "行".as_bytes());
 
-        assert_eq!(calls.get(), 2);
-        let saved = root.path().join(VOICE_ID).join("e5ada6e4b9a0.opus");
+        assert_eq!(calls.get(), 3, "each voice speaks a word once");
+        let saved = root
+            .path()
+            .join(MODEL_ID)
+            .join("Weiguo")
+            .join("e5ada6e4b9a0.opus");
         assert_eq!(fs::read(saved).unwrap(), "学习".as_bytes());
 
         let sentence = "我们学习中文，很好。".repeat(3);
         assert_eq!(
-            cache.get_or_speak(&sentence, speak).unwrap(),
+            cache
+                .get_or_speak(&sentence, Speaker::Lingyu, speak)
+                .unwrap(),
             sentence.as_bytes()
         );
-        let name = cache.path(&sentence);
+        let name = cache.path(&sentence, Speaker::Lingyu);
         let name = name.file_name().unwrap().to_str().unwrap();
         assert!(name.starts_with("sha256-") && name.len() < 100, "{name}");
     }
@@ -612,10 +669,12 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let cache = SpeechCache::new(root.path());
 
-        let result = cache.get_or_speak("学习", |_| Err(Error::Voice("no voice".into())));
+        let result = cache.get_or_speak("学习", Speaker::Lingyu, |_| {
+            Err(Error::Voice("no voice".into()))
+        });
 
         assert!(result.is_err());
-        assert!(!root.path().join(VOICE_ID).exists());
+        assert!(!root.path().join(MODEL_ID).exists());
     }
 
     #[test]
@@ -636,8 +695,12 @@ mod tests {
             "行",
             "他说：“我们明天一起去图书馆学习中文，好吗？”",
         ] {
-            let bytes = voice.speak(word).unwrap();
+            let bytes = voice.speak(word, Speaker::Lingyu).unwrap();
             assert_eq!(&bytes[..4], b"OggS", "{word} is not Ogg");
+        }
+        for speaker in Speaker::ALL {
+            let bytes = voice.speak("学习", speaker).unwrap();
+            assert_eq!(&bytes[..4], b"OggS", "{speaker:?} speaks no Ogg");
         }
     }
 }

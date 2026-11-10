@@ -1,7 +1,9 @@
 import { noop, useQueryClient } from "@tanstack/react-query";
+import { useSelector } from "@tanstack/react-store";
 import { useEffect, useRef, useState } from "react";
 import { commandErrorMessage, type SpokenPhrase } from "@/shared/api/commands.ts";
 import { speechQuery } from "@/shared/api/queries.ts";
+import { speakerAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { toastError } from "@/shared/lib/toast.ts";
 
@@ -25,6 +27,7 @@ type Outcome = "finished" | "failed" | "replaced";
 export function useReadAloud() {
   const m = useMessages();
   const queryClient = useQueryClient();
+  const speaker = useSelector(speakerAtom);
   const [status, setStatus] = useState<ReadAloudStatus>("stopped");
   const [queue, setQueue] = useState<SpokenPhrase[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
@@ -64,11 +67,11 @@ export function useReadAloud() {
       setCurrent(index);
       setLoading(true);
       try {
-        const opus = await queryClient.query(speechQuery(phrase.text));
+        const opus = await queryClient.query(speechQuery(phrase.text, speaker));
         if (replaced()) return "replaced";
         setLoading(false);
         const next = list[index + 1];
-        if (next) void queryClient.query(speechQuery(next.text)).catch(noop);
+        if (next) void queryClient.query(speechQuery(next.text, speaker)).catch(noop);
         const audio = new Audio(
           URL.createObjectURL(new Blob([opus], { type: "audio/ogg; codecs=opus" }))
         );

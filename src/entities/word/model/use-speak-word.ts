@@ -1,7 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useSelector } from "@tanstack/react-store";
 import { useEffect, useRef, useState } from "react";
 import { commandErrorMessage } from "@/shared/api/commands.ts";
 import { speechQuery } from "@/shared/api/queries.ts";
+import { speakerAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { toastError } from "@/shared/lib/toast.ts";
 
@@ -9,6 +11,7 @@ import { toastError } from "@/shared/lib/toast.ts";
 export function useSpeakWord(word: string) {
   const m = useMessages();
   const queryClient = useQueryClient();
+  const speaker = useSelector(speakerAtom);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +20,7 @@ export function useSpeakWord(word: string) {
   const speak = async () => {
     setLoading(true);
     try {
-      const opus = await queryClient.query(speechQuery(word));
+      const opus = await queryClient.query(speechQuery(word, speaker));
       stop(audioRef.current);
       const audio = new Audio(
         URL.createObjectURL(new Blob([opus], { type: "audio/ogg; codecs=opus" }))

@@ -11,7 +11,7 @@ use vocab_core::dictionary::Script;
 use vocab_core::service::{
     self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard, WordEntry,
 };
-use vocab_core::speech::{SpeechCache, Voice};
+use vocab_core::speech::{Speaker, SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
 use vocab_core::store::{DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus};
 use vocab_core::text::parse_word_list;
@@ -432,14 +432,15 @@ pub async fn get_statistics(
     .await
 }
 
-/// A word or phrase spoken aloud, as Ogg Opus bytes (an `ArrayBuffer` in the frontend).
-/// Saved audio is reused; the voice loads only for text not yet spoken.
+/// A word or phrase spoken aloud in `speaker`'s voice, as Ogg Opus bytes (an
+/// `ArrayBuffer` in the frontend). Saved audio is reused; the voice loads only
+/// for text not yet spoken.
 #[tauri::command]
-pub async fn speak(app: AppHandle, text: String) -> CommandResult<Response> {
+pub async fn speak(app: AppHandle, text: String, speaker: Speaker) -> CommandResult<Response> {
     blocking(app, move |state| {
         let audio = state
             .speech
-            .get_or_speak(&text, |text| state.voice()?.speak(text))?;
+            .get_or_speak(&text, speaker, |text| state.voice()?.speak(text, speaker))?;
         Ok(Response::new(audio))
     })
     .await

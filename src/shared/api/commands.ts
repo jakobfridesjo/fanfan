@@ -1,5 +1,5 @@
 import { Channel, invoke as tauriInvoke, type InvokeArgs } from "@tauri-apps/api/core";
-import type { Script } from "@/shared/config/preferences.ts";
+import type { Script, Speaker } from "@/shared/config/preferences.ts";
 
 // Mirrors the serde types in src-tauri (camelCase). Keep the two in step.
 
@@ -295,7 +295,7 @@ export const commands = {
   getStatistics: (from: string, to: string) => invoke<Statistics>("get_statistics", { from, to }),
 
   /** A word or phrase spoken aloud, as an Ogg Opus file; Rust saves it, so each is generated once. */
-  speak: (text: string) => invoke<ArrayBuffer>("speak", { text }),
+  speak: (text: string, speaker: Speaker) => invoke<ArrayBuffer>("speak", { text, speaker }),
 
   /** Chinese text, a sentence or a few, in English. */
   translate: (text: string) => invoke<string>("translate", { text }),

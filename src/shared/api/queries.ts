@@ -1,6 +1,6 @@
 import { queryOptions, skipToken, type QueryClient } from "@tanstack/react-query";
 import { commands } from "@/shared/api/commands.ts";
-import type { Script } from "@/shared/config/preferences.ts";
+import type { Script, Speaker } from "@/shared/config/preferences.ts";
 
 /** Cards fetched per deck or review batch; the rest load as these are used up. */
 const CARD_BATCH = 30;
@@ -88,10 +88,10 @@ export const statisticsQuery = (from: string, to: string) =>
  * Spoken text never changes. Rust keeps every generated file; this cache only
  * spares the round trip for audio played again within the default `gcTime`.
  */
-export const speechQuery = (text: string) =>
+export const speechQuery = (text: string, speaker: Speaker) =>
   queryOptions({
-    queryKey: ["speech", text],
-    queryFn: () => commands.speak(text),
+    queryKey: ["speech", text, speaker],
+    queryFn: () => commands.speak(text, speaker),
     staleTime: "static",
   });
 

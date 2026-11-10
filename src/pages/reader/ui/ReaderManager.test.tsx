@@ -92,7 +92,10 @@ describe("ReaderManager", () => {
     await screen.getByRole("button", { name: "Read aloud from the selected word" }).click();
 
     await expect.poll(spoken).toBe("中文很好！");
-    expect(callsTo(calls, "speak")).toEqual([{ text: "我们学习中文。" }, { text: "中文很好！" }]);
+    expect(callsTo(calls, "speak")).toEqual([
+      { text: "我们学习中文。", speaker: "lingyu" },
+      { text: "中文很好！", speaker: "lingyu" },
+    ]);
 
     await screen.getByRole("button", { name: "Pause reading" }).click();
     await screen.getByRole("button", { name: "Resume reading" }).click();
@@ -112,9 +115,9 @@ describe("ReaderManager", () => {
 
     await expect.poll(spoken).toBe("中文很好！");
     expect(callsTo(calls, "speak")).toEqual([
-      { text: "序言很短。" },
-      { text: "我们学习中文。" },
-      { text: "中文很好！" },
+      { text: "序言很短。", speaker: "lingyu" },
+      { text: "我们学习中文。", speaker: "lingyu" },
+      { text: "中文很好！", speaker: "lingyu" },
     ]);
     expect(callsTo(calls, "set_reading_position")).toContainEqual({
       documentId: 1,
@@ -149,8 +152,8 @@ describe("ReaderManager", () => {
       const reading = text.element().querySelector("[data-spoken]");
       return reading ? (reading.getBoundingClientRect().top - box.top) / box.height : null;
     };
-    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.3);
-    expect(spokenAt()).toBeLessThanOrEqual(0.6);
+    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.2);
+    expect(spokenAt()).toBeLessThanOrEqual(0.45);
 
     const back = screen.getByRole("button", { name: "Back to reading aloud" });
     await expect.element(back).not.toBeInTheDocument();
@@ -158,8 +161,8 @@ describe("ReaderManager", () => {
     await back.click();
 
     await expect.element(back).not.toBeInTheDocument();
-    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.3);
-    expect(spokenAt()).toBeLessThanOrEqual(0.6);
+    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.2);
+    expect(spokenAt()).toBeLessThanOrEqual(0.45);
   });
 
   it("offers to translate, play or copy a stretch dragged over, until tapped away", async () => {
@@ -176,7 +179,9 @@ describe("ReaderManager", () => {
     expect(callsTo(calls, "translate")).toEqual([]);
 
     await toolbar.getByRole("button", { name: "Listen" }).click();
-    await expect.poll(() => callsTo(calls, "speak")).toEqual([{ text: "学习中文" }]);
+    await expect
+      .poll(() => callsTo(calls, "speak"))
+      .toEqual([{ text: "学习中文", speaker: "lingyu" }]);
 
     const copy = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
     await toolbar.getByRole("button", { name: "Copy" }).click();
@@ -269,7 +274,9 @@ describe("ReaderManager", () => {
 
     await word("我们").click();
     await screen.getByRole("button", { name: "Read aloud from the selected word" }).click();
-    await expect.poll(() => callsTo(calls, "speak")[1]).toEqual({ text: "我们学习中文。" });
+    await expect
+      .poll(() => callsTo(calls, "speak")[1])
+      .toEqual({ text: "我们学习中文。", speaker: "lingyu" });
   });
 
   it("opens the book where it was left and colours words by status", async () => {
