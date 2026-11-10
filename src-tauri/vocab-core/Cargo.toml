@@ -10,14 +10,11 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 base64 = "0.22"
-candle-core = "0.8"
 chardetng = "1.0"
 chrono = "0.4"
 encoding_rs = "0.8"
 flate2 = "1.1"
 jieba-rs = "0.11"
-# Not on crates.io; pinned to the commit the `mise voice:fetch` weights are for.
-moss-tts-nano-rust-candle = { git = "https://github.com/ramishi/moss-tts-nano-rust-candle", rev = "f4d3fcf4de9b4118ee664087f88495f4174836e1" }
 ogg = "0.9"
 # libopus, built from source and linked statically (needs cmake).
 opus = "0.4"
@@ -30,10 +27,14 @@ rs-fsrs = { version = "1.2", features = ["serde"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 rusqlite_migration = "2.6"
 scraper = "0.29"
+# MOSS-TTS-Nano's text tokenizer, built from source (needs cmake).
+sentencepiece = "0.13"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
 thiserror = "2.0"
+# Runs MOSS-TTS-Nano's ONNX graphs on the CPU.
+tract-onnx = "0.23.10"
 unicode-normalization = "0.1"
 # Reads EPUBs; only deflate, the one compression EPUB allows besides none.
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }

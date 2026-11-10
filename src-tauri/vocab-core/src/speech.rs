@@ -1,46 +1,118 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+mod graph;
 
-use candle_core::Device;
-use moss_tts_nano_rust_candle::pipeline::{GenerateParams, MossTTS, SAMPLE_RATE};
+use std::collections::HashMap;
+use std::fs;
+use std::iter;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+use anyhow::{Context, bail};
 use ogg::{PacketWriteEndInfo, PacketWriter};
 use opus::{Application, Bitrate, Channels, Encoder};
+use sentencepiece::SentencePieceProcessor;
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use tract_onnx::prelude::*;
 
 use crate::error::{Error, Result};
+use graph::Graph;
+
+const TOKENIZER: &str = "tokenizer.model";
+const MANIFEST: &str = "browser_poc_manifest.json";
+const PREFILL: &str = "moss_tts_prefill.onnx";
+const DECODE_STEP: &str = "moss_tts_decode_step.onnx";
+const SAMPLER: &str = "moss_tts_local_fixed_sampled_frame.onnx";
+const CODEC: &str = "moss_audio_tokenizer_decode_full.onnx";
 
 /// Everything `load` reads from the voice folder.
-pub const FILES: [&str; 6] = [
-    "tokenizer.model",
-    "config.json",
-    "moss_tts_nano_lm.safetensors",
-    "moss_audio_tokenizer_config.json",
-    "moss_audio_tokenizer.safetensors",
-    "reference.flac",
+pub const FILES: [&str; 9] = [
+    TOKENIZER,
+    MANIFEST,
+    PREFILL,
+    DECODE_STEP,
+    "moss_tts_global_shared_int8.data",
+    SAMPLER,
+    "moss_tts_local_fixed_sampled_frame_int8.data",
+    CODEC,
+    "moss_audio_tokenizer_decode_shared.data",
 ];
 
-/// Names the model, reference voice and generation settings. Change it when
-/// any of them change, so cached audio from the old voice is not played.
-pub const VOICE_ID: &str = "moss-tts-nano-f4d3fcf4-zh_1-v1";
+/// Names the model, voice and generation settings. Change it when any of
+/// them change, so cached audio from the old voice is not played.
+pub const VOICE_ID: &str = "moss-tts-nano-int8-23fd1979-junhao-v1";
+
+/// Upstream's `zh_1.wav`, which the manifest carries already encoded.
+const VOICE: &str = "Junhao";
+const SEED: u64 = 40;
 
 /// About 6 seconds at 12.5 frames a second: more than any word needs.
 const MIN_MAX_FRAMES: usize = 75;
 /// About 2.5 characters a second, well below how fast the voice reads.
 const FRAMES_PER_CHAR: usize = 5;
 
+/// tract runs the prompt only at a fixed length, so prompts are padded to a
+/// multiple of this, and each length is compiled once.
+const PREFILL_ROWS: usize = 64;
+
 /// Longer texts are saved under their SHA-256, keeping file names short.
 const MAX_HEX_NAMED_BYTES: usize = 64;
 
+const SAMPLE_RATE: u32 = 48_000;
 const OPUS_BITRATE: i32 = 64_000;
 /// 20 ms at 48 kHz, the usual Opus frame.
 const OPUS_FRAME: usize = 960;
 const OGG_SERIAL: u32 = 1;
 
-/// MOSS-TTS-Nano from `mise voice:fetch`, run on the CPU by its Candle port,
-/// speaking in the voice of `reference.flac`.
+/// The parts of `browser_poc_manifest.json` that build the prompt.
+#[derive(Deserialize)]
+struct Manifest {
+    tts_config: TokenIds,
+    prompt_templates: PromptTemplates,
+    builtin_voices: Vec<BuiltinVoice>,
+}
+
+#[derive(Deserialize)]
+struct TokenIds {
+    n_vq: usize,
+    audio_codebook_sizes: Vec<usize>,
+    pad_token_id: i32,
+    audio_pad_token_id: i32,
+    audio_start_token_id: i32,
+    audio_end_token_id: i32,
+    audio_user_slot_token_id: i32,
+    audio_assistant_slot_token_id: i32,
+}
+
+#[derive(Deserialize)]
+struct PromptTemplates {
+    user_prompt_prefix_token_ids: Vec<i32>,
+    user_prompt_after_reference_token_ids: Vec<i32>,
+    assistant_prompt_prefix_token_ids: Vec<i32>,
+}
+
+#[derive(Deserialize)]
+struct BuiltinVoice {
+    voice: String,
+    prompt_audio_codes: Vec<Vec<i32>>,
+}
+
+/// MOSS-TTS-Nano from `mise voice:fetch`, its language model quantized to
+/// int8, run on the CPU by tract and speaking in the `VOICE` voice.
 pub struct Voice {
-    tts: MossTTS,
-    reference: PathBuf,
+    dir: PathBuf,
+    tokenizer: SentencePieceProcessor,
+    ids: TokenIds,
+    /// The prompt's rows before the text: instructions and the voice sample.
+    prompt_start: Vec<i32>,
+    /// The prompt's tokens between the voice sample and the text.
+    before_text: Vec<i32>,
+    /// The prompt's tokens after the text, up to where speech starts.
+    after_text: Vec<i32>,
+    /// The prompt runner for each padded length used so far.
+    prefills: Mutex<HashMap<usize, Graph>>,
+    decode_step: Graph,
+    sampler: Graph,
+    codec: Graph,
 }
 
 impl Voice {
@@ -48,48 +120,285 @@ impl Voice {
         if let Some(missing) = FILES.iter().find(|name| !dir.join(name).is_file()) {
             return Err(Error::Voice(format!("{} has no {missing}", dir.display())));
         }
-        let [tokenizer, config, lm, codec_config, codec, reference] =
-            FILES.map(|name| dir.join(name));
-        let tts = MossTTS::load(tokenizer, config, lm, codec_config, codec, &Device::Cpu).map_err(
-            |error| Error::Voice(format!("could not load {}: {error:#}", dir.display())),
-        )?;
-        Ok(Self { tts, reference })
+        Self::load_files(dir)
+            .map_err(|error| Error::Voice(format!("could not load {}: {error:#}", dir.display())))
+    }
+
+    fn load_files(dir: &Path) -> TractResult<Self> {
+        let manifest: Manifest = serde_json::from_slice(&fs::read(dir.join(MANIFEST))?)?;
+        let ids = manifest.tts_config;
+        let codes = manifest
+            .builtin_voices
+            .into_iter()
+            .find(|voice| voice.voice == VOICE)
+            .with_context(|| format!("{MANIFEST} has no voice {VOICE}"))?
+            .prompt_audio_codes;
+        let templates = manifest.prompt_templates;
+        let mut prompt_start: Vec<i32> = templates
+            .user_prompt_prefix_token_ids
+            .iter()
+            .chain([&ids.audio_start_token_id])
+            .flat_map(|&token| ids.text_row(token))
+            .collect();
+        for frame in codes {
+            prompt_start.extend(ids.audio_row(ids.audio_user_slot_token_id, &frame));
+        }
+        let before_text = iter::once(ids.audio_end_token_id)
+            .chain(templates.user_prompt_after_reference_token_ids)
+            .collect();
+        let after_text = templates
+            .assistant_prompt_prefix_token_ids
+            .into_iter()
+            .chain([ids.audio_start_token_id])
+            .collect();
+        Ok(Self {
+            tokenizer: SentencePieceProcessor::open(dir.join(TOKENIZER))?,
+            decode_step: graph::load(
+                dir,
+                DECODE_STEP,
+                &[("input_ids", None), ("past_valid_lengths", None)],
+            )?,
+            sampler: graph::load(
+                dir,
+                SAMPLER,
+                &[
+                    ("global_hidden", None),
+                    ("repetition_seen_mask", None),
+                    ("assistant_random_u", None),
+                    ("audio_random_u", None),
+                ],
+            )?,
+            codec: graph::load(
+                dir,
+                CODEC,
+                &[("audio_codes", None), ("audio_code_lengths", None)],
+            )?,
+            prefills: Mutex::default(),
+            dir: dir.to_owned(),
+            ids,
+            prompt_start,
+            before_text,
+            after_text,
+        })
     }
 
     /// Speaks `text`, a word or a phrase, as a mono Ogg Opus file. A fixed
     /// seed makes it sound the same every time.
     pub fn speak(&self, text: &str) -> Result<Vec<u8>> {
-        let params = GenerateParams {
-            max_frames: MIN_MAX_FRAMES.max(text.chars().count() * FRAMES_PER_CHAR),
-            do_sample: true,
-            text_temperature: 1.0,
-            text_top_p: 1.0,
-            text_top_k: 50,
-            audio_temperature: 0.8,
-            audio_top_p: 0.95,
-            audio_top_k: 25,
-            audio_repetition_penalty: 1.2,
-            // Ends Chinese with "。", as upstream always does: without a
-            // sentence end the model does not know the word is over.
-            normalize_text: true,
-            seed: Some(40),
-            export_dir: None,
-            voice_clone_max_text_tokens: 0,
-        };
         let could_not_speak =
-            |error: anyhow::Error| Error::Voice(format!("could not speak \"{text}\": {error:#}"));
-        let stereo = self
-            .tts
-            .voice_clone(text, &self.reference, &params)
-            .map_err(could_not_speak)?;
-        let mono = stereo
-            .mean(0)
-            .and_then(|channel| channel.to_vec1::<f32>())
-            .map_err(|error| could_not_speak(error.into()))?;
-        if mono.is_empty() {
-            return Err(Error::Voice(format!("could not speak \"{text}\"")));
+            |reason: String| Error::Voice(format!("could not speak \"{text}\"{reason}"));
+        let samples = self
+            .generate(text)
+            .and_then(|frames| self.decode_audio(&frames))
+            .map_err(|error| could_not_speak(format!(": {error:#}")))?;
+        if samples.is_empty() {
+            return Err(could_not_speak(String::new()));
         }
-        ogg_opus(&mono)
+        ogg_opus(&samples)
+    }
+
+    /// The audio codes of `text` spoken, `n_vq` to a frame.
+    fn generate(&self, text: &str) -> TractResult<Vec<i32>> {
+        let text = with_sentence_end(text);
+        let text_ids = self
+            .tokenizer
+            .encode(&text)?
+            .into_iter()
+            .map(|piece| piece.id as i32);
+        let mut prompt = self.prompt_start.clone();
+        for token in self
+            .before_text
+            .iter()
+            .copied()
+            .chain(text_ids)
+            .chain(self.after_text.iter().copied())
+        {
+            prompt.extend(self.ids.text_row(token));
+        }
+        let (mut hidden, mut cache) = self.prefill(&prompt)?;
+        let prompt_rows = prompt.len() / self.ids.row_width();
+
+        let (channels, codebook) = (self.ids.n_vq, self.ids.codebook_size()?);
+        let mut seen = vec![0i32; channels * codebook];
+        let mut random = Random(SEED);
+        let mut frames = Vec::new();
+        let max_frames = MIN_MAX_FRAMES.max(text.chars().count() * FRAMES_PER_CHAR);
+        for past in (prompt_rows..).take(max_frames) {
+            let audio_random: Vec<f32> = (0..channels).map(|_| random.uniform()).collect();
+            let sampled = self.sampler.run(tvec![
+                hidden.into_tvalue(),
+                Tensor::from_shape(&[1, channels, codebook], &seen)?.into_tvalue(),
+                tensor1(&[random.uniform()]).into_tvalue(),
+                Tensor::from_shape(&[1, channels], &audio_random)?.into_tvalue(),
+            ])?;
+            if integers(&sampled[0])?[0] == 0 {
+                break;
+            }
+            let frame = integers(&sampled[1])?;
+            for (channel, &token) in frame.iter().enumerate() {
+                let index = usize::try_from(token)
+                    .ok()
+                    .filter(|&token| token < codebook);
+                let index = index.context("the sampler chose a code outside the codebook")?;
+                seen[channel * codebook + index] = 1;
+            }
+            let row = self
+                .ids
+                .audio_row(self.ids.audio_assistant_slot_token_id, &frame);
+            frames.extend(frame);
+
+            let mut inputs = tvec![
+                Tensor::from_shape(&[1, 1, row.len()], &row)?.into_tvalue(),
+                tensor1(&[past as i32]).into_tvalue(),
+            ];
+            inputs.extend(cache);
+            let mut outputs = self.decode_step.run(inputs)?;
+            hidden = position(&outputs[0], 0)?;
+            cache = outputs.drain(1..).collect();
+        }
+        Ok(frames)
+    }
+
+    /// Runs the prompt padded to a multiple of `PREFILL_ROWS`, which the
+    /// attention mask hides: the hidden state at its last row, and the
+    /// attention cache of its rows.
+    fn prefill(&self, prompt: &[i32]) -> TractResult<(Tensor, TVec<TValue>)> {
+        let width = self.ids.row_width();
+        let rows = prompt.len() / width;
+        let padded = rows.next_multiple_of(PREFILL_ROWS);
+        let graph = self.prefill_graph(padded)?;
+        let mut input_ids = prompt.to_vec();
+        let padding = self.ids.text_row(self.ids.pad_token_id);
+        input_ids.extend(padding.iter().cycle().take((padded - rows) * width));
+        let mask: Vec<i32> = (0..padded).map(|row| i32::from(row < rows)).collect();
+        let outputs = graph.run(tvec![
+            Tensor::from_shape(&[1, padded, width], &input_ids)?.into_tvalue(),
+            Tensor::from_shape(&[1, padded], &mask)?.into_tvalue(),
+        ])?;
+        let hidden = position(&outputs[0], rows - 1)?;
+        let cache = outputs[1..]
+            .iter()
+            .map(|layer| Ok(layer.slice(1, 0, rows)?.into_tvalue()))
+            .collect::<TractResult<_>>()?;
+        Ok((hidden, cache))
+    }
+
+    fn prefill_graph(&self, rows: usize) -> TractResult<Graph> {
+        let mut prefills = self
+            .prefills
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(graph) = prefills.get(&rows) {
+            return Ok(graph.clone());
+        }
+        let width = self.ids.row_width();
+        let graph = graph::load(
+            &self.dir,
+            PREFILL,
+            &[
+                ("input_ids", Some(i32::fact([1, rows, width]).into())),
+                ("attention_mask", Some(i32::fact([1, rows]).into())),
+            ],
+        )?;
+        prefills.insert(rows, graph.clone());
+        Ok(graph)
+    }
+
+    /// Mono 48 kHz audio from the audio codes.
+    fn decode_audio(&self, frames: &[i32]) -> TractResult<Vec<f32>> {
+        let count = frames.len() / self.ids.n_vq;
+        if count == 0 {
+            return Ok(Vec::new());
+        }
+        let outputs = self.codec.run(tvec![
+            Tensor::from_shape(&[1, count, self.ids.n_vq], frames)?.into_tvalue(),
+            tensor1(&[count as i32]).into_tvalue(),
+        ])?;
+        let audio = outputs[0].to_plain_array_view::<f32>()?;
+        let [1, channels, samples] = *audio.shape() else {
+            bail!("the codec returned audio shaped {:?}", audio.shape());
+        };
+        let length = (integers(&outputs[1])?[0] as usize).min(samples);
+        Ok((0..length)
+            .map(|sample| {
+                (0..channels)
+                    .map(|channel| audio[[0, channel, sample]])
+                    .sum::<f32>()
+                    / channels as f32
+            })
+            .collect())
+    }
+}
+
+impl TokenIds {
+    /// A prompt row holds a text token followed by one code per audio channel.
+    fn row_width(&self) -> usize {
+        1 + self.n_vq
+    }
+
+    fn text_row(&self, token: i32) -> Vec<i32> {
+        iter::once(token)
+            .chain(iter::repeat_n(self.audio_pad_token_id, self.n_vq))
+            .collect()
+    }
+
+    fn audio_row(&self, slot: i32, codes: &[i32]) -> Vec<i32> {
+        let codes = codes
+            .iter()
+            .copied()
+            .chain(iter::repeat(self.audio_pad_token_id));
+        iter::once(slot).chain(codes.take(self.n_vq)).collect()
+    }
+
+    fn codebook_size(&self) -> TractResult<usize> {
+        match self.audio_codebook_sizes.as_slice() {
+            [size, rest @ ..] if rest.iter().all(|other| other == size) => Ok(*size),
+            sizes => bail!("the audio channels have codebooks of sizes {sizes:?}"),
+        }
+    }
+}
+
+/// Ends `text` with "。" unless it ends a sentence already, as upstream does:
+/// without a sentence end the model does not know the word is over.
+fn with_sentence_end(text: &str) -> String {
+    let text = text.trim();
+    if text.ends_with(['。', '！', '？', '；', '.', '!', '?', ';']) {
+        text.to_owned()
+    } else {
+        format!("{text}。")
+    }
+}
+
+/// The hidden state at `index` of a `[1, positions, hidden]` tensor.
+fn position(states: &Tensor, index: usize) -> TractResult<Tensor> {
+    let hidden = *states
+        .shape()
+        .last()
+        .context("the hidden state has no dimensions")?;
+    states.slice(1, index, index + 1)?.into_shape(&[1, hidden])
+}
+
+fn integers(tensor: &Tensor) -> TractResult<Vec<i32>> {
+    Ok(tensor
+        .cast_to::<i32>()?
+        .to_plain_array_view::<i32>()?
+        .iter()
+        .copied()
+        .collect())
+}
+
+/// SplitMix64, giving the sampler its uniform numbers from a fixed seed.
+struct Random(u64);
+
+impl Random {
+    /// A number strictly between 0 and 1.
+    fn uniform(&mut self) -> f32 {
+        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut bits = self.0;
+        bits = (bits ^ (bits >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        bits = (bits ^ (bits >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        bits ^= bits >> 31;
+        ((bits >> 40) as f32 + 0.5) / (1u64 << 24) as f32
     }
 }
 
@@ -144,7 +453,7 @@ fn hex(bytes: &[u8]) -> String {
 fn ogg_opus(samples: &[f32]) -> Result<Vec<u8>> {
     let opus_error = |error: opus::Error| Error::Voice(format!("could not encode audio: {error}"));
     let mut encoder =
-        Encoder::new(SAMPLE_RATE as u32, Channels::Mono, Application::Audio).map_err(opus_error)?;
+        Encoder::new(SAMPLE_RATE, Channels::Mono, Application::Audio).map_err(opus_error)?;
     encoder
         .set_bitrate(Bitrate::Bits(OPUS_BITRATE))
         .map_err(opus_error)?;
@@ -189,7 +498,7 @@ fn opus_head(pre_skip: u16) -> Vec<u8> {
     head.push(1); // version
     head.push(1); // channels
     head.extend_from_slice(&pre_skip.to_le_bytes());
-    head.extend_from_slice(&(SAMPLE_RATE as u32).to_le_bytes());
+    head.extend_from_slice(&SAMPLE_RATE.to_le_bytes());
     head.extend_from_slice(&0i16.to_le_bytes()); // output gain
     head.push(0); // channel mapping family: mono or stereo
     head
@@ -238,7 +547,7 @@ mod tests {
             b"OpusTags"
         );
 
-        let mut decoder = Decoder::new(SAMPLE_RATE as u32, Channels::Mono).unwrap();
+        let mut decoder = Decoder::new(SAMPLE_RATE, Channels::Mono).unwrap();
         let mut decoded = 0;
         let mut last = None;
         while let Some(packet) = reader.read_packet().unwrap() {
