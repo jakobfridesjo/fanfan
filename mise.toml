@@ -50,6 +50,19 @@ outputs = [
 ]
 run = "mise run --no-deps voice:fetch"
 
+[deps.translator]
+auto = true
+description = "Download the Chinese-to-English translation model, which the desktop app bundles"
+sources = ["mise.toml"]
+outputs = [
+  "src-tauri/resources/translator/source.spm",
+  "src-tauri/resources/translator/vocab.json",
+  "src-tauri/resources/translator/encoder_model_quantized.onnx",
+  "src-tauri/resources/translator/decoder_model_quantized.onnx",
+  "src-tauri/resources/translator/decoder_with_past_model_quantized.onnx",
+]
+run = "mise run --no-deps translator:fetch"
+
 [deps.licenses]
 auto = true
 description = "Collect the third-party licence notices the About page shows"
@@ -362,6 +375,31 @@ SUMS
 cd ../..
 rm -rf resources/voice
 mv resources/voice.part resources/voice
+"""
+
+[tasks."translator:fetch"]
+description = "Download opus-mt-zh-en (CC-BY-4.0) as int8 ONNX into the Tauri resources"
+dir = "src-tauri"
+run = """
+set -e
+model=https://huggingface.co/Xenova/opus-mt-zh-en/resolve/39d480d52a9ea3065a1f117adfe4dbc55de10e6f
+rm -rf resources/translator.part
+mkdir -p resources/translator.part
+cd resources/translator.part
+for file in source.spm vocab.json onnx/encoder_model_quantized.onnx onnx/decoder_model_quantized.onnx onnx/decoder_with_past_model_quantized.onnx; do
+  curl -fsSL -o "$(basename "$file")" "$model/$file"
+done
+if command -v sha256sum > /dev/null; then check="sha256sum"; else check="shasum -a 256"; fi
+$check -c --quiet <<'SUMS'
+e27a3a1b539f4959ec72ea60e453f49156289f95d4e6000b29332efc45616203  source.spm
+08a119a1defd522fa047cb5e3bfe3e89633e96caa38ced0dc9cee7ef1021a011  vocab.json
+84d5e171b626bc8b6b220d022ac58696e9528c25deeacca62b5cbf4364547a99  encoder_model_quantized.onnx
+debcc3054b9ff9aaed972bd6e251a459abe1e2f1402da1efa63163dc2f46ef73  decoder_model_quantized.onnx
+fbc484152fad41788c729d184058261b2a55d84eed270efa59f0ece477494e00  decoder_with_past_model_quantized.onnx
+SUMS
+cd ../..
+rm -rf resources/translator
+mv resources/translator.part resources/translator
 """
 
 [tasks."env:init"]

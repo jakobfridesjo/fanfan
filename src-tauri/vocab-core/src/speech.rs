@@ -1,5 +1,3 @@
-mod graph;
-
 use std::collections::HashMap;
 use std::fs;
 use std::iter;
@@ -17,7 +15,7 @@ use tract_linalg::multithread::{Executor, multithread_tract_scope};
 use tract_onnx::prelude::*;
 
 use crate::error::{Error, Result};
-use graph::Graph;
+use crate::onnx::{self, Graph};
 
 const TOKENIZER: &str = "tokenizer.model";
 const MANIFEST: &str = "browser_poc_manifest.json";
@@ -160,12 +158,13 @@ impl Voice {
         Ok(Self {
             executor,
             tokenizer: SentencePieceProcessor::open(dir.join(TOKENIZER))?,
-            decode_step: graph::load(
+            decode_step: onnx::load(
                 dir,
                 DECODE_STEP,
                 &[("input_ids", None), ("past_valid_lengths", None)],
+                &[],
             )?,
-            sampler: graph::load(
+            sampler: onnx::load(
                 dir,
                 SAMPLER,
                 &[
@@ -174,11 +173,13 @@ impl Voice {
                     ("assistant_random_u", None),
                     ("audio_random_u", None),
                 ],
+                &[],
             )?,
-            codec: graph::load(
+            codec: onnx::load(
                 dir,
                 CODEC,
                 &[("audio_codes", None), ("audio_code_lengths", None)],
+                &[],
             )?,
             prefills: Mutex::default(),
             dir: dir.to_owned(),
@@ -300,13 +301,14 @@ impl Voice {
             return Ok(graph.clone());
         }
         let width = self.ids.row_width();
-        let graph = graph::load(
+        let graph = onnx::load(
             &self.dir,
             PREFILL,
             &[
                 ("input_ids", Some(i32::fact([1, rows, width]).into())),
                 ("attention_mask", Some(i32::fact([1, rows]).into())),
             ],
+            &[],
         )?;
         prefills.insert(rows, graph.clone());
         Ok(graph)

@@ -22,6 +22,7 @@ const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license
   { role: "tbcl", name: "TBCL (NAER)", license: "NAER open data" },
   { role: "cangjie", name: "Unihan (Unicode)", license: "Unicode-3.0" },
   { role: "speech", name: "MOSS-TTS-Nano", license: "Apache-2.0" },
+  { role: "translation", name: "opus-mt-zh-en (Helsinki-NLP)", license: "CC BY 4.0" },
   { role: "segmentation", name: "jieba-rs", license: "MIT" },
   { role: "scheduling", name: "FSRS (rs-fsrs)", license: "MIT" },
 ];

@@ -34,6 +34,8 @@ pub enum Error {
     NotLearning(String),
     #[error("Could not play the word: {0}")]
     Voice(String),
+    #[error("Could not translate: {0}")]
+    Translation(String),
     #[error("Rating must be 1 (again) to 4 (easy), got {0}")]
     InvalidRating(u8),
 }

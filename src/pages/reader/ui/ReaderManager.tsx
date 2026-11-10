@@ -27,6 +27,16 @@ function ReaderManager({ documentId }: { documentId: number }) {
     failed: reader.wordCardFailed,
     status: reader.selectedWord ? reader.statusOf(reader.selectedWord) : null,
     onSetStatus: reader.setStatus,
+    passage:
+      reader.passageText !== null && reader.translationShown
+        ? {
+            text: reader.passageText,
+            translation: reader.translation,
+            loading: reader.translationLoading,
+            error: reader.translationError,
+            onListen: reader.listenToPassage,
+          }
+        : null,
   };
   const sectionTitle = (position: number) =>
     reader.titles[position] ?? m.reader.untitledSection(position + 1);
@@ -97,11 +107,22 @@ function ReaderManager({ documentId }: { documentId: number }) {
               section={reader.section}
               initialParagraph={reader.initialParagraph}
               onParagraphReached={reader.onParagraphReached}
+              viewRef={reader.viewRef}
               statusOf={reader.statusOf}
-              selectedToken={reader.selectedToken}
+              selectedToken={reader.selectedWord ? reader.selectedToken : null}
               onSelectToken={reader.selectToken}
               spokenPhrase={reader.spokenPhrase}
-              drawerOpen={isMobile && reader.selectedWord !== null}
+              passage={reader.passage}
+              passageActions={{
+                translationShown: reader.translationShown,
+                onTranslate: reader.translatePassage,
+                onListen: reader.listenToPassage,
+                onCopy: reader.copyPassage,
+              }}
+              onHoldText={reader.holdText}
+              onSelectPassage={reader.selectPassage}
+              onTapText={reader.tapText}
+              drawerOpen={isMobile && (reader.selectedWord !== null || reader.translationShown)}
               footer={
                 <SectionNav
                   position={reader.section.position}

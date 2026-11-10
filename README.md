@@ -2,7 +2,7 @@
 
 A Tauri 2 app for desktop and Android that teaches a Chinese book's vocabulary before and while you read it. Import a `.txt`, `.epub` or `.pdf`; its words come as a frequency-ranked swipe deck (right: known, left: learn), the reader colours each word by status, and learned words come back for review on an FSRS schedule.
 
-The React frontend (`src/`) calls Tauri commands (`src-tauri/src/commands.rs`) over `vocab-core/`, a plain Rust crate that holds all logic: text extraction, jieba segmentation, CC-CEDICT, SQLite, FSRS and offline MOSS-TTS-Nano speech.
+The React frontend (`src/`) calls Tauri commands (`src-tauri/src/commands.rs`) over `vocab-core/`, a plain Rust crate that holds all logic: text extraction, jieba segmentation, CC-CEDICT, SQLite, FSRS, offline MOSS-TTS-Nano speech and offline opus-mt Chinese-to-English translation.
 
 ## Quick start
 
@@ -46,7 +46,7 @@ mise test   # Rust core, then frontend
 
 FanFan is licensed under either of [Apache License 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT), at your option. Unless you state otherwise, any contribution you submit for inclusion is dual-licensed the same way, without additional terms.
 
-CC-CEDICT (CC BY-SA 4.0) and MOSS-TTS-Nano (Apache-2.0) are downloaded by `mise setup` and bundled with the app. The HSK 3.0 word levels (from complete-hsk-vocabulary, MIT) and the TBCL word levels are vendored in `src-tauri/vocab-core/data/levels.tsv`. TBCL levels: 臺灣華語文能力基準（TBCL）三等七級詞語表, 國家教育研究院 (National Academy for Educational Research), https://coct.naer.edu.tw/page.jsp?ID=41, used under NAER's open-data declaration (https://www.naer.edu.tw/PageDoc?fid=324), read 2026-11-09. The app adds simplified forms from CC-CEDICT and leaves the levels unchanged. Cangjie codes come from Unicode's Unihan database 18.0.0 (`kCangjie`, Unicode License v3), vendored in `src-tauri/vocab-core/data/cangjie.tsv`. Every Rust and npm dependency is under a permissive licence or MPL-2.0.
+CC-CEDICT (CC BY-SA 4.0), MOSS-TTS-Nano (Apache-2.0) and Helsinki-NLP's opus-mt-zh-en (CC BY 4.0, in Xenova's int8 ONNX export) are downloaded by `mise setup` and bundled with the app. The HSK 3.0 word levels (from complete-hsk-vocabulary, MIT) and the TBCL word levels are vendored in `src-tauri/vocab-core/data/levels.tsv`. TBCL levels: 臺灣華語文能力基準（TBCL）三等七級詞語表, 國家教育研究院 (National Academy for Educational Research), https://coct.naer.edu.tw/page.jsp?ID=41, used under NAER's open-data declaration (https://www.naer.edu.tw/PageDoc?fid=324), read 2026-11-09. The app adds simplified forms from CC-CEDICT and leaves the levels unchanged. Cangjie codes come from Unicode's Unihan database 18.0.0 (`kCangjie`, Unicode License v3), vendored in `src-tauri/vocab-core/data/cangjie.tsv`. Every Rust and npm dependency is under a permissive licence or MPL-2.0.
 
 ## Docs
 

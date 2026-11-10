@@ -95,10 +95,18 @@ export const speechQuery = (text: string) =>
     staleTime: "static",
   });
 
+/** Chinese text in English: the model gives the same translation every time. */
+export const translationQuery = (text: string) =>
+  queryOptions({
+    queryKey: ["translation", text],
+    queryFn: () => commands.translate(text),
+    staleTime: "static",
+  });
+
 /**
  * A word's status feeds every document's coverage, every deck, the review
  * queue, the counts and the reader's colours, so a change refreshes all of
- * them. Static queries (text, covers, speech) are never refetched.
+ * them. Static queries (text, covers, speech, translations) are never refetched.
  */
 export function invalidateStudyData(queryClient: QueryClient) {
   return queryClient.invalidateQueries();

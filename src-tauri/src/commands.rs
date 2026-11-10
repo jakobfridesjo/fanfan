@@ -15,9 +15,10 @@ use vocab_core::speech::{SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
 use vocab_core::store::{DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus};
 use vocab_core::text::parse_word_list;
+use vocab_core::translation::Translator;
 
 use crate::picked_file::PickedFile;
-use crate::resources::{DICTIONARY, Resources, VOICE};
+use crate::resources::{DICTIONARY, Resources, TRANSLATOR, VOICE};
 
 /// Reaches the frontend as the rejected `invoke` promise's message.
 #[derive(Debug)]
@@ -46,6 +47,7 @@ pub struct AppState {
     language: OnceLock<Result<Language, String>>,
     voice: OnceLock<Result<Voice, String>>,
     speech: SpeechCache,
+    translator: OnceLock<Result<Translator, String>>,
 }
 
 impl AppState {
@@ -62,6 +64,7 @@ impl AppState {
             language: OnceLock::new(),
             voice: OnceLock::new(),
             speech: SpeechCache::new(&speech_cache_dir),
+            translator: OnceLock::new(),
         }
     }
 
@@ -99,6 +102,20 @@ impl AppState {
             })
             .as_ref()
             .map_err(|reason| vocab_core::error::Error::Voice(reason.clone()))
+    }
+
+    /// Loads the translation model once, on the first translation.
+    fn translator(&self) -> vocab_core::error::Result<&Translator> {
+        self.translator
+            .get_or_init(|| {
+                let dir = self.resources.dir()?;
+                Translator::load(&dir.join(TRANSLATOR)).map_err(|error| match error {
+                    vocab_core::error::Error::Translation(reason) => reason,
+                    other => other.to_string(),
+                })
+            })
+            .as_ref()
+            .map_err(|reason| vocab_core::error::Error::Translation(reason.clone()))
     }
 }
 
@@ -424,6 +441,15 @@ pub async fn speak(app: AppHandle, text: String) -> CommandResult<Response> {
             .speech
             .get_or_speak(&text, |text| state.voice()?.speak(text))?;
         Ok(Response::new(audio))
+    })
+    .await
+}
+
+/// Chinese text, a sentence or a few, in English.
+#[tauri::command]
+pub async fn translate(app: AppHandle, text: String) -> CommandResult<String> {
+    blocking(app, move |state| {
+        Ok(state.translator()?.translate(&text)?)
     })
     .await
 }

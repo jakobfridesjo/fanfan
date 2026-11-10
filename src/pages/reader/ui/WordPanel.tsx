@@ -8,6 +8,10 @@ import { CangjieCodes } from "@/entities/word/ui/CangjieCodes.tsx";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
 import { Headword, Readings, SpeakButton } from "@/entities/word/ui/WordCard.tsx";
 import type { ReaderWordStatus } from "@/pages/reader/model/use-reader-manager.ts";
+import {
+  PassageTranslation,
+  type PassageTranslationProps,
+} from "@/pages/reader/ui/PassageTranslation.tsx";
 
 /** Solid, in the colour the word has in the text, so it stands apart from the tinted exam levels. */
 const STATUS_BADGE_CLASS: Record<NonNullable<ReaderWordStatus>, string> = {
@@ -23,15 +27,25 @@ export interface WordPanelProps {
   failed: boolean;
   status: ReaderWordStatus;
   onSetStatus: (word: string, status: WordStatus) => void;
+  /** A dragged-over passage, shown in place of a word. */
+  passage: PassageTranslationProps | null;
 }
 
-export function WordPanel({ word, ...details }: WordPanelProps) {
+export function PanelDetails(props: WordPanelProps) {
+  const { word, passage } = props;
+  if (word) return <WordDetails {...props} word={word} />;
+  if (passage) return <PassageTranslation {...passage} />;
+  return null;
+}
+
+export function WordPanel(props: WordPanelProps) {
   const m = useMessages();
+  const subject = props.word ?? props.passage?.text ?? null;
   return (
-    <Card size="sm" aria-label={word ?? undefined}>
+    <Card size="sm" aria-label={subject ?? undefined}>
       <CardContent className="flex flex-col gap-4">
-        {word ? (
-          <WordDetails word={word} {...details} />
+        {subject ? (
+          <PanelDetails {...props} />
         ) : (
           <p className="text-sm text-muted-foreground">{m.reader.pickWord}</p>
         )}
@@ -42,14 +56,7 @@ export function WordPanel({ word, ...details }: WordPanelProps) {
 
 type WordDetailsProps = WordPanelProps & { word: string };
 
-export function WordDetails({
-  word,
-  card,
-  loading,
-  failed,
-  status,
-  onSetStatus,
-}: WordDetailsProps) {
+function WordDetails({ word, card, loading, failed, status, onSetStatus }: WordDetailsProps) {
   const m = useMessages();
   return (
     <>

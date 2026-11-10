@@ -218,7 +218,8 @@ export type CommandName =
   | "import_known_words"
   | "list_words"
   | "get_statistics"
-  | "speak";
+  | "speak"
+  | "translate";
 
 const invoke = <T>(command: CommandName, args?: InvokeArgs) => tauriInvoke<T>(command, args);
 
@@ -295,6 +296,9 @@ export const commands = {
 
   /** A word or phrase spoken aloud, as an Ogg Opus file; Rust saves it, so each is generated once. */
   speak: (text: string) => invoke<ArrayBuffer>("speak", { text }),
+
+  /** Chinese text, a sentence or a few, in English. */
+  translate: (text: string) => invoke<string>("translate", { text }),
 };
 
 /** Rust rejects with its error's message as a plain string. */

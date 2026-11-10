@@ -28,6 +28,25 @@ const WORD_STATUS_CLASS: Record<NonNullable<ReaderWordStatus>, string> = {
  */
 const SPOKEN_CLASS = "bg-primary/15";
 
+/** A fainter wash over the passage the word panel translates. */
+const PASSAGE_CLASS = "bg-foreground/8";
+
+/** Tokens `start` up to `end` of a paragraph. */
+export interface TokenRange {
+  start: number;
+  end: number;
+}
+
+/** `className` over the tokens in `range`, rounded at both ends. */
+function washClass(range: TokenRange | null, index: number, className: string) {
+  if (!range || index < range.start || index >= range.end) return false;
+  return cn(
+    className,
+    index === range.start && "rounded-l-md",
+    index === range.end - 1 && "rounded-r-md"
+  );
+}
+
 interface ParagraphProps {
   index: number;
   tokens: ReaderToken[];
@@ -37,6 +56,8 @@ interface ParagraphProps {
   onSelectToken: SelectToken;
   /** The phrase being read aloud, when it is in this paragraph. */
   spoken: SpokenPhrase | null;
+  /** The part of the selected passage in this paragraph. */
+  passage: TokenRange | null;
 }
 
 export function Paragraph({
@@ -46,9 +67,10 @@ export function Paragraph({
   selectedToken,
   onSelectToken,
   spoken,
+  passage,
 }: ParagraphProps) {
   return (
-    <p lang="zh" className="text-xl leading-loose">
+    <p lang="zh" data-paragraph={paragraph} className="text-xl leading-loose">
       {tokens.map((token, index) => {
         const key = `${index}`;
         const isSpoken = spoken !== null && index >= spoken.start && index < spoken.end;
@@ -59,9 +81,8 @@ export function Paragraph({
             className={cn(
               "pb-[0.2em]",
               status && WORD_STATUS_CLASS[status],
-              isSpoken && SPOKEN_CLASS,
-              isSpoken && index === spoken.start && "rounded-l-md",
-              isSpoken && index === spoken.end - 1 && "rounded-r-md"
+              washClass(passage, index, PASSAGE_CLASS),
+              washClass(spoken, index, SPOKEN_CLASS)
             )}
           >
             {token.text}
@@ -69,7 +90,7 @@ export function Paragraph({
         );
         if (!token.word) {
           return (
-            <span key={key} {...spokenProps}>
+            <span key={key} data-token={index} {...spokenProps}>
               {text}
             </span>
           );
@@ -80,6 +101,7 @@ export function Paragraph({
             key={key}
             type="button"
             aria-pressed={index === selectedToken}
+            data-token={index}
             data-status={status ?? undefined}
             {...spokenProps}
             onClick={(event) => {

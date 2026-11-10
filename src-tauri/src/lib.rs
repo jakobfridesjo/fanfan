@@ -75,6 +75,7 @@ pub fn run() {
             commands::list_words,
             commands::get_statistics,
             commands::speak,
+            commands::translate,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");

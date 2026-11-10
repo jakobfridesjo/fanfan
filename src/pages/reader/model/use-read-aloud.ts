@@ -7,14 +7,26 @@ import { toastError } from "@/shared/lib/toast.ts";
 
 export type ReadAloudStatus = "stopped" | "playing" | "paused";
 
+/** Phrases to speak in turn, and what to read once they run out. */
+export interface Reading {
+  phrases: SpokenPhrase[];
+  /** Called as the voice reaches these phrases, such as to show their chapter. */
+  begin?: () => void;
+  /** Where reading carries on after the last phrase; null, or none, ends it. */
+  next?: () => Promise<Reading | null>;
+}
+
+type Outcome = "finished" | "failed" | "replaced";
+
 /**
- * Speaks `phrases` one after another. The next phrase is synthesized while
- * the current one plays, so the voice rarely waits on Rust.
+ * Speaks a reading's phrases one after another, then carries on with the next reading. The next
+ * phrase is synthesized while the current one plays, so the voice rarely waits on Rust.
  */
-export function useReadAloud(phrases: SpokenPhrase[]) {
+export function useReadAloud() {
   const m = useMessages();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<ReadAloudStatus>("stopped");
+  const [queue, setQueue] = useState<SpokenPhrase[]>([]);
   const [current, setCurrent] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -40,39 +52,67 @@ export function useReadAloud(phrases: SpokenPhrase[]) {
     setLoading(false);
   };
 
-  const play = async (from: number) => {
-    stop();
-    const run = runRef.current;
-    const replaced = () => run !== runRef.current;
-    setStatus("playing");
-    for (let index = from; index < phrases.length; index += 1) {
-      const phrase = phrases[index];
+  const speak = async (
+    list: SpokenPhrase[],
+    from: number,
+    replaced: () => boolean
+  ): Promise<Outcome> => {
+    setQueue(list);
+    for (let index = from; index < list.length; index += 1) {
+      const phrase = list[index];
       if (!phrase) break;
       setCurrent(index);
       setLoading(true);
       try {
         const opus = await queryClient.query(speechQuery(phrase.text));
-        if (replaced()) return;
+        if (replaced()) return "replaced";
         setLoading(false);
-        const next = phrases[index + 1];
+        const next = list[index + 1];
         if (next) void queryClient.query(speechQuery(next.text)).catch(noop);
         const audio = new Audio(
           URL.createObjectURL(new Blob([opus], { type: "audio/ogg; codecs=opus" }))
         );
         audioRef.current = audio;
         const played = await playToEnd(audio, !pausedRef.current);
-        if (replaced()) return;
+        if (replaced()) return "replaced";
         if (!played) {
           toastError(m.reader.readAloudFailed);
-          break;
+          return "failed";
         }
         release(audio);
         audioRef.current = null;
+      } catch (error) {
+        if (replaced()) return "replaced";
+        toastError(commandErrorMessage(error, m.reader.readAloudFailed));
+        return "failed";
+      }
+    }
+    return "finished";
+  };
+
+  const play = async (from: number, first: Reading) => {
+    stop();
+    const run = runRef.current;
+    const replaced = () => run !== runRef.current;
+    setStatus("playing");
+    let reading: Reading | null = first;
+    let start = from;
+    while (reading) {
+      reading.begin?.();
+      const outcome = await speak(reading.phrases, start, replaced);
+      if (outcome === "replaced") return;
+      if (outcome === "failed" || !reading.next) break;
+      setCurrent(null);
+      setLoading(true);
+      try {
+        reading = await reading.next();
       } catch (error) {
         if (replaced()) return;
         toastError(commandErrorMessage(error, m.reader.readAloudFailed));
         break;
       }
+      if (replaced()) return;
+      start = 0;
     }
     stop();
   };
@@ -93,7 +133,7 @@ export function useReadAloud(phrases: SpokenPhrase[]) {
   return {
     status,
     /** The phrase being spoken, or synthesized to be spoken next. */
-    phrase: current === null ? null : (phrases[current] ?? null),
+    phrase: current === null ? null : (queue[current] ?? null),
     loading,
     play,
     pause,

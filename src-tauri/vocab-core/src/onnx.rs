@@ -1,5 +1,5 @@
-//! Loads MOSS-TTS-Nano's ONNX graphs into tract, working around what tract
-//! 0.23 cannot run as exported.
+//! Loads ONNX graphs into tract, working around what tract 0.23 cannot run as
+//! exported in MOSS-TTS-Nano and opus-mt.
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -8,6 +8,8 @@ use std::sync::Arc;
 use anyhow::{Context, bail, ensure};
 use tract_onnx::pb::attribute_proto::AttributeType;
 use tract_onnx::pb::tensor_proto::DataType;
+use tract_onnx::pb::tensor_shape_proto::dimension::Value as DimValue;
+use tract_onnx::pb::type_proto::Value as TypeValue;
 use tract_onnx::pb::{AttributeProto, GraphProto, ModelProto, NodeProto};
 use tract_onnx::prelude::*;
 use tract_onnx::tract_core::ops::konst::Const;
@@ -16,19 +18,21 @@ pub type Graph = Arc<TypedRunnableModel>;
 
 /// Loads `dir/name` with its external weights from `dir`. `inputs` are the
 /// input names in order, checked against the file; a fact in place of a
-/// name pins that input's shape.
+/// name pins that input's shape. Each pair in `same_dimensions` names one
+/// dimension the file names two ways, and tract cannot tell are equal.
 pub fn load(
     dir: &Path,
     name: &str,
     inputs: &[(&str, Option<InferenceFact>)],
+    same_dimensions: &[(&str, &str)],
 ) -> TractResult<Graph> {
     let onnx = tract_onnx::onnx()
         // The exported value infos name dimensions that pinned inputs contradict.
         .with_ignore_value_info(true)
         .with_ignore_output_shapes(true);
     let mut proto = onnx.proto_model_for_path(dir.join(name))?;
-    rewrite(&mut proto)?;
-    let dir = dir.to_str().context("the voice folder is not UTF-8")?;
+    rewrite(&mut proto, same_dimensions)?;
+    let dir = dir.to_str().context("the model folder is not UTF-8")?;
     let mut model = onnx.parse(&proto, Some(dir))?.model;
     for (index, (expected, fact)) in inputs.iter().enumerate() {
         let actual = &model.node(model.input_outlets()?[index].node).name;
@@ -45,11 +49,29 @@ pub fn load(
     model.into_runnable()
 }
 
-fn rewrite(proto: &mut ModelProto) -> TractResult<()> {
+fn rewrite(proto: &mut ModelProto, same_dimensions: &[(&str, &str)]) -> TractResult<()> {
     let graph = proto.graph.as_mut().context("the model has no graph")?;
+    rename_dimensions(graph, same_dimensions);
     replace_squeeze_ifs(graph)?;
     run_integer_cumsums_in_i32(graph);
     Ok(())
+}
+
+/// Renames the first of each pair to the second in the inputs' and outputs' shapes.
+fn rename_dimensions(graph: &mut GraphProto, same_dimensions: &[(&str, &str)]) {
+    let values = graph.input.iter_mut().chain(&mut graph.output);
+    let types = values.filter_map(|value| value.r#type.as_mut()?.value.as_mut());
+    for TypeValue::TensorType(tensor) in types {
+        let dims = tensor.shape.iter_mut().flat_map(|shape| &mut shape.dim);
+        for dim in dims {
+            let Some(DimValue::DimParam(name)) = &mut dim.value else {
+                continue;
+            };
+            if let Some((_, same)) = same_dimensions.iter().find(|(from, _)| from == name) {
+                *name = (*same).to_owned();
+            }
+        }
+    }
 }
 
 /// The codec ends with PyTorch's `squeeze(1)`, exported as `If(dim 1 == 1,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Drawer, DrawerContent, DrawerTitle } from "@/shared/ui/shadcn/drawer.tsx";
-import { WordDetails, type WordPanelProps } from "@/pages/reader/ui/WordPanel.tsx";
+import { PanelDetails, type WordPanelProps } from "@/pages/reader/ui/WordPanel.tsx";
 
 interface WordDrawerProps extends WordPanelProps {
   onClose: () => void;
@@ -11,19 +11,19 @@ interface WordDrawerProps extends WordPanelProps {
  * down to close. It is not modal, so tapping another word swaps its contents.
  */
 export function WordDrawer({ onClose, ...panel }: WordDrawerProps) {
-  // The word stays selected until the drawer has slid away, so it never empties while closing.
-  const [dismissedWord, setDismissedWord] = useState<string | null>(null);
-  const { word } = panel;
+  // The word or passage stays selected until the drawer has slid away, so it never empties while closing.
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  const subject = panel.word ?? panel.passage?.text ?? null;
 
   return (
     <Drawer
-      open={word !== null && word !== dismissedWord}
+      open={subject !== null && subject !== dismissed}
       onOpenChange={(open) => {
-        if (!open) setDismissedWord(word);
+        if (!open) setDismissed(subject);
       }}
       onOpenChangeComplete={(open) => {
-        if (open || word !== dismissedWord) return;
-        setDismissedWord(null);
+        if (open || subject !== dismissed) return;
+        setDismissed(null);
         onClose();
       }}
       modal={false}
@@ -31,12 +31,12 @@ export function WordDrawer({ onClose, ...panel }: WordDrawerProps) {
       showSwipeHandle
     >
       <DrawerContent initialFocus={false} finalFocus={false}>
-        {word && (
+        {subject && (
           <div className="flex flex-col gap-4 overflow-y-auto scroll-fade p-4 pb-[max(--spacing(4),env(safe-area-inset-bottom))]">
             <DrawerTitle className="sr-only" lang="zh">
-              {word}
+              {subject}
             </DrawerTitle>
-            <WordDetails {...panel} word={word} />
+            <PanelDetails {...panel} />
           </div>
         )}
       </DrawerContent>

@@ -1,4 +1,4 @@
-//! The bundled CC-CEDICT and voice as ordinary files. On Android they are APK
+//! The bundled CC-CEDICT, voice and translator as ordinary files. On Android they are APK
 //! assets that `std::fs` cannot open, so each app version copies them once
 //! into its data folder.
 
@@ -13,6 +13,7 @@ pub const DICTIONARY: &str = "cedict.txt.gz";
 #[cfg(target_os = "android")]
 pub const DICTIONARY: &str = "cedict.txt";
 pub const VOICE: &str = "voice";
+pub const TRANSLATOR: &str = "translator";
 
 pub struct Resources {
     app: AppHandle,
@@ -80,11 +81,17 @@ fn locate(app: &AppHandle) -> std::io::Result<PathBuf> {
         .app_cache_dir()
         .map_err(io::Error::other)?
         .join("_assets/resources");
-    let files = std::iter::once(DICTIONARY.to_owned()).chain(
-        vocab_core::speech::FILES
-            .iter()
-            .map(|name| format!("{VOICE}/{name}")),
-    );
+    let files = std::iter::once(DICTIONARY.to_owned())
+        .chain(
+            vocab_core::speech::FILES
+                .iter()
+                .map(|name| format!("{VOICE}/{name}")),
+        )
+        .chain(
+            vocab_core::translation::FILES
+                .iter()
+                .map(|name| format!("{TRANSLATOR}/{name}")),
+        );
     for name in files {
         let asset = app
             .path()
