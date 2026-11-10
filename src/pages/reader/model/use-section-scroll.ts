@@ -11,6 +11,12 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 /** A first guess at a paragraph's height in pixels, before it is measured. */
 const ESTIMATED_PARAGRAPH_HEIGHT = 96;
 
+/**
+ * Where in the view, as fractions of its height, the spoken phrase may start before the text
+ * glides it back to the middle: a little drift between moves keeps the text from crawling.
+ */
+const SPOKEN_BAND = { top: 0.3, bottom: 0.6 };
+
 /** A token in the section, as `data-paragraph` and `data-token` mark it in the text. */
 interface TextPosition {
   paragraph: number;
@@ -32,6 +38,8 @@ interface SectionScrollOptions {
   onParagraphReached: (paragraph: number) => void;
   /** The paragraph being read aloud, kept in view until the reader scrolls it away. */
   spokenParagraph: number | undefined;
+  /** The token the spoken phrase starts at. */
+  spokenToken: number | undefined;
   viewRef: RefObject<TextView | null>;
 }
 
@@ -41,6 +49,7 @@ export function useSectionScroll({
   initialParagraph,
   onParagraphReached,
   spokenParagraph,
+  spokenToken,
   viewRef,
 }: SectionScrollOptions) {
   "use no memo";
@@ -119,9 +128,31 @@ export function useSectionScroll({
   }, [virtualizer]);
 
   useEffect(() => {
-    if (spokenParagraph !== undefined && following)
-      virtualizer.scrollToIndex(spokenParagraph, { align: "auto" });
-  }, [virtualizer, spokenParagraph, following]);
+    const element = scrollRef.current;
+    if (!element || !following || spokenParagraph === undefined || spokenToken === undefined)
+      return;
+    let frame = 0;
+    const center = (rendered: boolean) => {
+      const token = element.querySelector(
+        `[data-paragraph="${spokenParagraph}"] [data-token="${spokenToken}"]`
+      );
+      if (!token) {
+        // Not rendered yet: bring its paragraph in, then place the phrase once it is.
+        if (rendered) return;
+        virtualizer.scrollToIndex(spokenParagraph, { align: "center" });
+        frame = requestAnimationFrame(() => center(true));
+        return;
+      }
+      const { top, bottom } = viewport(element);
+      const height = bottom - top;
+      const at = token.getBoundingClientRect().top - top;
+      if (at >= height * SPOKEN_BAND.top && at <= height * SPOKEN_BAND.bottom) return;
+      const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+      element.scrollBy({ top: at - height / 2, behavior: smooth ? "smooth" : "instant" });
+    };
+    center(false);
+    return () => cancelAnimationFrame(frame);
+  }, [virtualizer, spokenParagraph, spokenToken, following]);
 
   return {
     scrollRef,
@@ -135,11 +166,7 @@ export function useSectionScroll({
         : spokenParagraph < (range?.startIndex ?? 0)
           ? ("above" as const)
           : ("below" as const),
-    followSpoken: () => {
-      setFollowing(true);
-      if (spokenParagraph !== undefined)
-        virtualizer.scrollToIndex(spokenParagraph, { align: "center" });
-    },
+    followSpoken: () => setFollowing(true),
   };
 }
 

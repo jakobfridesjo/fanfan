@@ -71,6 +71,7 @@ export function SectionText({
       initialParagraph,
       onParagraphReached,
       spokenParagraph: spokenPhrase?.paragraph,
+      spokenToken: spokenPhrase?.start,
       viewRef,
     });
   const textRef = useRef<HTMLDivElement>(null);

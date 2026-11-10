@@ -123,7 +123,7 @@ describe("ReaderManager", () => {
     });
   });
 
-  it("reads from the text in view, and offers a way back once it is scrolled away", async () => {
+  it("reads from the text in view, keeps it mid-screen and offers a way back once scrolled away", async () => {
     const paragraphs = Array.from({ length: 300 }, (_, index) => `段落${index} 。`);
     mockCommands({
       list_documents: () => [makeDocument({ id: 1, readingSection: 0 })],
@@ -143,10 +143,14 @@ describe("ReaderManager", () => {
 
     await screen.getByRole("button", { name: "Read aloud from the selected word" }).click();
     await expect.poll(spoken).not.toBe("");
-    const reading = text.element().querySelector("[data-spoken]");
     const box = text.element().getBoundingClientRect();
-    expect(reading?.getBoundingClientRect().top).toBeGreaterThanOrEqual(box.top);
-    expect(reading?.getBoundingClientRect().bottom).toBeLessThanOrEqual(box.bottom);
+    /** How far down the view the spoken phrase starts, as a fraction of its height. */
+    const spokenAt = () => {
+      const reading = text.element().querySelector("[data-spoken]");
+      return reading ? (reading.getBoundingClientRect().top - box.top) / box.height : null;
+    };
+    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.3);
+    expect(spokenAt()).toBeLessThanOrEqual(0.6);
 
     const back = screen.getByRole("button", { name: "Back to reading aloud" });
     await expect.element(back).not.toBeInTheDocument();
@@ -154,7 +158,8 @@ describe("ReaderManager", () => {
     await back.click();
 
     await expect.element(back).not.toBeInTheDocument();
-    await expect.poll(() => text.element().querySelector("[data-spoken]")).not.toBeNull();
+    await expect.poll(spokenAt).toBeGreaterThanOrEqual(0.3);
+    expect(spokenAt()).toBeLessThanOrEqual(0.6);
   });
 
   it("offers to translate, play or copy a stretch dragged over, until tapped away", async () => {
