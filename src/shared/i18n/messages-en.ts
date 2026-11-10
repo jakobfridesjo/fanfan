@@ -16,7 +16,7 @@ export const en = {
     study: "Study",
     library: "Library",
     review: "Review",
-    knownWords: "Known words",
+    knownWords: "Vocabulary",
     statistics: "Statistics",
     settings: "Settings",
   },
@@ -136,7 +136,7 @@ export const en = {
     undoFailed: "Could not undo",
   },
   knownWords: {
-    title: "Known words",
+    title: "Vocabulary",
     known: "Known",
     learning: "Learning",
     level: "Level",

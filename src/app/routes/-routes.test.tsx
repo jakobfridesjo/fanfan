@@ -23,7 +23,7 @@ describe("routes", () => {
     await expect.element(screen.getByText("西游记")).toBeVisible();
     await expect.element(screen.getByRole("link", { name: "Library" })).toBeVisible();
     await expect.element(screen.getByRole("link", { name: "Review" })).toBeVisible();
-    await expect.element(screen.getByRole("link", { name: "Known words" })).toBeVisible();
+    await expect.element(screen.getByRole("link", { name: "Vocabulary" })).toBeVisible();
     expect(router.state.location.pathname).toBe("/library");
   });
 

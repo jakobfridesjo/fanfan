@@ -14,7 +14,7 @@ export const zh: Messages = {
     study: "学习",
     library: "书库",
     review: "复习",
-    knownWords: "已认识的词",
+    knownWords: "词汇",
     statistics: "统计",
     settings: "设置",
   },
@@ -131,7 +131,7 @@ export const zh: Messages = {
     undoFailed: "无法撤销",
   },
   knownWords: {
-    title: "已认识的词",
+    title: "词汇",
     known: "已认识",
     learning: "学习中",
     level: "等级",

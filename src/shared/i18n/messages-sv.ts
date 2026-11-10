@@ -16,7 +16,7 @@ export const sv: Messages = {
     study: "Studera",
     library: "Bibliotek",
     review: "Repetera",
-    knownWords: "Kända ord",
+    knownWords: "Ordförråd",
     statistics: "Statistik",
     settings: "Inställningar",
   },
@@ -137,7 +137,7 @@ export const sv: Messages = {
     undoFailed: "Kunde inte ångra",
   },
   knownWords: {
-    title: "Kända ord",
+    title: "Ordförråd",
     known: "Kända",
     learning: "Lär mig",
     level: "Nivå",
