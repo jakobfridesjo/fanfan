@@ -26,6 +26,8 @@ const FIREFLIES: Scene = {
   ),
   colors: ["--firefly-color", "--firefly-core"],
   reducedMotion: "hidden",
+  framesPerSecond: 30,
+  maxPixelRatio: 1,
   vertex: `
 out vec2 offset;
 out float size;

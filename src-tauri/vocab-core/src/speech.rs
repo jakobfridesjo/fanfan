@@ -41,14 +41,15 @@ pub const FILES: [&str; 9] = [
 
 /// Names the model, voice and generation settings. Change it when any of
 /// them change, so cached audio from the old voice is not played.
-pub const VOICE_ID: &str = "moss-tts-nano-int8-23fd1979-junhao-v1";
+pub const VOICE_ID: &str = "moss-tts-nano-int8-23fd1979-junhao-v2";
 
 /// Upstream's `zh_1.wav`, which the manifest carries already encoded.
 const VOICE: &str = "Junhao";
 const SEED: u64 = 40;
 
-/// About 6 seconds at 12.5 frames a second: more than any word needs.
-const MIN_MAX_FRAMES: usize = 75;
+/// 2 seconds at 12.5 frames a second: more than any word needs, and where
+/// speech that runs past the text is cut off.
+const MIN_MAX_FRAMES: usize = 25;
 /// About 2.5 characters a second, well below how fast the voice reads.
 const FRAMES_PER_CHAR: usize = 5;
 

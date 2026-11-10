@@ -31,11 +31,10 @@ export function StudySession({
   hint?: string;
 }) {
   return (
-    <div className="flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 pb-6">
+    <div className="flex min-h-0 w-full max-w-xl flex-1 flex-col gap-4 pb-2">
       <div className="flex min-h-0 flex-1 flex-col justify-center">{card}</div>
       {actions}
-      {/* Kept when empty, so the card stays put as the hint comes and goes. */}
-      <p className="min-h-4 text-center text-xs text-muted-foreground">{hint}</p>
+      {hint && <p className="text-center text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

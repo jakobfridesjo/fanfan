@@ -15,10 +15,12 @@ export interface Scene {
   fragment: string;
   /** With reduced motion, either one still frame or nothing. */
   reducedMotion: "still" | "hidden";
+  /** Slow scenes look the same at a lower rate, and so do the cards blurring them. */
+  framesPerSecond: number;
+  /** Device pixels per CSS pixel at most: soft glows look the same rendered small and scaled up. */
+  maxPixelRatio: number;
 }
 
-const FRAME_MS = 1000 / 60;
-const MAX_PIXEL_RATIO = 2;
 const MAX_COLORS = 4;
 
 const VERTEX_HEADER = `#version 300 es
@@ -172,7 +174,7 @@ function createRenderer(gl: WebGL2RenderingContext, scene: Scene) {
   };
 }
 
-/** Draws `scene` on `canvas` at up to 60 fps until the returned function is called. */
+/** Draws `scene` on `canvas` while the page is visible, until the returned function is called. */
 export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
   const gl = canvas.getContext("webgl2", {
     antialias: false,
@@ -185,6 +187,7 @@ export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
   const reducedMotion = globalThis.matchMedia("(prefers-reduced-motion: reduce)");
   const palette = new Float32Array(MAX_COLORS * 4);
   const start = performance.now();
+  const frameMs = 1000 / scene.framesPerSecond;
   let draw = createRenderer(gl, scene);
   let frame = 0;
   let lastFrame = -Infinity;
@@ -209,19 +212,21 @@ export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
 
   const tick = (now: number) => {
     frame = requestAnimationFrame(tick);
-    if (now - lastFrame < FRAME_MS - 1) return;
-    lastFrame = now;
+    const elapsed = now - lastFrame;
+    if (elapsed < frameMs - 1) return;
+    // Carrying the overshoot keeps the average rate when the display's refresh does not divide it.
+    lastFrame = elapsed < 2 * frameMs ? now - Math.max(0, elapsed - frameMs) : now;
     render(now);
   };
 
   const play = () => {
     cancelAnimationFrame(frame);
     if (reducedMotion.matches) render(start);
-    else frame = requestAnimationFrame(tick);
+    else if (document.visibilityState === "visible") frame = requestAnimationFrame(tick);
   };
 
   const resize = () => {
-    const ratio = Math.min(globalThis.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+    const ratio = Math.min(globalThis.devicePixelRatio || 1, scene.maxPixelRatio);
     canvas.width = Math.max(1, Math.round(canvas.clientWidth * ratio));
     canvas.height = Math.max(1, Math.round(canvas.clientHeight * ratio));
     render(reducedMotion.matches ? start : performance.now());
@@ -252,6 +257,7 @@ export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
     attributeFilter: ["class", "data-background"],
   });
   reducedMotion.addEventListener("change", play);
+  document.addEventListener("visibilitychange", play);
   canvas.addEventListener("webglcontextlost", loseContext);
   canvas.addEventListener("webglcontextrestored", restoreContext);
 
@@ -264,6 +270,7 @@ export function runScene(canvas: HTMLCanvasElement, scene: Scene): () => void {
     resizeObserver.disconnect();
     themeObserver.disconnect();
     reducedMotion.removeEventListener("change", play);
+    document.removeEventListener("visibilitychange", play);
     canvas.removeEventListener("webglcontextlost", loseContext);
     canvas.removeEventListener("webglcontextrestored", restoreContext);
   };

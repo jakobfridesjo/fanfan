@@ -7,6 +7,8 @@ const SUNSET: Scene = {
   particles: Float32Array.from([0]),
   colors: ["--sunset-glow", "--sunset-ray"],
   reducedMotion: "still",
+  framesPerSecond: 20,
+  maxPixelRatio: 1,
   vertex: `
 out vec2 pixel;
 flat out vec2 size;

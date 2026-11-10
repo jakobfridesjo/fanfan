@@ -58,6 +58,8 @@ const PYREFLIES: Scene = {
   particles: Float32Array.from([...CLOUD_LAYER, ...NEARNESS.flatMap(pyrefly)]),
   colors: ["--pyrefly-core", "--pyrefly-glow", "--pyreflies-cloud"],
   reducedMotion: "still",
+  framesPerSecond: 60,
+  maxPixelRatio: 1,
   vertex: `
 out vec2 pixel;
 out vec2 local;

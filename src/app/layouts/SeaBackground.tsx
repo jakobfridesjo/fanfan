@@ -32,6 +32,8 @@ const LIGHTS: Scene = {
   ),
   colors: ["--sea-halo", "--sea-core"],
   reducedMotion: "hidden",
+  framesPerSecond: 60,
+  maxPixelRatio: 1,
   vertex: `
 out vec2 offset;
 out float size;

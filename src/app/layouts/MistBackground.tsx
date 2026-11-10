@@ -23,6 +23,8 @@ const MIST: Scene = {
   ),
   colors: ["--mist-fog"],
   reducedMotion: "still",
+  framesPerSecond: 15,
+  maxPixelRatio: 0.5,
   vertex: `
 out vec2 uv;
 

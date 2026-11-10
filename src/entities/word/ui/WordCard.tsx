@@ -32,7 +32,7 @@ export function WordCard({ card, hidden = false, hiddenHint, footer }: WordCardP
         className="absolute top-(--card-spacing) right-(--card-spacing)"
       />
       <CardContent className="flex min-h-0 flex-col items-center gap-6 pt-6 text-center">
-        <div className="flex shrink-0 flex-col items-center gap-2">
+        <div className="flex shrink-0 flex-col items-center gap-3">
           <Headword card={card} className="text-6xl" />
           {card.count !== null && (
             <p className="text-xs text-muted-foreground">{m.word.countInBook(card.count)}</p>

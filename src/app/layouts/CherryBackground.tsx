@@ -23,6 +23,8 @@ const PETALS: Scene = {
   ),
   colors: ["--petal-light", "--petal-deep"],
   reducedMotion: "hidden",
+  framesPerSecond: 60,
+  maxPixelRatio: 2,
   vertex: `
 out vec2 uv;
 

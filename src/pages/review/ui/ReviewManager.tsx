@@ -94,7 +94,7 @@ function ReviewManager() {
                   <Button
                     key={rating}
                     type="button"
-                    variant={rating === 3 ? "default" : "outline"}
+                    variant="outline"
                     size="lg"
                     className="h-auto flex-col gap-0 py-1.5"
                     onClick={() => rate(rating)}
@@ -137,19 +137,19 @@ function ReviewProgress({ reviewed, remaining }: { reviewed: number; remaining: 
   const m = useMessages();
   const total = reviewed + remaining;
   return (
-    <>
+    <div className="flex items-center gap-3">
       <div
         role="meter"
         aria-label={m.review.sessionProgress}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={reviewed}
-        className="flex h-2 overflow-hidden rounded-full bg-foreground/10"
+        className="flex h-2 flex-1 overflow-hidden rounded-full bg-foreground/10"
       >
         <div className="bg-success" style={{ width: `${(reviewed / total) * 100}%` }} />
       </div>
-      <p className="text-sm text-muted-foreground">{m.review.due(remaining)}</p>
-    </>
+      <p className="shrink-0 text-sm text-muted-foreground">{m.review.due(remaining)}</p>
+    </div>
   );
 }
 

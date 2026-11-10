@@ -25,9 +25,10 @@
   --primary-foreground: oklch(0.985 calc(0.008 * var(--theme-chroma)) var(--theme-hue));
   --secondary: oklch(0.962 calc(0.002 * var(--theme-chroma)) var(--theme-hue));
   --secondary-foreground: oklch(0.21 calc(0.006 * var(--theme-chroma)) var(--theme-hue));
-  --muted: oklch(0.955 calc(0.002 * var(--theme-chroma)) var(--theme-hue));
+  /* Hover, pressed and subtle fills are washes of the text colour, so translucent cards and the scene show through them. */
+  --muted: color-mix(in oklch, var(--foreground) 6%, transparent);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.955 calc(0.002 * var(--theme-chroma)) var(--theme-hue));
+  --accent: color-mix(in oklch, var(--foreground) 10%, transparent);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.54 0.17 18);
   --border: oklch(0.916 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
@@ -123,9 +124,9 @@
   --primary-foreground: oklch(0.985 calc(0.008 * var(--theme-chroma)) var(--theme-hue));
   --secondary: oklch(0.274 calc(0.006 * var(--theme-chroma)) var(--theme-hue));
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: color-mix(in oklch, var(--foreground) 8%, transparent);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: color-mix(in oklch, var(--foreground) 10%, transparent);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.7 0.15 18);
   --border: oklch(1 0 0 / 10%);
@@ -365,23 +366,17 @@
   }
 }
 
-/*
- * shadcn's "default-translucent" menu colour (`cn-menu-translucent` in its style CSS). The CLI bakes
- * it into components at install time; the vendored ones predate it, so it is applied here instead.
- */
+/* Menus are solid, so the text they cover does not show through. */
 [data-slot="dropdown-menu-content"],
 [data-slot="dropdown-menu-sub-content"],
 [data-slot="select-content"],
 [data-slot="combobox-content"] {
-  @apply relative animate-none! bg-popover/70 before:pointer-events-none before:absolute before:inset-0 before:-z-1 before:rounded-[inherit] before:backdrop-blur-2xl before:backdrop-saturate-150 **:data-[slot$=-item]:focus:bg-foreground/10 **:data-[slot$=-item]:data-highlighted:bg-foreground/10 **:data-[slot$=-separator]:bg-foreground/5 **:data-[slot$=-trigger]:focus:bg-foreground/10 **:data-[slot$=-trigger]:aria-expanded:bg-foreground/10! **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
+  @apply animate-none! bg-popover **:data-[slot$=-separator]:bg-foreground/5 **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
 }
 
-/*
- * The drawer is a card that floats over the page: the theme's tinted card colour and ring instead
- * of a solid popover, blurred so the text it covers does not show through sharply.
- */
+/* The drawer floats over the page like a menu: solid, with the card's ring instead of a border. */
 [data-slot="drawer-popup"] {
-  @apply border-transparent bg-card text-card-foreground ring-1 ring-foreground/5 backdrop-blur-2xl backdrop-saturate-150 dark:border-transparent dark:ring-foreground/10;
+  @apply border-transparent bg-popover text-popover-foreground ring-1 ring-foreground/5 dark:border-transparent dark:ring-foreground/10;
 }
 [data-slot="drawer-swipe-handle"] {
   @apply after:bg-foreground/25;
@@ -392,15 +387,10 @@
   @apply bg-sidebar-primary/18 text-primary-text;
 }
 
-/* Skeletons are a wash of the text colour, not opaque grey, so they sit on translucent cards like the content they stand in for. */
-[data-slot="skeleton"] {
-  --muted: color-mix(in oklab, var(--foreground) 10%, transparent);
-}
-
 /* Toggles mark the chosen option like the sidebar marks the current page: a wash of the accent. */
 [data-slot="toggle"],
 [data-slot="toggle-group-item"] {
-  @apply hover:bg-foreground/5 aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
+  @apply aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
 }
 
 /* Navigation links mark the current page like the sidebar does: the accent wash, not opaque grey. */
