@@ -401,7 +401,7 @@
   &:hover,
   &:focus-visible,
   &[aria-expanded="true"],
-  &[data-active="true"] {
+  &[data-active] {
     background: var(--sidebar-accent);
     color: var(--sidebar-accent-foreground);
   }

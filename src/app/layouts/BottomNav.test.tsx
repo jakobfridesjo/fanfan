@@ -31,6 +31,25 @@ describe("BottomNav", () => {
     expect(router.state.location.pathname).toBe("/review");
   });
 
+  it("keeps the tapped section highlighted", async () => {
+    mockCommands({
+      list_documents: () => [],
+      list_folders: () => [],
+      get_review_queue: () => makeReviewQueue([]),
+    });
+    await renderRoute("/library");
+
+    const navigation = screen.getByRole("navigation");
+    const review = navigation.getByRole("link", { name: "Review" });
+    await userEvent.click(review);
+    await expect.element(review).toHaveAttribute("aria-current", "page");
+    await userEvent.unhover(review);
+
+    const background = (name: string) =>
+      getComputedStyle(navigation.getByRole("link", { name }).element()).backgroundColor;
+    expect(background("Review")).not.toBe(background("Settings"));
+  });
+
   it("opens the settings page", async () => {
     mockCommands({ list_documents: () => [], list_folders: () => [] });
     const { router } = await renderRoute("/library");
