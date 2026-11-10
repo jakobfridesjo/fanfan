@@ -10,9 +10,7 @@ interface DataTablePanelProps<TData extends RowData> {
   table: DataTableInstance<TData>;
   children?: ReactNode;
   actions?: ReactNode;
-  filters?: ReactNode;
   searchPlaceholder?: string;
-  mobileFiltersTitle?: string;
   isLoading?: boolean;
   skeletonRowCount?: number;
   emptyStateMessage?: ReactNode;
@@ -34,9 +32,7 @@ export function DataTablePanel<TData extends RowData>({
   table,
   children,
   actions,
-  filters,
   searchPlaceholder,
-  mobileFiltersTitle,
   isLoading,
   skeletonRowCount,
   emptyStateMessage,
@@ -47,7 +43,7 @@ export function DataTablePanel<TData extends RowData>({
   bordered = true,
   surface = "card",
 }: DataTablePanelProps<TData>) {
-  const hasToolbar = !!(searchPlaceholder || filters || actions || children);
+  const hasToolbar = !!(searchPlaceholder || actions || children);
   const onPage = surface === "page";
 
   const Panel = bordered && !onPage ? Card : "div";
@@ -55,13 +51,7 @@ export function DataTablePanel<TData extends RowData>({
   return (
     <Panel className="flex min-h-0 grow flex-col gap-0 overflow-hidden py-0">
       {hasToolbar && (
-        <DataTableToolbar
-          table={table}
-          actions={actions}
-          filters={filters}
-          searchPlaceholder={searchPlaceholder}
-          mobileFiltersTitle={mobileFiltersTitle}
-        >
+        <DataTableToolbar table={table} actions={actions} searchPlaceholder={searchPlaceholder}>
           {children}
         </DataTableToolbar>
       )}

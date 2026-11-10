@@ -369,8 +369,7 @@
 /* Menus are solid, so the text they cover does not show through. */
 [data-slot="dropdown-menu-content"],
 [data-slot="dropdown-menu-sub-content"],
-[data-slot="select-content"],
-[data-slot="combobox-content"] {
+[data-slot="select-content"] {
   @apply animate-none! bg-popover **:data-[slot$=-separator]:bg-foreground/5 **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
 }
 

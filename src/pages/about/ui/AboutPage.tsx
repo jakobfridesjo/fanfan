@@ -1,13 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { ThirdPartyLicensesSheet } from "@/pages/about/ui/ThirdPartyLicensesSheet.tsx";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { appVersion, buildTime } from "@/shared/config/env.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import type { Messages } from "@/shared/i18n/messages-en.ts";
 import { formatShortDate } from "@/shared/lib/date.ts";
 import { AppLogo } from "@/shared/ui/AppLogo.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
-import { Button } from "@/shared/ui/shadcn/button.tsx";
+import { buttonVariants } from "@/shared/ui/shadcn/button.tsx";
 import {
   Card,
   CardContent,
@@ -31,7 +29,6 @@ const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license
 function AboutPage() {
   const m = useMessages();
   const navigate = useNavigate();
-  const [licensesOpen, setLicensesOpen] = useState(false);
 
   return (
     <>
@@ -77,14 +74,12 @@ function AboutPage() {
             <CardDescription>{m.about.licensesDescription}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={() => setLicensesOpen(true)}>
+            <Link to="/about/licenses" className={buttonVariants({ variant: "outline" })}>
               {m.about.showLicenses}
-            </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
-
-      <ThirdPartyLicensesSheet open={licensesOpen} onOpenChange={setLicensesOpen} />
     </>
   );
 }

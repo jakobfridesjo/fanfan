@@ -16,6 +16,7 @@ import { Route as AppKnownWordsRouteImport } from './routes/_app/known-words'
 import { Route as AppReviewRouteImport } from './routes/_app/review'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppStatisticsRouteImport } from './routes/_app/statistics'
+import { Route as AppAboutLicensesRouteImport } from './routes/_app/about_.licenses'
 import { Route as AppLibraryIndexRouteImport } from './routes/_app/library.index'
 import { Route as AppLibraryDocumentIdRouteImport } from './routes/_app/library.$documentId'
 import { Route as AppReadDocumentIdRouteImport } from './routes/_app/read.$documentId'
@@ -54,6 +55,11 @@ const AppStatisticsRoute = AppStatisticsRouteImport.update({
   path: '/statistics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAboutLicensesRoute = AppAboutLicensesRouteImport.update({
+  id: '/about_/licenses',
+  path: '/about/licenses',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLibraryIndexRoute = AppLibraryIndexRouteImport.update({
   id: '/library/',
   path: '/library/',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/review': typeof AppReviewRoute
   '/settings': typeof AppSettingsRoute
   '/statistics': typeof AppStatisticsRoute
+  '/about/licenses': typeof AppAboutLicensesRoute
   '/library/$documentId': typeof AppLibraryDocumentIdRoute
   '/read/$documentId': typeof AppReadDocumentIdRoute
   '/library/': typeof AppLibraryIndexRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/review': typeof AppReviewRoute
   '/settings': typeof AppSettingsRoute
   '/statistics': typeof AppStatisticsRoute
+  '/about/licenses': typeof AppAboutLicensesRoute
   '/library/$documentId': typeof AppLibraryDocumentIdRoute
   '/read/$documentId': typeof AppReadDocumentIdRoute
   '/library': typeof AppLibraryIndexRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_app/review': typeof AppReviewRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/statistics': typeof AppStatisticsRoute
+  '/_app/about_/licenses': typeof AppAboutLicensesRoute
   '/_app/library/$documentId': typeof AppLibraryDocumentIdRoute
   '/_app/read/$documentId': typeof AppReadDocumentIdRoute
   '/_app/library/': typeof AppLibraryIndexRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/statistics'
+    | '/about/licenses'
     | '/library/$documentId'
     | '/read/$documentId'
     | '/library/'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/statistics'
+    | '/about/licenses'
     | '/library/$documentId'
     | '/read/$documentId'
     | '/library'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_app/review'
     | '/_app/settings'
     | '/_app/statistics'
+    | '/_app/about_/licenses'
     | '/_app/library/$documentId'
     | '/_app/read/$documentId'
     | '/_app/library/'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppStatisticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/about_/licenses': {
+      id: '/_app/about_/licenses'
+      path: '/about/licenses'
+      fullPath: '/about/licenses'
+      preLoaderRoute: typeof AppAboutLicensesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/library/': {
       id: '/_app/library/'
       path: '/library'
@@ -228,6 +247,7 @@ interface AppRouteChildren {
   AppReviewRoute: typeof AppReviewRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppStatisticsRoute: typeof AppStatisticsRoute
+  AppAboutLicensesRoute: typeof AppAboutLicensesRoute
   AppLibraryDocumentIdRoute: typeof AppLibraryDocumentIdRoute
   AppReadDocumentIdRoute: typeof AppReadDocumentIdRoute
   AppLibraryIndexRoute: typeof AppLibraryIndexRoute
@@ -239,6 +259,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReviewRoute: AppReviewRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppStatisticsRoute: AppStatisticsRoute,
+  AppAboutLicensesRoute: AppAboutLicensesRoute,
   AppLibraryDocumentIdRoute: AppLibraryDocumentIdRoute,
   AppReadDocumentIdRoute: AppReadDocumentIdRoute,
   AppLibraryIndexRoute: AppLibraryIndexRoute,
