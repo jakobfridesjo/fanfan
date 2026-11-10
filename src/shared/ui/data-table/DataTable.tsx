@@ -6,18 +6,9 @@ import { Table, TableCell, TableHead, TableHeader, TableRow } from "@/shared/ui/
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/shadcn/tooltip.tsx";
 import { DataTableColumnHeader } from "@/shared/ui/data-table/DataTableColumnHeader.tsx";
-import {
-  CLICKABLE_ROW_CLASSNAME,
-  DataTableCard,
-  DataTableCardSkeletons,
-} from "@/shared/ui/data-table/DataTableCards.tsx";
+import { DataTableCard, DataTableCardSkeletons } from "@/shared/ui/data-table/DataTableCards.tsx";
 import { useIsMobile } from "@/shared/lib/use-mobile.ts";
-import {
-  clickableRowProps,
-  type DataTableCell,
-  type DataTableInstance,
-  type DataTableRow,
-} from "@/shared/lib/table.ts";
+import type { DataTableCell, DataTableInstance, DataTableRow } from "@/shared/lib/table.ts";
 import { cn } from "@/shared/lib/class-names.ts";
 
 const ESTIMATED_ROW_HEIGHT = 49;
@@ -34,16 +25,9 @@ interface DataTableProps<TData extends RowData> {
   table: DataTableInstance<TData>;
   /** The table scrolls itself, rendering only the rows in view: give it a bounded height. */
   className?: string;
-  layout?: "table" | "cards";
   isLoading?: boolean;
   skeletonRowCount?: number;
   emptyStateMessage?: React.ReactNode;
-  onRowClick?: (row: TData) => void;
-  getRowClassName?: (row: TData) => string;
-  /** Needs `getRowCanExpand` on the table and a cell that calls `row.getToggleExpandedHandler()`. */
-  renderSubRow?: (row: TData) => React.ReactNode;
-  /** On a card the header sticks, painted like the card; on the page it scrolls with the rows. */
-  surface?: "card" | "page";
 }
 
 /** The rows in and near view of `scrollRef`, with the space taken by those above and below. */
@@ -79,11 +63,7 @@ function useVirtualRows<TData extends RowData>(
 
 export function DataTable<TData extends RowData>(props: DataTableProps<TData>) {
   const isMobile = useIsMobile();
-  return props.layout === "cards" || isMobile ? (
-    <DataTableCardList {...props} />
-  ) : (
-    <DataTableGrid {...props} />
-  );
+  return isMobile ? <DataTableCardList {...props} /> : <DataTableGrid {...props} />;
 }
 
 function DataTableCardList<TData extends RowData>({
@@ -92,9 +72,6 @@ function DataTableCardList<TData extends RowData>({
   isLoading = false,
   skeletonRowCount = 20,
   emptyStateMessage = "No results.",
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
 }: DataTableProps<TData>) {
   const rows = table.getRowModel().rows;
   const { scrollRef, measureElement, visible, spaceBefore, spaceAfter } = useVirtualRows(
@@ -118,13 +95,7 @@ function DataTableCardList<TData extends RowData>({
               key={row.id}
               ref={measureElement}
               index={index}
-              row={row}
               cells={row.getVisibleCells()}
-              isSelected={row.getIsSelected()}
-              isExpanded={row.getIsExpanded()}
-              onRowClick={onRowClick}
-              getRowClassName={getRowClassName}
-              renderSubRow={renderSubRow}
             />
           ))}
           {spaceAfter > 0 && <div aria-hidden style={{ height: spaceAfter }} />}
@@ -140,10 +111,6 @@ function DataTableGrid<TData extends RowData>({
   isLoading = false,
   skeletonRowCount = 20,
   emptyStateMessage = "No results.",
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
-  surface = "card",
 }: DataTableProps<TData>) {
   const rows = table.getRowModel().rows;
   const visibleColumns = table.getVisibleLeafColumns();
@@ -171,13 +138,7 @@ function DataTableGrid<TData extends RowData>({
           minWidth: tableMinWidth(visibleColumns.map((column) => column.columnDef.meta?.width)),
         }}
       >
-        <TableHeader
-          className={cn(
-            // Opaque, so rows scrolling under it stay hidden without a costly backdrop blur.
-            surface === "card" &&
-              "sticky top-0 z-10 bg-(color:--canvas) bg-[image:linear-gradient(var(--card),var(--card))]"
-          )}
-        >
+        <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
@@ -236,13 +197,7 @@ function DataTableGrid<TData extends RowData>({
                 key={row.id}
                 ref={measureElement}
                 index={index}
-                row={row}
                 cells={row.getVisibleCells()}
-                isSelected={row.getIsSelected()}
-                isExpanded={row.getIsExpanded()}
-                onRowClick={onRowClick}
-                getRowClassName={getRowClassName}
-                renderSubRow={renderSubRow}
               />
             ))}
             {spacer(spaceAfter)}
@@ -267,36 +222,19 @@ function DataTableGrid<TData extends RowData>({
 interface DataTableGridRowProps<TData extends RowData> {
   ref: React.Ref<HTMLTableSectionElement>;
   index: number;
-  row: DataTableRow<TData>;
-  /** The row's state is passed in, not read from `row`, whose identity outlives it. */
+  /** Passed in, not read from the row, whose identity outlives its state. */
   cells: DataTableCell<TData>[];
-  isSelected: boolean;
-  isExpanded: boolean;
-  onRowClick?: (row: TData) => void;
-  getRowClassName?: (row: TData) => string;
-  renderSubRow?: (row: TData) => React.ReactNode;
 }
 
 /** Memoized, so scrolling renders only the rows that come into view. */
 const DataTableGridRow = React.memo(function DataTableGridRow<TData extends RowData>({
   ref,
   index,
-  row,
   cells,
-  isSelected,
-  isExpanded,
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
 }: DataTableGridRowProps<TData>) {
   return (
-    // One body per row, so `measureElement` counts an expanded sub-row too.
     <tbody ref={ref} data-index={index} className="last:[&>tr:last-child]:border-0">
-      <TableRow
-        data-state={isSelected && "selected"}
-        {...clickableRowProps(onRowClick, row.original)}
-        className={cn(onRowClick && CLICKABLE_ROW_CLASSNAME, getRowClassName?.(row.original))}
-      >
+      <TableRow>
         {cells.map((cell) => (
           <TableCell
             key={cell.id}
@@ -311,13 +249,6 @@ const DataTableGridRow = React.memo(function DataTableGridRow<TData extends RowD
           </TableCell>
         ))}
       </TableRow>
-      {renderSubRow && isExpanded && (
-        <TableRow className="hover:bg-transparent!">
-          <TableCell colSpan={cells.length} className="bg-muted/30">
-            {renderSubRow(row.original)}
-          </TableCell>
-        </TableRow>
-      )}
     </tbody>
   );
 }) as <TData extends RowData>(props: DataTableGridRowProps<TData>) => React.ReactNode;

@@ -1,11 +1,8 @@
 import { memo, type ReactNode, type Ref } from "react";
 import { flexRender, type RowData } from "@tanstack/react-table";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
-import { clickableRowProps, type DataTableCell, type DataTableRow } from "@/shared/lib/table.ts";
+import type { DataTableCell } from "@/shared/lib/table.ts";
 import { cn } from "@/shared/lib/class-names.ts";
-
-export const CLICKABLE_ROW_CLASSNAME =
-  "cursor-pointer transition-colors outline-none focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset";
 
 function titleCellOf<TData extends RowData>(visibleCells: DataTableCell<TData>[]) {
   return (
@@ -37,27 +34,15 @@ interface DataTableCardProps<TData extends RowData> {
   ref?: Ref<HTMLDivElement>;
   /** The row's position in the virtualized list, read by `measureElement`. */
   index?: number;
-  row: DataTableRow<TData>;
-  /** The row's state is passed in, not read from `row`, whose identity outlives it. */
+  /** Passed in, not read from the row, whose identity outlives its state. */
   cells: DataTableCell<TData>[];
-  isSelected: boolean;
-  isExpanded: boolean;
-  onRowClick?: (row: TData) => void;
-  getRowClassName?: (row: TData) => string;
-  renderSubRow?: (row: TData) => ReactNode;
 }
 
 /** Memoized, so scrolling renders only the cards that come into view. */
 export const DataTableCard = memo(function DataTableCard<TData extends RowData>({
   ref,
   index,
-  row,
   cells,
-  isSelected,
-  isExpanded,
-  onRowClick,
-  getRowClassName,
-  renderSubRow,
 }: DataTableCardProps<TData>) {
   const titleCell = titleCellOf(cells);
   const visibleCells = cells.filter((cell) => !cell.column.columnDef.meta?.mobileHidden);
@@ -70,13 +55,7 @@ export const DataTableCard = memo(function DataTableCard<TData extends RowData>(
     <div
       ref={ref}
       data-index={index}
-      data-state={isSelected && "selected"}
-      {...clickableRowProps(onRowClick, row.original)}
-      className={cn(
-        "border-b p-2 transition-colors data-[state=selected]:bg-muted last:border-b-0 hover:bg-muted/50",
-        onRowClick && CLICKABLE_ROW_CLASSNAME,
-        getRowClassName?.(row.original)
-      )}
+      className="border-b p-2 transition-colors last:border-b-0 hover:bg-muted/50"
     >
       {(titleCell || actionCells.length > 0) && (
         <div className="mb-2 flex items-start justify-between gap-3">
@@ -95,10 +74,6 @@ export const DataTableCard = memo(function DataTableCard<TData extends RowData>(
             </div>
           )}
         </div>
-      )}
-
-      {renderSubRow && isExpanded && (
-        <div className="mt-2 border-t pt-2">{renderSubRow(row.original)}</div>
       )}
 
       {detailCells.length > 0 && (

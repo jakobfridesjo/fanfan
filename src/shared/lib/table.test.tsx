@@ -1,11 +1,9 @@
 import { page as screen } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { useState } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SEARCH_DEBOUNCE_MS } from "@/shared/config/search.ts";
+import { describe, expect, it } from "vitest";
 import type { SortingState } from "@tanstack/react-table";
 import { DataTable } from "@/shared/ui/data-table/DataTable.tsx";
-import { DataTableToolbar } from "@/shared/ui/data-table/DataTableToolbar.tsx";
 import { useDataTable, type DataTableColumnDef } from "@/shared/lib/table.ts";
 interface Widget {
   id: string;
@@ -36,7 +34,6 @@ function Harness() {
 
   return (
     <div>
-      <DataTableToolbar table={table} searchPlaceholder="Search" />
       <button type="button" onClick={() => setGlobalFilter("bravo")}>
         Filter to bravo
       </button>
@@ -78,8 +75,6 @@ function bodyRowNames() {
   return rows.map((row) => row.getByRole("cell").first().element().textContent);
 }
 describe("shared data table features", () => {
-  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
-  afterEach(() => vi.useRealTimers());
   it("sorts, filters and facets through the registered features", async () => {
     await render(<Harness />);
 
@@ -112,12 +107,6 @@ describe("shared data table features", () => {
     // Toggling a header still updates sorting through the feature default updater.
     await screen.getByRole("button", { name: /Sort descending by Name/ }).click();
     expect(bodyRowNames()).toEqual(["Charlie", "Bravo", "alpha"]);
-  });
-  it("drives the toolbar search box through the table global filter", async () => {
-    await render(<Harness />);
-    await screen.getByPlaceholder("Search").fill("bravo");
-    vi.advanceTimersByTime(SEARCH_DEBOUNCE_MS);
-    await expect.poll(bodyRowNames).toEqual(["Bravo"]);
   });
   it("renders only the rows near view and more as it scrolls", async () => {
     await render(<ScrollingHarness />);

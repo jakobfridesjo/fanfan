@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from "react";
 import {
   type Cell,
   type CellData,
@@ -10,7 +9,6 @@ import {
   createFacetedRowModel,
   createFacetedUniqueValues,
   createFilteredRowModel,
-  createExpandedRowModel,
   createSortedRowModel,
   filterFn_arrIncludes,
   filterFn_equals,
@@ -23,8 +21,6 @@ import {
   type ReactTable,
   type Row,
   type RowData,
-  rowExpandingFeature,
-  rowSelectionFeature,
   rowSortingFeature,
   sortFn_alphanumeric,
   sortFn_datetime,
@@ -51,10 +47,7 @@ const dataTableFeatures = tableFeatures({
   columnFilteringFeature,
   columnVisibilityFeature,
   globalFilteringFeature,
-  rowExpandingFeature,
-  rowSelectionFeature,
   rowSortingFeature,
-  expandedRowModel: createExpandedRowModel(),
   facetedRowModel: createFacetedRowModel(),
   facetedUniqueValues: createFacetedUniqueValues(),
   filteredRowModel: createFilteredRowModel(),
@@ -103,21 +96,4 @@ export function useDataTable<TData extends RowData>(
   options: DataTableOptions<TData>
 ): DataTableInstance<TData> {
   return useTable<DataTableFeatures, TData>({ features: dataTableFeatures, ...options });
-}
-
-export function clickableRowProps<TData>(
-  onRowClick: ((row: TData) => void) | undefined,
-  row: TData
-) {
-  if (!onRowClick) return {};
-  return {
-    tabIndex: 0,
-    onClick: () => onRowClick(row),
-    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-      if (event.target !== event.currentTarget) return;
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      onRowClick(row);
-    },
-  };
 }

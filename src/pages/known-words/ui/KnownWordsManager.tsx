@@ -19,10 +19,10 @@ import { formatShortDate } from "@/shared/lib/date.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
 import { type DataTableColumnDef, useDataTable } from "@/shared/lib/table.ts";
 import { DataTableFacetedFilter } from "@/shared/ui/data-table/DataTableFacetedFilter.tsx";
-import { DataTablePanel } from "@/shared/ui/data-table/DataTablePanel.tsx";
+import { DataTable } from "@/shared/ui/data-table/DataTable.tsx";
 import { DebouncedSearchInput } from "@/shared/ui/DebouncedSearchInput.tsx";
 import { RowActionButton, RowActions } from "@/shared/ui/data-table/RowActions.tsx";
-import { UnavailableState } from "@/shared/ui/EmptyStates.tsx";
+import { CenteredEmpty, UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import { StatusBadge } from "@/shared/ui/StatusBadge.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
@@ -111,18 +111,21 @@ function KnownWordsManager() {
         }}
       />
 
-      <DataTablePanel
-        table={table}
-        surface="page"
-        isLoading={manager.isLoading}
-        skeletonRowCount={8}
-        emptyStateMessage={manager.words.length === 0 ? m.knownWords.empty : m.knownWords.noMatches}
-        fallback={
-          manager.loadFailed ? (
-            <UnavailableState description={m.knownWords.loadFailed} onRetry={manager.retry} />
-          ) : undefined
-        }
-      />
+      {manager.loadFailed ? (
+        <CenteredEmpty className="min-h-0 grow">
+          <UnavailableState description={m.knownWords.loadFailed} onRetry={manager.retry} />
+        </CenteredEmpty>
+      ) : (
+        <DataTable
+          className="min-h-0 grow"
+          table={table}
+          isLoading={manager.isLoading}
+          skeletonRowCount={8}
+          emptyStateMessage={
+            manager.words.length === 0 ? m.knownWords.empty : m.knownWords.noMatches
+          }
+        />
+      )}
     </>
   );
 }

@@ -27,7 +27,7 @@
 - Chinese text gets `lang="zh"`, so the webview picks a Chinese font
 - Use LTS Node.js and Node.js types
 - UI components: see `src/shared/ui/AGENTS.md`
-- `knip.json` treats the vendored `src/shared/ui/shadcn/` components as entry points, so unused ones are kept; anything else knip reports as unused gets deleted
+- `knip.json` treats the vendored `src/shared/ui/shadcn/` components as entry points, so it skips their unused exports; delete a vendored component once no file imports it, and anything else knip reports as unused gets deleted
 
 ## Frontend: commands (Rust)
 
