@@ -13,9 +13,9 @@ use crate::onnx::{self, Graph};
 
 const SOURCE_TOKENIZER: &str = "source.spm";
 const VOCABULARY: &str = "vocab.json";
-const ENCODER: &str = "encoder_model_quantized.onnx";
-const FIRST_STEP: &str = "decoder_model_quantized.onnx";
-const NEXT_STEP: &str = "decoder_with_past_model_quantized.onnx";
+const ENCODER: &str = "encoder_model_fp16.onnx";
+const FIRST_STEP: &str = "decoder_model_fp16.onnx";
+const NEXT_STEP: &str = "decoder_with_past_model_fp16.onnx";
 
 /// Everything `load` reads from the translator folder.
 pub const FILES: [&str; 5] = [SOURCE_TOKENIZER, VOCABULARY, ENCODER, FIRST_STEP, NEXT_STEP];
@@ -36,9 +36,9 @@ const TARGET_TOKENS_PER_SOURCE_TOKEN: usize = 3;
 /// SentencePiece marks a word's start with this instead of a space.
 const WORD_START: char = '▁';
 
-/// Helsinki-NLP's opus-mt-zh-en (Marian), its graphs quantized to int8 by
+/// Helsinki-NLP's opus-mt-zh-en (Marian), its graphs converted to fp16 by
 /// Xenova, downloaded by `models`. Translates Chinese in either script
-/// to English, greedily, on every CPU core.
+/// to English, greedily, on the GPU or every CPU core.
 pub struct Translator {
     executor: Executor,
     tokenizer: SentencePieceProcessor,

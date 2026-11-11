@@ -1,9 +1,10 @@
 //! Loads ONNX graphs into tract, working around what tract 0.23 cannot run as
-//! exported in MOSS-TTS-Nano and opus-mt.
+//! exported in MOSS-TTS-Nano and opus-mt, and runs them on the GPU when there
+//! is one.
 
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use anyhow::{Context, bail, ensure};
 use tract_onnx::pb::attribute_proto::AttributeType;
@@ -14,7 +15,7 @@ use tract_onnx::pb::{AttributeProto, GraphProto, ModelProto, NodeProto};
 use tract_onnx::prelude::*;
 use tract_onnx::tract_core::ops::konst::Const;
 
-pub type Graph = Arc<TypedRunnableModel>;
+pub type Graph = Arc<dyn Runnable>;
 
 /// Loads `dir/name` with its external weights from `dir`. `inputs` are the
 /// input names in order, checked against the file; a fact in place of a
@@ -44,9 +45,32 @@ pub fn load(
             model.set_input_fact(index, fact.clone())?;
         }
     }
+    let model = model.into_typed()?.into_decluttered()?;
+    if let Some(gpu) = gpu() {
+        match gpu.prepare(model.clone()) {
+            Ok(graph) => return Ok(graph.into()),
+            Err(error) => log::warn!("{name} runs on the CPU: the GPU cannot run it: {error:#}"),
+        }
+    }
     let mut model = model.into_optimized()?;
     fold_constant_reductions(&mut model)?;
-    model.into_runnable()
+    Ok(Arc::new(model.into_runnable()?))
+}
+
+/// tract's wgpu runtime, on Vulkan, Metal or Direct3D 12. Operations it has
+/// no kernel for still run on the CPU, within the same graph.
+fn gpu() -> Option<&'static dyn Runtime> {
+    static GPU: OnceLock<Option<&'static dyn Runtime>> = OnceLock::new();
+    *GPU.get_or_init(|| {
+        let gpu = tract_wgpu::try_wgpu_context().and_then(|_| runtime_for_name("wgpu"));
+        match gpu {
+            Ok(gpu) => gpu,
+            Err(error) => {
+                log::info!("The models run on the CPU: no GPU: {error:#}");
+                None
+            }
+        }
+    })
 }
 
 fn rewrite(proto: &mut ModelProto, same_dimensions: &[(&str, &str)]) -> TractResult<()> {

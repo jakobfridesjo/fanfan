@@ -31,16 +31,16 @@ pub const FILES: [&str; 9] = [
     MANIFEST,
     PREFILL,
     DECODE_STEP,
-    "moss_tts_global_shared_int8.data",
+    "moss_tts_global_shared_fp16.data",
     SAMPLER,
-    "moss_tts_local_fixed_sampled_frame_int8.data",
+    "moss_tts_local_fixed_sampled_frame_fp16.data",
     CODEC,
     "moss_audio_tokenizer_decode_shared.data",
 ];
 
 /// Names the model and generation settings. Change it when either changes,
 /// so cached audio from the old model is not played.
-pub const MODEL_ID: &str = "moss-tts-nano-int8-23fd1979-v2";
+pub const MODEL_ID: &str = "moss-tts-nano-fp16-f5f2cf42";
 
 /// The manifest's built-in Chinese voices, each a short recording it carries
 /// already encoded. The others speak Chinese with an English or Japanese accent.
@@ -138,8 +138,8 @@ struct BuiltinVoice {
     prompt_audio_codes: Vec<Vec<i32>>,
 }
 
-/// MOSS-TTS-Nano, downloaded by `models`, its language model quantized to
-/// int8, run on every CPU core by tract and speaking in any `Speaker`'s voice.
+/// MOSS-TTS-Nano, downloaded by `models`, its language model in fp16, run by
+/// tract on the GPU or every CPU core and speaking in any `Speaker`'s voice.
 pub struct Voice {
     executor: Executor,
     dir: PathBuf,

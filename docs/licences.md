@@ -14,7 +14,7 @@ FanFan is licensed under either [Apache License 2.0](../LICENSE-APACHE) or [MIT]
 | MOSS-TTS-Nano | Apache-2.0                 | Downloaded on first use   |
 | opus-mt-zh-en | CC BY 4.0                  | Downloaded on first use   |
 
-HSK 3.0 comes from drkameleon/complete-hsk-vocabulary; opus-mt-zh-en is Helsinki-NLP's model in Xenova's int8 ONNX export.
+HSK 3.0 comes from drkameleon/complete-hsk-vocabulary; opus-mt-zh-en is Helsinki-NLP's model in Xenova's fp16 ONNX export.
 
 ### TBCL attribution
 

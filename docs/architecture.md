@@ -42,6 +42,7 @@ CC-CEDICT is bundled with the app; the `data/` files are compiled into `vocab-co
 | MOSS-TTS-Nano | Speech      | `vocab-core/src/speech.rs`      |
 | opus-mt-zh-en | Translation | `vocab-core/src/translation.rs` |
 
+- Both run in fp16 on tract's wgpu runtime (Vulkan, Metal or Direct3D 12) when there is a GPU, and on the CPU otherwise; see `vocab-core/src/onnx.rs`.
 - Models are downloaded on first use, never bundled. The file list in `vocab-core/src/models.rs` is the single source of URLs, sizes and SHA-256 checksums.
 - **Bumping MOSS-TTS-Nano:** update its files, its `folder` name and `MODEL_ID` in `speech.rs` together.
 - In the frontend, call `ensureModel` (`src/shared/api/model-downloads.ts`) before anything that needs a model. It opens the download dialog when the model is missing.

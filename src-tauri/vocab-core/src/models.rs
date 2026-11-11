@@ -16,7 +16,7 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{Error, Result};
 
-const VOICE_MODELS: &str = "https://huggingface.co/REALBITS/MOSS-TTS-Nano-100M-ONNX-int8/resolve/23fd19793be20a4f3f6aacd4e3a2130c8e3d2519";
+const VOICE_MODELS: &str = "https://huggingface.co/REALBITS/MOSS-TTS-Nano-100M-ONNX-fp16/resolve/f5f2cf428cfa6e95680392619e29362b3082a014";
 const VOICE_CODEC: &str = "https://huggingface.co/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX/resolve/ceff0d0749bfb3fa2d61149794ec6feef0d1e1ae";
 const TRANSLATOR: &str =
     "https://huggingface.co/Xenova/opus-mt-zh-en/resolve/39d480d52a9ea3065a1f117adfe4dbc55de10e6f";
@@ -74,32 +74,32 @@ const VOICE_FILES: [ModelFile; 9] = [
     file(
         "moss_tts_prefill.onnx",
         VOICE_MODELS,
-        477_742,
-        "25409338ab270f9cad4faea12e5ae9ee29dbc3cacb8ee9eafbc16fc85706b095",
+        475_866,
+        "33f64c445fe3be504ae7f407504caa76b39a83d4e972e0c1e6165c5da526d784",
     ),
     file(
         "moss_tts_decode_step.onnx",
         VOICE_MODELS,
-        489_413,
-        "854d6d905f230e58b03fd12ca9a930d852086db231d10c00d21fb66f8a567aee",
+        502_789,
+        "a737ab131f559b026565fe5eacaa83483ba96bb548989337e4bafab4a619a938",
     ),
     file(
-        "moss_tts_global_shared_int8.data",
+        "moss_tts_global_shared_fp16.data",
         VOICE_MODELS,
-        110_512_128,
-        "b127207a2274826b113fd3f2c4917ef366535c3324dd0f8fe95d6355626a85bb",
+        220_445_184,
+        "604741414938c22d27ad8f930313cac50e322bcc3dec846183d38baf39272931",
     ),
     file(
         "moss_tts_local_fixed_sampled_frame.onnx",
         VOICE_MODELS,
-        744_178,
-        "3baf66aac8bb52e4d7adc9204299a4947788b100efdd07af198f117a59f120a6",
+        819_138,
+        "a4022ecc69ae4b0bc1ff6e28bf3e0da3b451146144a9e74ae1c8cb8cb394c1a0",
     ),
     file(
-        "moss_tts_local_fixed_sampled_frame_int8.data",
+        "moss_tts_local_fixed_sampled_frame_fp16.data",
         VOICE_MODELS,
-        84_974_592,
-        "dbbdde4c10bf59e7d63087c6688ca18bad46088d5e4c8c0b7d9e858304d44aa4",
+        113_270_784,
+        "ce4ee4572ac32d57cd485292c97607a5f093d6388e49fe1a6582e0d10eab6814",
     ),
     file(
         "moss_audio_tokenizer_decode_full.onnx",
@@ -129,22 +129,22 @@ const TRANSLATOR_FILES: [ModelFile; 5] = [
         "08a119a1defd522fa047cb5e3bfe3e89633e96caa38ced0dc9cee7ef1021a011",
     ),
     file(
-        "encoder_model_quantized.onnx",
+        "encoder_model_fp16.onnx",
         TRANSLATOR_GRAPHS,
-        52_899_742,
-        "84d5e171b626bc8b6b220d022ac58696e9528c25deeacca62b5cbf4364547a99",
+        105_062_004,
+        "82feb1ecc135aad5b07e1aa4fae41479c28e7336af4c8972e015cfe79285e279",
     ),
     file(
-        "decoder_model_quantized.onnx",
+        "decoder_model_fp16.onnx",
         TRANSLATOR_GRAPHS,
-        59_842_102,
-        "debcc3054b9ff9aaed972bd6e251a459abe1e2f1402da1efa63163dc2f46ef73",
+        117_926_564,
+        "6c049261c523d4e89002656b99bf0a5988eda3d3d6b74730d022e843c0c03f41",
     ),
     file(
-        "decoder_with_past_model_quantized.onnx",
+        "decoder_with_past_model_fp16.onnx",
         TRANSLATOR_GRAPHS,
-        56_570_638,
-        "fbc484152fad41788c729d184058261b2a55d84eed270efa59f0ece477494e00",
+        111_560_936,
+        "45939416c53cff3c15baca92409d03774633ca0bade7d5f3e2093027efa81b36",
     ),
 ];
 
@@ -161,8 +161,8 @@ impl Model {
     /// Names the revision, so a newer one downloads beside the old, which `tidy` drops.
     fn folder(self) -> &'static str {
         match self {
-            Model::Voice => "moss-tts-nano-int8-23fd1979",
-            Model::Translator => "opus-mt-zh-en-39d480d5",
+            Model::Voice => "moss-tts-nano-fp16-f5f2cf42",
+            Model::Translator => "opus-mt-zh-en-fp16-39d480d5",
         }
     }
 
