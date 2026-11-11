@@ -4,7 +4,6 @@ import { ConfirmationDialog } from "@/shared/ui/ConfirmationDialog.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
-import { Card, CardContent } from "@/shared/ui/shadcn/card.tsx";
 import {
   Empty,
   EmptyContent,
@@ -14,14 +13,11 @@ import {
   EmptyTitle,
 } from "@/shared/ui/shadcn/empty.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
-import { Spinner } from "@/shared/ui/shadcn/spinner.tsx";
-import {
-  useLibraryManager,
-  type ImportProgress,
-} from "@/pages/library/model/use-library-manager.ts";
+import { useLibraryManager } from "@/pages/library/model/use-library-manager.ts";
 import { DocumentCard } from "@/pages/library/ui/DocumentCard.tsx";
 import { FolderCard } from "@/pages/library/ui/FolderCard.tsx";
-import { FolderNameDialog } from "@/pages/library/ui/FolderNameDialog.tsx";
+import { ImportProgressDialog } from "@/pages/library/ui/ImportProgressDialog.tsx";
+import { NameDialog } from "@/pages/library/ui/NameDialog.tsx";
 
 /** Covers as posters, as many to a row as fit. */
 const SHELF = "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-4";
@@ -44,10 +40,10 @@ function LibraryManager() {
     takeOutOfFolder,
     drag,
     dragHandlers,
-    folderDialog,
-    setFolderDialog,
-    submitFolderName,
-    savingFolder,
+    nameDialog,
+    setNameDialog,
+    submitName,
+    savingName,
   } = useLibraryManager();
   const landing = (kind: "document" | "folder", id: number) =>
     drag?.over?.kind === kind && drag.over.id === id;
@@ -64,10 +60,10 @@ function LibraryManager() {
             type="button"
             variant="outline"
             aria-label={m.library.renameFolderLabel}
-            onClick={() => setFolderDialog({ kind: "rename", folder: openFolder })}
+            onClick={() => setNameDialog({ kind: "renameFolder", folder: openFolder })}
           >
             <Pencil data-icon="inline-start" />
-            {m.library.renameFolder}
+            {m.common.rename}
           </Button>
         </PageHeader>
       ) : (
@@ -90,28 +86,24 @@ function LibraryManager() {
       )}
 
       <div className="-m-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-1 scroll-fade">
-        {progress && <ImportProgressCard progress={progress} />}
-
         {loading ? (
           <LibrarySkeleton />
         ) : documents.length === 0 ? (
-          !progress && (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <BookOpen />
-                </EmptyMedia>
-                <EmptyTitle>{m.library.emptyTitle}</EmptyTitle>
-                <EmptyDescription>{m.library.emptyDescription}</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button type="button" onClick={() => void chooseFile()} disabled={importing}>
-                  <FileUp data-icon="inline-start" />
-                  {m.library.importBook}
-                </Button>
-              </EmptyContent>
-            </Empty>
-          )
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <BookOpen />
+              </EmptyMedia>
+              <EmptyTitle>{m.library.emptyTitle}</EmptyTitle>
+              <EmptyDescription>{m.library.emptyDescription}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button type="button" onClick={() => void chooseFile()} disabled={importing}>
+                <FileUp data-icon="inline-start" />
+                {m.library.importBook}
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
           <div className={SHELF}>
             {items.map((item) =>
@@ -131,6 +123,7 @@ function LibraryManager() {
                   dragHandlers={dragHandlers(item.document.id)}
                   acceptsDrop={!openFolder}
                   landing={landing("document", item.document.id)}
+                  onRename={() => setNameDialog({ kind: "renameBook", document: item.document })}
                   onDelete={() => setDeletingDocument(item.document)}
                   onTakeOut={openFolder ? () => takeOutOfFolder(item.document) : undefined}
                 />
@@ -151,32 +144,17 @@ function LibraryManager() {
         message={m.library.deleteMessage(deletingDocument?.title ?? "")}
       />
 
-      {folderDialog && (
-        <FolderNameDialog
-          dialog={folderDialog}
-          saving={savingFolder}
-          onSubmit={submitFolderName}
-          onClose={() => setFolderDialog(null)}
+      {nameDialog && (
+        <NameDialog
+          dialog={nameDialog}
+          saving={savingName}
+          onSubmit={submitName}
+          onClose={() => setNameDialog(null)}
         />
       )}
-    </>
-  );
-}
 
-function ImportProgressCard({ progress }: { progress: ImportProgress }) {
-  const m = useMessages();
-  return (
-    <Card size="sm" className="shrink-0" role="status">
-      <CardContent className="flex items-center gap-3">
-        <Spinner />
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate font-medium">{m.library.importing(progress.fileName)}</span>
-          <span className="text-muted-foreground">
-            {m.library.stages[progress.stage ?? "dictionary"]}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+      {progress && <ImportProgressDialog progress={progress} />}
+    </>
   );
 }
 

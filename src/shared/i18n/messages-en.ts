@@ -8,6 +8,7 @@ export const en = {
     back: "Back",
     actions: "Actions",
     cancel: "Cancel",
+    rename: "Rename",
     delete: "Delete",
     tryAgain: "Try again",
     required: "Required",
@@ -47,7 +48,7 @@ export const en = {
     deleteTitle: "Delete Book",
     deleteMessage: (title: string) =>
       `Delete “${title}” from your library? Words you know or are learning stay as they are.`,
-    importing: (fileName: string) => `Importing ${fileName}`,
+    importTitle: "Importing Book",
     stages: {
       dictionary: "Loading the dictionary…",
       reading: "Reading the file…",
@@ -72,8 +73,10 @@ export const en = {
     renameFolderTitle: "Rename Folder",
     folderName: "Name",
     createFolder: "Create",
-    renameFolder: "Rename",
     renameFolderLabel: "Rename folder",
+    renameBookTitle: "Rename Book",
+    bookTitle: "Title",
+    renameFailed: "Could not rename the book",
     takeOut: "Take out of folder",
     folderFailed: "Could not change the folder",
     movedToFolder: (title: string, folder: string) => `Moved “${title}” to “${folder}”`,

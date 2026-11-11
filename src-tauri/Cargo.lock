@@ -1219,7 +1219,9 @@ name = "fanfan"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "jni",
  "log",
+ "ndk-context",
  "percent-encoding",
  "serde",
  "tauri",

@@ -188,7 +188,11 @@ export interface Statistics {
   streak: number;
 }
 
-export type ImportStage = "reading" | "analyzing" | "saving";
+export type ImportStage =
+  | { stage: "reading"; fileName: string }
+  /** `done` is the share of the text split into words so far, from 0 to 1. */
+  | { stage: "analyzing"; done: number }
+  | { stage: "saving" };
 
 export interface KnownWordsImport {
   found: number;
@@ -202,6 +206,7 @@ export type Rating = 1 | 2 | 3 | 4;
 export type CommandName =
   | "list_documents"
   | "import_document"
+  | "rename_document"
   | "delete_document"
   | "list_folders"
   | "create_folder"
@@ -235,6 +240,8 @@ export const commands = {
     const channel = new Channel<ImportStage>(onProgress);
     return invoke<DocumentSummary>("import_document", { path, onProgress: channel });
   },
+
+  renameDocument: (id: number, title: string) => invoke<null>("rename_document", { id, title }),
 
   deleteDocument: (id: number) => invoke<null>("delete_document", { id }),
 

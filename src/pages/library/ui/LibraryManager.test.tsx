@@ -96,17 +96,26 @@ describe("LibraryManager", () => {
     const { router } = await renderPageInRouter(<LibraryManager />);
 
     await screen.getByRole("button", { name: "Import book" }).click();
-    await expect.element(screen.getByText("Importing 西游记.epub")).toBeVisible();
-    await expect.element(screen.getByText("Loading the dictionary…")).toBeVisible();
+    const dialog = screen.getByRole("dialog", { name: "Importing Book" });
+    await expect.element(dialog.getByText("Loading the dictionary…")).toBeVisible();
+    await expect.element(dialog.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
 
-    sendToChannel(progress, "reading", "analyzing");
-    await expect.element(screen.getByText("Splitting the text into words…")).toBeVisible();
+    // On Android the picked path is a content:// URI; Rust names the file.
+    sendToChannel(
+      progress,
+      { stage: "reading", fileName: "西游记.epub" },
+      { stage: "analyzing", done: 0.5 }
+    );
+    await expect.element(dialog.getByText("西游记.epub")).toBeVisible();
+    await expect.element(dialog.getByText("Splitting the text into words…")).toBeVisible();
+    await expect.element(dialog.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "47.5");
 
     const imported = makeDocument({ id: 9, title: "西游记" });
     documents = [imported];
     result.resolve(imported);
 
     await expect.element(screen.getByText("Imported “西游记”")).toBeVisible();
+    await expect.element(dialog).not.toBeInTheDocument();
     await expect.element(screen.getByRole("link", { name: "Read 西游记" })).toBeVisible();
     expect(router.state.location.pathname).toBe("/");
     expect(callsTo(calls, "import_document")[0]?.path).toBe("/home/me/books/西游记.epub");
@@ -159,6 +168,56 @@ describe("LibraryManager", () => {
     await expect.element(screen.getByText("Deleted “活着”")).toBeVisible();
     await expect.element(screen.getByText("No books yet")).toBeVisible();
     expect(callsTo(calls, "delete_document")).toEqual([{ id: 4 }]);
+  });
+
+  it("renames a book from its menu", async () => {
+    const titles = new Map([[4, "1000"]]);
+    const calls = mockCommands({
+      list_documents: () => [...titles].map(([id, title]) => makeDocument({ id, title })),
+      list_folders: () => [],
+      rename_document: ({ id, title }) => {
+        titles.set(Number(id), String(title));
+        return null;
+      },
+    });
+    await renderPageInRouter(<LibraryManager />);
+
+    await screen.getByRole("button", { name: "Actions for 1000" }).click();
+    await screen.getByRole("menuitem", { name: "Rename" }).click();
+    const dialog = screen.getByRole("dialog", { name: "Rename Book" });
+    const title = dialog.getByRole("textbox", { name: "Title" });
+    await expect.element(title).toHaveValue("1000");
+
+    await title.fill(" ");
+    await dialog.getByRole("button", { name: "Rename" }).click();
+    await expect.element(dialog.getByText("Required")).toBeVisible();
+    expect(callsTo(calls, "rename_document")).toEqual([]);
+
+    await title.fill("活着");
+    await dialog.getByRole("button", { name: "Rename" }).click();
+    await expect.element(dialog).not.toBeInTheDocument();
+    await expect.element(screen.getByRole("link", { name: "Read 活着" })).toBeVisible();
+    expect(callsTo(calls, "rename_document")).toEqual([{ id: 4, title: "活着" }]);
+  });
+
+  it("keeps the dialog open with the old title when renaming fails", async () => {
+    mockCommands({
+      list_documents: () => [makeDocument({ id: 4, title: "1000" })],
+      list_folders: () => [],
+      rename_document: () => Promise.reject(new Error("Document 4 does not exist")),
+    });
+    await renderPageInRouter(<LibraryManager />);
+
+    await screen.getByRole("button", { name: "Actions for 1000" }).click();
+    await screen.getByRole("menuitem", { name: "Rename" }).click();
+    const dialog = screen.getByRole("dialog", { name: "Rename Book" });
+    await dialog.getByRole("textbox", { name: "Title" }).fill("活着");
+    await dialog.getByRole("button", { name: "Rename" }).click();
+
+    await expect.element(screen.getByText("Document 4 does not exist")).toBeVisible();
+    await expect.element(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect.element(screen.getByRole("link", { name: "Read 1000" })).toBeVisible();
   });
 
   it("keeps the book when the deletion is cancelled", async () => {

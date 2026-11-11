@@ -55,7 +55,7 @@ export function ConfirmationDialog({
           {message && <AlertDialogDescription>{message}</AlertDialogDescription>}
         </AlertDialogHeader>
         {children}
-        <AlertDialogFooter>
+        <AlertDialogFooter className="grid grid-cols-2 sm:flex">
           <AlertDialogCancel onClick={onClose} disabled={loading}>
             {m.common.cancel}
           </AlertDialogCancel>

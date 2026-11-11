@@ -26,6 +26,8 @@ pub enum Error {
     SectionNotFound(i64, u32),
     #[error("Folder {0} does not exist")]
     FolderNotFound(i64),
+    #[error("A book needs a title")]
+    EmptyTitle,
     #[error("A folder needs a name")]
     EmptyFolderName,
     #[error("A folder needs at least two books")]

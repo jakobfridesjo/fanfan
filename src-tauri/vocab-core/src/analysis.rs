@@ -58,12 +58,26 @@ pub fn tokenize<'a>(text: &'a str, jieba: &Jieba, dictionary: &Dictionary) -> Ve
     pieces
 }
 
-pub fn analyze(text: &str, jieba: &Jieba, dictionary: &Dictionary) -> Analysis {
+/// Reports the share of the text gone through, from 0 to 1, each time it grows by a percent.
+pub fn analyze(
+    text: &str,
+    jieba: &Jieba,
+    dictionary: &Dictionary,
+    mut progress: impl FnMut(f32),
+) -> Analysis {
     let text = normalize(text);
     let mut stats: HashMap<&str, (u32, usize, String)> = HashMap::new();
     let mut total_tokens = 0;
+    let mut reported_percent = 0;
+    progress(0.0);
 
     for sentence in sentences(&text) {
+        let read = sentence.as_ptr() as usize - text.as_ptr() as usize + sentence.len();
+        let percent = read * 100 / text.len();
+        if percent > reported_percent {
+            reported_percent = percent;
+            progress(percent as f32 / 100.0);
+        }
         let words = tokenize(sentence, jieba, dictionary)
             .into_iter()
             .filter(|piece| piece.is_word);
@@ -153,7 +167,7 @@ mod tests {
     use crate::dictionary::tests::SAMPLE;
 
     fn analyze_sample(text: &str) -> Analysis {
-        analyze(text, &Jieba::new(), &Dictionary::parse(SAMPLE))
+        analyze(text, &Jieba::new(), &Dictionary::parse(SAMPLE), |_| {})
     }
 
     fn words(analysis: &Analysis) -> Vec<(&str, u32)> {
@@ -266,7 +280,7 @@ mod tests {
                 *counts.entry(piece.text).or_default() += 1;
             }
         }
-        let analysis = analyze(paragraph, &jieba, &dictionary);
+        let analysis = analyze(paragraph, &jieba, &dictionary, |_| {});
         let analyzed: HashMap<&str, u32> = words(&analysis).into_iter().collect();
         assert_eq!(counts, analyzed);
     }

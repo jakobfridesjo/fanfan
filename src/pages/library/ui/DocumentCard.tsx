@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookCheck, FolderOutput, MoreHorizontal, Trash2 } from "lucide-react";
+import { BookCheck, FolderOutput, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { cn } from "@/shared/lib/class-names.ts";
@@ -28,6 +28,7 @@ interface DocumentCardProps {
   /** Whether another book dropped here makes a folder of the two. */
   acceptsDrop: boolean;
   landing: boolean;
+  onRename: () => void;
   onDelete: () => void;
   /** Shown inside a folder. */
   onTakeOut?: () => void;
@@ -35,7 +36,7 @@ interface DocumentCardProps {
 
 /**
  * A cover that opens the reader, and below it a link to study its words and a menu
- * that deletes the book or, in a folder, takes it out.
+ * that renames or deletes the book or, in a folder, takes it out.
  */
 export function DocumentCard({
   document,
@@ -43,6 +44,7 @@ export function DocumentCard({
   dragHandlers,
   acceptsDrop,
   landing,
+  onRename,
   onDelete,
   onTakeOut,
 }: DocumentCardProps) {
@@ -108,6 +110,10 @@ export function DocumentCard({
                 {m.library.takeOut}
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={onRename}>
+              <Pencil />
+              {m.common.rename}
+            </DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onClick={onDelete}>
               <Trash2 />
               {m.common.delete}

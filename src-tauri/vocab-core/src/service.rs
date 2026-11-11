@@ -33,11 +33,21 @@ impl Language {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(
+    tag = "stage",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum ImportStage {
-    Reading,
-    Analyzing,
+    /// The name the file had when picked, which on Android the frontend never sees.
+    Reading {
+        file_name: String,
+    },
+    /// `done` is the share of the text split into words so far, from 0 to 1.
+    Analyzing {
+        done: f32,
+    },
     Saving,
 }
 
@@ -170,16 +180,22 @@ pub fn analyze_file(
     language: &Language,
     mut progress: impl FnMut(ImportStage),
 ) -> Result<AnalyzedFile> {
-    progress(ImportStage::Reading);
-    let extracted = extract(path)?;
-    progress(ImportStage::Analyzing);
-    let analysis = analyze(&extracted.text(), &language.jieba, &language.dictionary);
-    if analysis.total_tokens == 0 {
-        return Err(Error::NoChineseText);
-    }
     let file_name = path
         .file_name()
         .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
+    progress(ImportStage::Reading {
+        file_name: file_name.clone(),
+    });
+    let extracted = extract(path)?;
+    let analysis = analyze(
+        &extracted.text(),
+        &language.jieba,
+        &language.dictionary,
+        |done| progress(ImportStage::Analyzing { done }),
+    );
+    if analysis.total_tokens == 0 {
+        return Err(Error::NoChineseText);
+    }
     Ok(AnalyzedFile {
         title: extracted.title,
         content_hash,
@@ -518,7 +534,13 @@ mod tests {
             stages.push(stage)
         })
         .unwrap();
-        assert_eq!(stages, [ImportStage::Reading, ImportStage::Analyzing]);
+        assert_eq!(
+            stages.first(),
+            Some(&ImportStage::Reading {
+                file_name: "小说.txt".into()
+            })
+        );
+        assert_eq!(stages.last(), Some(&ImportStage::Analyzing { done: 1.0 }));
 
         let mut store = Store::open_in_memory().unwrap();
         let summary = save_file(&mut store, &file, now()).unwrap();
@@ -835,8 +857,19 @@ mod tests {
             serde_json::json!({ "id": folder.id, "name": "书" })
         );
         assert_eq!(
-            serde_json::to_value(ImportStage::Analyzing).unwrap(),
-            "analyzing"
+            serde_json::to_value(ImportStage::Analyzing { done: 0.5 }).unwrap(),
+            serde_json::json!({ "stage": "analyzing", "done": 0.5 })
+        );
+        assert_eq!(
+            serde_json::to_value(ImportStage::Reading {
+                file_name: "书.txt".into()
+            })
+            .unwrap(),
+            serde_json::json!({ "stage": "reading", "fileName": "书.txt" })
+        );
+        assert_eq!(
+            serde_json::to_value(ImportStage::Saving).unwrap(),
+            serde_json::json!({ "stage": "saving" })
         );
         assert_eq!(serde_json::to_value(WordStatus::Known).unwrap(), "known");
         let list = word_list(

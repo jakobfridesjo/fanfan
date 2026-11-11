@@ -8,6 +8,7 @@ export const sv: Messages = {
     back: "Tillbaka",
     actions: "Åtgärder",
     cancel: "Avbryt",
+    rename: "Byt namn",
     delete: "Ta bort",
     tryAgain: "Försök igen",
     required: "Obligatoriskt",
@@ -47,7 +48,7 @@ export const sv: Messages = {
     deleteTitle: "Ta bort bok",
     deleteMessage: (title) =>
       `Ta bort ”${title}” från ditt bibliotek? Ord du kan eller håller på att lära dig påverkas inte.`,
-    importing: (fileName) => `Importerar ${fileName}`,
+    importTitle: "Importerar bok",
     stages: {
       dictionary: "Laddar ordboken…",
       reading: "Läser filen…",
@@ -73,8 +74,10 @@ export const sv: Messages = {
     renameFolderTitle: "Byt namn på mapp",
     folderName: "Namn",
     createFolder: "Skapa",
-    renameFolder: "Byt namn",
     renameFolderLabel: "Byt namn på mappen",
+    renameBookTitle: "Byt namn på bok",
+    bookTitle: "Titel",
+    renameFailed: "Kunde inte byta namn på boken",
     takeOut: "Ta ut ur mappen",
     folderFailed: "Kunde inte ändra mappen",
     movedToFolder: (title, folder) => `Flyttade ”${title}” till ”${folder}”`,

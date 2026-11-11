@@ -184,6 +184,14 @@ pub async fn import_document(
 }
 
 #[tauri::command]
+pub async fn rename_document(app: AppHandle, id: i64, title: String) -> CommandResult<()> {
+    blocking(app, move |state| {
+        Ok(state.writer()?.rename_document(id, &title)?)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn delete_document(app: AppHandle, id: i64) -> CommandResult<()> {
     blocking(app, move |state| Ok(state.writer()?.delete_document(id)?)).await
 }

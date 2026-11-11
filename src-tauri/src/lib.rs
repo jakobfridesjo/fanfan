@@ -57,6 +57,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::list_documents,
             commands::import_document,
+            commands::rename_document,
             commands::delete_document,
             commands::list_folders,
             commands::create_folder,

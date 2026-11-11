@@ -20,18 +20,34 @@ const libraryToast = actionToasts("library-action");
 
 const IMPORT_EXTENSIONS = ["txt", "epub", "pdf"];
 
+/** `stage` is null until Rust reports one, while it loads the dictionary. */
 export interface ImportProgress {
-  fileName: string;
+  fileName: string | null;
   stage: ImportStage | null;
+}
+
+/** Splitting the text into words is most of the wait. */
+export function importPercent(stage: ImportStage | null): number {
+  switch (stage?.stage) {
+    case undefined:
+      return 0;
+    case "reading":
+      return 5;
+    case "analyzing":
+      return 5 + stage.done * 85;
+    case "saving":
+      return 90;
+  }
 }
 
 export type ShelfItem =
   | { kind: "document"; document: DocumentSummary }
   | { kind: "folder"; folder: Folder; documents: DocumentSummary[] };
 
-export type FolderDialog =
-  | { kind: "create"; documentIds: [number, number] }
-  | { kind: "rename"; folder: Folder };
+export type NameDialog =
+  | { kind: "createFolder"; documentIds: [number, number] }
+  | { kind: "renameFolder"; folder: Folder }
+  | { kind: "renameBook"; document: DocumentSummary };
 
 const EMPTY_DOCUMENTS: DocumentSummary[] = [];
 const EMPTY_FOLDERS: Folder[] = [];
@@ -59,10 +75,6 @@ function shelfItems(documents: DocumentSummary[], folders: Folder[]): ShelfItem[
   return items;
 }
 
-function fileNameOf(path: string) {
-  return path.split(/[\\/]/).pop() ?? path;
-}
-
 export function useLibraryManager() {
   const m = useMessages();
   const queryClient = useQueryClient();
@@ -74,7 +86,7 @@ export function useLibraryManager() {
     z.nullable(z.number()),
     null
   );
-  const [folderDialog, setFolderDialog] = useState<FolderDialog | null>(null);
+  const [nameDialog, setNameDialog] = useState<NameDialog | null>(null);
 
   const documents = useQuery(documentsQuery());
   const folders = useQuery(foldersQuery());
@@ -104,15 +116,31 @@ export function useLibraryManager() {
   const importMutation = useMutation({
     mutationFn: (path: string) =>
       commands.importDocument(path, (stage) =>
-        setProgress((current) => current && { ...current, stage })
+        setProgress(
+          (current) =>
+            current && {
+              fileName: stage.stage === "reading" ? stage.fileName : current.fileName,
+              stage,
+            }
+        )
       ),
-    onMutate: (path) => setProgress({ fileName: fileNameOf(path), stage: null }),
+    onMutate: () => setProgress({ fileName: null, stage: null }),
     onSettled: () => setProgress(null),
     onSuccess: async (document) => {
       await queryClient.invalidateQueries({ queryKey: documentsQuery().queryKey });
       libraryToast.success(m.library.imported(document.title));
     },
     onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.importFailed)),
+  });
+
+  const renameBookMutation = useMutation({
+    mutationFn: ({ id, title }: { id: number; title: string }) =>
+      commands.renameDocument(id, title),
+    onSuccess: async () => {
+      setNameDialog(null);
+      await queryClient.invalidateQueries({ queryKey: documentsQuery().queryKey });
+    },
+    onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.renameFailed)),
   });
 
   const deleteMutation = useMutation({
@@ -139,7 +167,7 @@ export function useLibraryManager() {
     mutationFn: ({ name, documentIds }: { name: string; documentIds: number[] }) =>
       commands.createFolder(name, documentIds),
     onSuccess: async () => {
-      setFolderDialog(null);
+      setNameDialog(null);
       await refreshShelf();
     },
     onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.folderFailed)),
@@ -148,7 +176,7 @@ export function useLibraryManager() {
   const renameFolderMutation = useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) => commands.renameFolder(id, name),
     onSuccess: async () => {
-      setFolderDialog(null);
+      setNameDialog(null);
       await queryClient.invalidateQueries({ queryKey: foldersQuery().queryKey });
     },
     onError: (error) => libraryToast.error(commandErrorMessage(error, m.library.folderFailed)),
@@ -162,16 +190,18 @@ export function useLibraryManager() {
       const folder = allFolders.find((candidate) => candidate.id === target.id);
       if (folder && folder.id !== document.folderId) moveMutation.mutate({ document, folder });
     } else if (!openFolder) {
-      setFolderDialog({ kind: "create", documentIds: [target.id, documentId] });
+      setNameDialog({ kind: "createFolder", documentIds: [target.id, documentId] });
     }
   };
   const { drag, dragHandlers } = useShelfDrag(dropBook);
 
-  const submitFolderName = (name: string) => {
-    if (folderDialog?.kind === "create") {
-      createFolderMutation.mutate({ name, documentIds: folderDialog.documentIds });
-    } else if (folderDialog?.kind === "rename") {
-      renameFolderMutation.mutate({ id: folderDialog.folder.id, name });
+  const submitName = (name: string) => {
+    if (nameDialog?.kind === "createFolder") {
+      createFolderMutation.mutate({ name, documentIds: nameDialog.documentIds });
+    } else if (nameDialog?.kind === "renameFolder") {
+      renameFolderMutation.mutate({ id: nameDialog.folder.id, name });
+    } else if (nameDialog?.kind === "renameBook") {
+      renameBookMutation.mutate({ id: nameDialog.document.id, title: name });
     }
   };
 
@@ -204,9 +234,12 @@ export function useLibraryManager() {
     takeOutOfFolder: (document: DocumentSummary) => moveMutation.mutate({ document, folder: null }),
     drag,
     dragHandlers,
-    folderDialog,
-    setFolderDialog,
-    submitFolderName,
-    savingFolder: createFolderMutation.isPending || renameFolderMutation.isPending,
+    nameDialog,
+    setNameDialog,
+    submitName,
+    savingName:
+      createFolderMutation.isPending ||
+      renameFolderMutation.isPending ||
+      renameBookMutation.isPending,
   };
 }

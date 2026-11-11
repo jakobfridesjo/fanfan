@@ -99,6 +99,21 @@ impl Store {
             .optional()?)
     }
 
+    pub fn rename_document(&mut self, id: i64, title: &str) -> Result<()> {
+        let title = title.trim();
+        if title.is_empty() {
+            return Err(Error::EmptyTitle);
+        }
+        let renamed = self.connection.execute(
+            "UPDATE documents SET title = ?2 WHERE id = ?1",
+            params![id, title],
+        )?;
+        if renamed == 0 {
+            return Err(Error::DocumentNotFound(id));
+        }
+        Ok(())
+    }
+
     pub fn delete_document(&mut self, id: i64) -> Result<()> {
         let transaction = self.connection.transaction()?;
         let deleted = transaction.execute("DELETE FROM documents WHERE id = ?1", [id])?;
@@ -247,6 +262,22 @@ mod tests {
         store.delete_document(id).unwrap();
         store.ensure_not_imported("hash-of-book").unwrap();
         add_again(&mut store).unwrap();
+    }
+
+    #[test]
+    fn renames_a_document_to_a_trimmed_title() {
+        let (mut store, id) = store_with_document();
+
+        store.rename_document(id, "  春天的故事 ").unwrap();
+        assert_eq!(store.document(id).unwrap().title, "春天的故事");
+        assert!(matches!(
+            store.rename_document(id, "  "),
+            Err(Error::EmptyTitle)
+        ));
+        assert!(matches!(
+            store.rename_document(id + 1, "书"),
+            Err(Error::DocumentNotFound(_))
+        ));
     }
 
     #[test]

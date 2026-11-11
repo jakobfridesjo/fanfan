@@ -27,9 +27,12 @@ chrono = { version = "0.4", features = ["serde"] }
 vocab-core = { path = "vocab-core" }
 
 [target.'cfg(target_os = "android")'.dependencies]
-# Reads APK assets and the content:// URIs the file picker returns.
+# Reads APK assets and the content:// URIs the file picker returns, and asks
+# the content provider for a picked file's name.
 tauri-plugin-fs = "2.7.1"
 percent-encoding = "2.3"
+jni = "0.21.1"
+ndk-context = "0.1.1"
 
 # MOSS-TTS-Nano runs its neural network in tract, which is far too slow to
 # speak a word unoptimized; dependencies build optimized even in `mise desktop`.
