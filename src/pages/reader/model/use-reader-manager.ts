@@ -11,7 +11,15 @@ import {
   type WordStatus,
 } from "@/shared/api/commands.ts";
 import {
+  cancelModelDownload,
+  downloadModel,
+  ensureModel,
+  modelDownloadsAtom,
+  type ModelDownload,
+} from "@/shared/api/model-downloads.ts";
+import {
   documentsQuery,
+  modelsQuery,
   sectionQuery,
   sectionsQuery,
   translationQuery,
@@ -48,6 +56,13 @@ export interface Passage {
 
 const NO_PHRASES: SpokenPhrase[] = [];
 
+/** The translator while it is not on the device: its download, if one runs or failed. */
+export interface MissingTranslator {
+  download: ModelDownload | undefined;
+  onDownload: () => void;
+  onCancel: () => void;
+}
+
 export function useReaderManager(documentId: number) {
   const queryClient = useQueryClient();
   const m = useMessages();
@@ -82,9 +97,14 @@ export function useReaderManager(documentId: number) {
   /** Whether the panel shows the passage's translation; until asked, only its toolbar shows. */
   const [translationShown, setTranslationShown] = useState(false);
   const passageText = passage && section.data ? textOf(section.data, passage) : null;
+  const models = useQuery(modelsQuery());
+  const translatorDownload = useSelector(modelDownloadsAtom).translator;
+  // While the list of models is unknown, translating may still work.
+  const translatorReady =
+    models.data?.find((entry) => entry.model === "translator")?.downloaded ?? true;
   const translation = useQuery({
     ...translationQuery(passageText ?? ""),
-    enabled: translationShown && passageText !== null,
+    enabled: translationShown && passageText !== null && translatorReady,
   });
 
   const statusMutation = useMutation({
@@ -177,6 +197,14 @@ export function useReaderManager(documentId: number) {
     if (!translationShown) clearPassage();
   };
 
+  /** Opens the translation, first asking to download the translator when it is missing. */
+  const translatePassage = () => {
+    const show = () => setTranslationShown(true);
+    void ensureModel(queryClient, "translator", { toast: false, onAccept: show }).then(
+      (ready) => ready && show()
+    );
+  };
+
   const listenToPassage = () => {
     if (passage && section.data)
       void readAloud.play(0, { phrases: phrasesOf(section.data, passage) });
@@ -252,7 +280,7 @@ export function useReaderManager(documentId: number) {
     selectPassage,
     tapText,
     translationShown,
-    translatePassage: () => setTranslationShown(true),
+    translatePassage,
     listenToPassage,
     copyPassage,
     translation: translation.data,
@@ -260,6 +288,13 @@ export function useReaderManager(documentId: number) {
     translationError: translation.isError
       ? commandErrorMessage(translation.error, m.reader.translationFailed)
       : null,
+    missingTranslator: translatorReady
+      ? null
+      : ({
+          download: translatorDownload,
+          onDownload: () => void downloadModel(queryClient, "translator"),
+          onCancel: () => void cancelModelDownload("translator"),
+        } satisfies MissingTranslator),
   };
 }
 

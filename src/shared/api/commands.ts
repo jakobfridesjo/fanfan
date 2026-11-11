@@ -207,6 +207,22 @@ export interface KnownWordsImport {
 export type Rating = 1 | 2 | 3 | 4;
 
 /** Every Rust command: `commands` and the test mocks accept only these names. */
+/** The models downloaded on request: `voice` speaks, `translator` translates. */
+export type Model = "voice" | "translator";
+
+export interface ModelStatus {
+  model: Model;
+  /** The whole download's size. */
+  bytes: number;
+  downloaded: boolean;
+}
+
+export interface DownloadProgress {
+  /** Bytes on disk so far, counting what an earlier attempt left. */
+  downloaded: number;
+  total: number;
+}
+
 export type CommandName =
   | "list_documents"
   | "import_document"
@@ -233,7 +249,11 @@ export type CommandName =
   | "list_words"
   | "get_statistics"
   | "speak"
-  | "translate";
+  | "translate"
+  | "list_models"
+  | "download_model"
+  | "cancel_model_download"
+  | "delete_model";
 
 const invoke = <T>(command: CommandName, args?: InvokeArgs) => tauriInvoke<T>(command, args);
 
@@ -320,6 +340,18 @@ export const commands = {
 
   /** Chinese text, a sentence or a few, in English. */
   translate: (text: string) => invoke<string>("translate", { text }),
+
+  listModels: () => invoke<ModelStatus[]>("list_models"),
+
+  /** Resolves to false when `cancelModelDownload` stopped it; what arrived stays for next time. */
+  downloadModel: (model: Model, onProgress: (progress: DownloadProgress) => void) => {
+    const channel = new Channel<DownloadProgress>(onProgress);
+    return invoke<boolean>("download_model", { model, onProgress: channel });
+  },
+
+  cancelModelDownload: (model: Model) => invoke<null>("cancel_model_download", { model }),
+
+  deleteModel: (model: Model) => invoke<null>("delete_model", { model }),
 };
 
 /** Rust rejects with its error's message as a plain string. */

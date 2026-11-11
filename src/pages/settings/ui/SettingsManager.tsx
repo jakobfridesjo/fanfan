@@ -24,6 +24,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
+import { OfflineModelsCard } from "@/pages/settings/ui/OfflineModelsCard.tsx";
 
 /** A sample of each script, written in itself. */
 const SCRIPT_SAMPLES = { simplified: "汉语", traditional: "漢語", both: "汉/漢" } as const;
@@ -153,6 +154,8 @@ function SettingsManager() {
             )}
           />
         </SettingCard>
+
+        <OfflineModelsCard />
 
         <SettingCard title={m.settings.appearance} description={m.settings.appearanceDescription}>
           <Choices

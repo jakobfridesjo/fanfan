@@ -1,5 +1,6 @@
 import { beforeEach } from "vitest";
 import { userEvent } from "vitest/browser";
+import { resetModelDownloads } from "@/shared/api/model-downloads.ts";
 import { resetPreferences } from "@/shared/config/preferences.ts";
 
 // Test files share one page, so module-level state outlives the file that set it.
@@ -8,6 +9,7 @@ import { resetPreferences } from "@/shared/config/preferences.ts";
 beforeEach(async () => {
   await userEvent.unhover(document.body);
   resetPreferences();
+  resetModelDownloads();
   localStorage.clear();
   document.documentElement.classList.remove("dark");
 });

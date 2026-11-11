@@ -13,7 +13,7 @@ import {
 import { formatInteger } from "@/shared/lib/number-format.ts";
 import { silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
-import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
+import { callsTo, mockCommands, sendToChannel } from "@/shared/test/tauri.ts";
 import SettingsManager from "@/pages/settings/ui/SettingsManager.tsx";
 
 describe("SettingsManager", () => {
@@ -132,5 +132,74 @@ describe("SettingsManager", () => {
     await screen.getByRole("link", { name: "About 翻翻" }).click();
 
     expect(router.state.location.pathname).toBe("/about");
+  });
+
+  it("downloads a model, showing how much has arrived, and deletes one after asking", async () => {
+    const downloaded = new Set(["voice"]);
+    let channel: unknown;
+    let finish = () => {};
+    const calls = mockCommands({
+      list_models: () => [
+        { model: "voice", bytes: 243_000_000, downloaded: downloaded.has("voice") },
+        { model: "translator", bytes: 172_000_000, downloaded: downloaded.has("translator") },
+      ],
+      download_model: ({ model, onProgress }) =>
+        new Promise((resolve) => {
+          channel = onProgress;
+          finish = () => {
+            downloaded.add(model as string);
+            resolve(true);
+          };
+        }),
+      delete_model: ({ model }) => {
+        downloaded.delete(model as string);
+        return null;
+      },
+    });
+    await renderPageInRouter(<SettingsManager />);
+
+    const translation = screen.getByRole("region", { name: "Translation" });
+    await translation.getByRole("button", { name: "Download" }).click();
+    await expect.poll(() => channel).toBeDefined();
+    sendToChannel(channel, { downloaded: 86_000_000, total: 172_000_000 });
+    await expect.element(translation.getByText("Downloading… 86 MB of 172 MB")).toBeVisible();
+    await expect.element(translation.getByText("50%")).toBeVisible();
+    finish();
+    await expect.element(translation.getByText("Downloaded")).toBeVisible();
+    expect(callsTo(calls, "download_model").map((args) => args.model)).toEqual(["translator"]);
+
+    const speech = screen.getByRole("region", { name: "Speech" });
+    await speech.getByRole("button", { name: "Delete" }).click();
+    await screen.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
+    await expect.element(speech.getByRole("button", { name: "Download" })).toBeVisible();
+    expect(callsTo(calls, "delete_model")).toEqual([{ model: "voice" }]);
+  });
+
+  it("says where a failed download stopped and carries on when tried again", async () => {
+    let attempts = 0;
+    const calls = mockCommands({
+      list_models: () => [
+        { model: "voice", bytes: 243_000_000, downloaded: false },
+        { model: "translator", bytes: 172_000_000, downloaded: attempts > 1 },
+      ],
+      download_model: () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("Could not download the model: no connection");
+        return true;
+      },
+    });
+    await renderPageInRouter(<SettingsManager />);
+
+    const translation = screen.getByRole("region", { name: "Translation" });
+    await translation.getByRole("button", { name: "Download" }).click();
+    const failure = translation.getByRole("alert");
+    await expect.element(failure.getByText(/stopped at 0 MB of 172 MB/)).toBeVisible();
+    await expect
+      .element(failure.getByText("Could not download the model: no connection"))
+      .toBeVisible();
+
+    await translation.getByRole("button", { name: "Try again" }).click();
+    await expect.element(translation.getByText("Downloaded")).toBeVisible();
+    expect(callsTo(calls, "download_model")).toHaveLength(2);
   });
 });

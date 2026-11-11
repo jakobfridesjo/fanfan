@@ -110,6 +110,10 @@ export const translationQuery = (text: string) =>
     staleTime: "static",
   });
 
+/** Which downloadable models are on this device. */
+export const modelsQuery = () =>
+  queryOptions({ queryKey: ["models"], queryFn: commands.listModels });
+
 /**
  * A word's status feeds every document's coverage, every deck, the review
  * queue, the counts and the reader's colours, so a change refreshes all of

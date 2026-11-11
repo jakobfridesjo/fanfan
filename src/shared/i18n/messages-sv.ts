@@ -296,6 +296,37 @@ export const sv: Messages = {
       cangjie: "Cangjie-koder",
     },
   },
+  models: {
+    title: "Offlinemodeller",
+    description:
+      "Uppläsning och översättning körs på den här enheten. Ladda ner var och en en gång, sedan fungerar den utan internet.",
+    names: { voice: "Tal", translator: "Översättning" },
+    sources: { voice: "MOSS-TTS-Nano", translator: "opus-mt-zh-en" },
+    uses: { voice: "Läser upp ord och böcker", translator: "Översätter stycken till engelska" },
+    downloaded: "Nedladdad",
+    download: "Ladda ner",
+    progress: (done: string, total: string) => `${done} av ${total}`,
+    downloading: (done: string, total: string) => `Laddar ner… ${done} av ${total}`,
+    stopped: (done: string, total: string) => `Nedladdningen stannade vid ${done} av ${total}.`,
+    resumes: "Försöker du igen fortsätter den därifrån.",
+    downloadFailed: "Kunde inte ladda ner modellen",
+    hint: "Nedladdningen fortsätter medan du läser. Över mobildata kan den kosta; wifi är bättre.",
+    deleteTitle: { voice: "Ta bort tal?", translator: "Ta bort översättaren?" },
+    deleteMessage: (size: string) => `Det frigör ${size}. Du kan ladda ner den igen när som helst.`,
+    deleteFailed: "Kunde inte ta bort modellen",
+    promptTitle: { voice: "Ladda ner tal?", translator: "Ladda ner översättaren?" },
+    promptDescription: {
+      voice: (size: string) =>
+        `Uppläsningen körs på din enhet och behöver därför laddas ner en gång, ${size}. Sedan fungerar den offline. Du kan ta bort den i Inställningar.`,
+      translator: (size: string) =>
+        `Översättningen körs på din enhet och behöver därför laddas ner en gång, ${size}. Sedan fungerar den offline. Du kan ta bort den i Inställningar.`,
+    },
+    toastDownloading: { voice: "Laddar ner tal", translator: "Laddar ner översättaren" },
+    ready: { voice: "Talet är klart", translator: "Översättaren är klar" },
+    translatorDownloading: "Laddar ner översättaren…",
+    translationWhenDone: "Översättningen visas när den är klar.",
+    translatorMissing: "Översättaren är inte nedladdad.",
+  },
   fallback: {
     notFoundTitle: "Sidan hittades inte",
     notFoundDescription: "Adressen matchar ingen sida.",

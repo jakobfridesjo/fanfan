@@ -38,6 +38,8 @@ pub enum Error {
     Voice(String),
     #[error("Could not translate: {0}")]
     Translation(String),
+    #[error("Could not download the model: {0}")]
+    Download(String),
     #[error("Rating must be 1 (again) to 4 (easy), got {0}")]
     InvalidRating(u8),
 }

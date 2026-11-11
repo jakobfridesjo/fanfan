@@ -138,7 +138,7 @@ struct BuiltinVoice {
     prompt_audio_codes: Vec<Vec<i32>>,
 }
 
-/// MOSS-TTS-Nano from `mise voice:fetch`, its language model quantized to
+/// MOSS-TTS-Nano, downloaded by `models`, its language model quantized to
 /// int8, run on every CPU core by tract and speaking in any `Speaker`'s voice.
 pub struct Voice {
     executor: Executor,
@@ -788,12 +788,11 @@ mod tests {
         assert!(error.to_string().contains("tokenizer.model"));
     }
 
-    /// Needs the real voice: `mise voice:fetch`, then `cargo test -p vocab-core -- --ignored`.
+    /// Needs the real voice, which it downloads into `target/models` the first time.
     #[test]
     #[ignore]
     fn speaks_simplified_and_traditional_words() {
-        let voice =
-            Voice::load(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../resources/voice")).unwrap();
+        let voice = Voice::load(&crate::models::downloaded(crate::models::Model::Voice)).unwrap();
         for word in [
             "学习",
             "學習",

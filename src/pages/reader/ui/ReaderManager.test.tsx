@@ -1,16 +1,31 @@
 import { page, page as screen, userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { WordStatus } from "@/shared/api/commands.ts";
+import type { ModelStatus, WordStatus } from "@/shared/api/commands.ts";
 import { readerNotationAtom } from "@/shared/config/preferences.ts";
 import { makeCard, makeDocument, makeSection, silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
-import { callsTo, mockCommands } from "@/shared/test/tauri.ts";
+import { callsTo, mockCommands, sendToChannel } from "@/shared/test/tauri.ts";
 import ReaderManager from "@/pages/reader/ui/ReaderManager.tsx";
 
 const SECTIONS = [["序言 很 短 。"], ["我们 学习 中文 。", "中文 很 好 ！"], ["第二章 。"]];
 
+interface BookOptions {
+  readingSection?: number;
+  known?: string[];
+  learning?: string[];
+  /** What `list_models` answers; none means nothing is downloadable. */
+  models?: ModelStatus[];
+  download?: (args: Record<string, unknown>) => unknown;
+}
+
 /** A book backed by an in-memory word status table, like the Rust store. */
-function mockBook({ readingSection = 0, known = [] as string[], learning = [] as string[] } = {}) {
+function mockBook({
+  readingSection = 0,
+  known = [],
+  learning = [],
+  models = [],
+  download = () => true,
+}: BookOptions = {}) {
   const statuses = new Map<string, WordStatus>([
     ...known.map((word): [string, WordStatus] => [word, "known"]),
     ...learning.map((word): [string, WordStatus] => [word, "learning"]),
@@ -47,6 +62,8 @@ function mockBook({ readingSection = 0, known = [] as string[], learning = [] as
     // The last paragraph never finishes synthesizing, so playback stays on it.
     speak: ({ text }) => (text === "中文很好！" ? new Promise(() => {}) : silentOpus()),
     translate: ({ text }) => `In English: ${text as string}`,
+    list_models: () => models.map((entry) => ({ ...entry })),
+    download_model: download,
   });
   return { calls, statuses };
 }
@@ -392,5 +409,60 @@ describe("ReaderManager", () => {
 
     await expect.element(word("段落299")).toBeInTheDocument();
     await expect.element(word("段落0")).not.toBeInTheDocument();
+  });
+
+  it("asks to download the translator first, then translates once it arrives", async () => {
+    const models: ModelStatus[] = [{ model: "translator", bytes: 172_000_000, downloaded: false }];
+    let channel: unknown;
+    let finish = () => {};
+    const { calls } = mockBook({
+      readingSection: 1,
+      models,
+      download: ({ onProgress }) =>
+        new Promise((resolve) => {
+          channel = onProgress;
+          finish = () => {
+            models[0] = { model: "translator", bytes: 172_000_000, downloaded: true };
+            resolve(true);
+          };
+        }),
+    });
+    await renderPageInRouter(<ReaderManager documentId={1} />);
+
+    await expect.element(word("学习")).toBeVisible();
+    await drag(word("学习").element(), word("中文").element());
+    await screen.getByRole("toolbar").getByRole("button", { name: "Translate" }).click();
+    const prompt = screen.getByRole("dialog", { name: "Download the translator?" });
+    await expect.element(prompt.getByText(/one-time download of 172 MB/)).toBeVisible();
+    await prompt.getByRole("button", { name: "Download" }).click();
+
+    const translation = screen.getByRole("region", { name: "Translation" });
+    await expect.element(translation.getByText("Downloading the translator…")).toBeVisible();
+    await expect.poll(() => channel).toBeDefined();
+    sendToChannel(channel, { downloaded: 43_000_000, total: 172_000_000 });
+    await expect.element(translation.getByText("25%")).toBeVisible();
+    expect(callsTo(calls, "translate")).toEqual([]);
+
+    finish();
+    await expect.element(translation.getByText("In English: 学习中文")).toBeVisible();
+    expect(callsTo(calls, "download_model").map((args) => args.model)).toEqual(["translator"]);
+  });
+
+  it("asks before downloading speech, and plays nothing when declined", async () => {
+    const { calls } = mockBook({
+      readingSection: 1,
+      models: [{ model: "voice", bytes: 243_000_000, downloaded: false }],
+    });
+    await renderPageInRouter(<ReaderManager documentId={1} />);
+
+    await word("学习").click();
+    await screen.getByRole("button", { name: "Read aloud from the selected word" }).click();
+    const prompt = screen.getByRole("dialog", { name: "Download speech?" });
+    await expect.element(prompt.getByText(/one-time download of 243 MB/)).toBeVisible();
+    await prompt.getByRole("button", { name: "Cancel" }).click();
+
+    await expect.element(prompt).not.toBeInTheDocument();
+    expect(callsTo(calls, "speak")).toEqual([]);
+    expect(callsTo(calls, "download_model")).toEqual([]);
   });
 });

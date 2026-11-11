@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use chrono::{NaiveDate, Utc};
 use serde::{Serialize, Serializer};
 use tauri::ipc::{Channel, Response};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 use vocab_core::dictionary::{Notation, Script};
+use vocab_core::models::{DownloadProgress, Model, ModelStatus, Models};
 use vocab_core::service::{
     self, Deck, ImportStage, Language, ReaderSection, ReviewQueue, StudyCard, WordEntry,
 };
@@ -18,7 +20,7 @@ use vocab_core::text::parse_word_list;
 use vocab_core::translation::Translator;
 
 use crate::picked_file::PickedFile;
-use crate::resources::{DICTIONARY, Resources, TRANSLATOR, VOICE};
+use crate::resources::{DICTIONARY, Resources};
 
 /// Reaches the frontend as the rejected `invoke` promise's message.
 #[derive(Debug)]
@@ -44,10 +46,14 @@ pub struct AppState {
     /// Queries go through this one, so they do not wait for a write to finish.
     reader: Mutex<Store>,
     resources: Resources,
+    models: Models,
+    /// Set to cancel the download of its model.
+    downloads: Mutex<HashMap<Model, Arc<AtomicBool>>>,
     language: OnceLock<Result<Language, String>>,
-    voice: OnceLock<Result<Voice, String>>,
+    /// Loaded on first use; a failure is not kept, so a download can follow it.
+    voice: Mutex<Option<Arc<Voice>>>,
     speech: SpeechCache,
-    translator: OnceLock<Result<Translator, String>>,
+    translator: Mutex<Option<Arc<Translator>>>,
 }
 
 impl AppState {
@@ -55,16 +61,19 @@ impl AppState {
         writer: Store,
         reader: Store,
         resources: Resources,
+        models: Models,
         speech_cache_dir: PathBuf,
     ) -> Self {
         Self {
             writer: Mutex::new(writer),
             reader: Mutex::new(reader),
             resources,
+            models,
+            downloads: Mutex::new(HashMap::new()),
             language: OnceLock::new(),
-            voice: OnceLock::new(),
+            voice: Mutex::new(None),
             speech: SpeechCache::new(&speech_cache_dir),
-            translator: OnceLock::new(),
+            translator: Mutex::new(None),
         }
     }
 
@@ -94,34 +103,55 @@ impl AppState {
         self.speech.tidy(SPEECH_CACHE_BYTES)
     }
 
-    /// Loads the text-to-speech voice once, on the first word spoken.
-    /// A failure keeps the bare reason, which `Error::Voice` prefixes when shown.
-    fn voice(&self) -> vocab_core::error::Result<&Voice> {
-        self.voice
-            .get_or_init(|| {
-                let dir = self.resources.dir()?;
-                Voice::load(&dir.join(VOICE)).map_err(|error| match error {
-                    vocab_core::error::Error::Voice(reason) => reason,
-                    other => other.to_string(),
-                })
-            })
-            .as_ref()
-            .map_err(|reason| vocab_core::error::Error::Voice(reason.clone()))
+    /// Drops downloads of model revisions no longer used.
+    pub fn tidy_models(&self) -> vocab_core::error::Result<()> {
+        self.models.tidy()
     }
 
-    /// Loads the translation model once, on the first translation.
-    fn translator(&self) -> vocab_core::error::Result<&Translator> {
-        self.translator
-            .get_or_init(|| {
-                let dir = self.resources.dir()?;
-                Translator::load(&dir.join(TRANSLATOR)).map_err(|error| match error {
-                    vocab_core::error::Error::Translation(reason) => reason,
-                    other => other.to_string(),
-                })
-            })
-            .as_ref()
-            .map_err(|reason| vocab_core::error::Error::Translation(reason.clone()))
+    /// The text-to-speech voice, loaded on the first word spoken.
+    fn voice(&self) -> vocab_core::error::Result<Arc<Voice>> {
+        loaded(&self.voice, || {
+            if !self.models.is_downloaded(Model::Voice) {
+                return Err(vocab_core::error::Error::Voice(
+                    "speech is not downloaded; download it in Settings".into(),
+                ));
+            }
+            Voice::load(&self.models.dir(Model::Voice))
+        })
     }
+
+    /// The translation model, loaded on the first translation.
+    fn translator(&self) -> vocab_core::error::Result<Arc<Translator>> {
+        loaded(&self.translator, || {
+            if !self.models.is_downloaded(Model::Translator) {
+                return Err(vocab_core::error::Error::Translation(
+                    "the translator is not downloaded; download it in Settings".into(),
+                ));
+            }
+            Translator::load(&self.models.dir(Model::Translator))
+        })
+    }
+
+    fn downloads(&self) -> MutexGuard<'_, HashMap<Model, Arc<AtomicBool>>> {
+        self.downloads
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// What `slot` holds, else what `load` makes, kept for later callers, who wait meanwhile.
+fn loaded<T>(
+    slot: &Mutex<Option<Arc<T>>>,
+    load: impl FnOnce() -> vocab_core::error::Result<T>,
+) -> vocab_core::error::Result<Arc<T>> {
+    // The slot is only ever empty or full, so a panic elsewhere leaves it sound.
+    let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(value) = slot.as_ref() {
+        return Ok(Arc::clone(value));
+    }
+    let value = Arc::new(load()?);
+    *slot = Some(Arc::clone(&value));
+    Ok(value)
 }
 
 fn lock(store: &Mutex<Store>) -> CommandResult<MutexGuard<'_, Store>> {
@@ -466,6 +496,64 @@ pub async fn speak(app: AppHandle, text: String, speaker: Speaker) -> CommandRes
 pub async fn translate(app: AppHandle, text: String) -> CommandResult<String> {
     blocking(app, move |state| {
         Ok(state.translator()?.translate(&text)?)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn list_models(app: AppHandle) -> CommandResult<Vec<ModelStatus>> {
+    blocking(app, |state| Ok(state.models.statuses())).await
+}
+
+/// Downloads what `model` still lacks, reporting progress. Resolves to false
+/// when `cancel_model_download` stopped it.
+#[tauri::command]
+pub async fn download_model(
+    app: AppHandle,
+    model: Model,
+    on_progress: Channel<DownloadProgress>,
+) -> CommandResult<bool> {
+    blocking(app, move |state| {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        {
+            let mut downloads = state.downloads();
+            if downloads.contains_key(&model) {
+                return Err(CommandError("This model is already downloading".into()));
+            }
+            downloads.insert(model, Arc::clone(&cancelled));
+        }
+        let result = state.models.download(model, &cancelled, |progress| {
+            let _ = on_progress.send(progress);
+        });
+        state.downloads().remove(&model);
+        Ok(result?)
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn cancel_model_download(state: State<'_, AppState>, model: Model) {
+    if let Some(cancelled) = state.downloads().get(&model) {
+        cancelled.store(true, Ordering::Relaxed);
+    }
+}
+
+#[tauri::command]
+pub async fn delete_model(app: AppHandle, model: Model) -> CommandResult<()> {
+    blocking(app, move |state| {
+        if state.downloads().contains_key(&model) {
+            return Err(CommandError("This model is still downloading".into()));
+        }
+        match model {
+            Model::Voice => *state.voice.lock().unwrap_or_else(PoisonError::into_inner) = None,
+            Model::Translator => {
+                *state
+                    .translator
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner) = None;
+            }
+        }
+        Ok(state.models.delete(model)?)
     })
     .await
 }

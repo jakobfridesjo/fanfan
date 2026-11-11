@@ -3,6 +3,7 @@ mod picked_file;
 mod resources;
 
 use tauri::Manager;
+use vocab_core::models::Models;
 use vocab_core::store::Store;
 
 use crate::commands::AppState;
@@ -37,6 +38,7 @@ pub fn run() {
                 writer,
                 reader,
                 Resources::new(app.handle().clone()),
+                Models::new(data_dir.join("models")),
                 speech_cache_dir,
             ));
 
@@ -49,6 +51,9 @@ pub fn run() {
                     log::error!("{error:?}");
                 }
                 if let Err(error) = state.tidy_speech_cache() {
+                    log::error!("{error:?}");
+                }
+                if let Err(error) = state.tidy_models() {
                     log::error!("{error:?}");
                 }
             });
@@ -81,6 +86,10 @@ pub fn run() {
             commands::get_statistics,
             commands::speak,
             commands::translate,
+            commands::list_models,
+            commands::download_model,
+            commands::cancel_model_download,
+            commands::delete_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");

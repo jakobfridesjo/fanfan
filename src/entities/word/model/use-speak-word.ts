@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import { useEffect, useRef, useState } from "react";
 import { commandErrorMessage } from "@/shared/api/commands.ts";
+import { ensureModel } from "@/shared/api/model-downloads.ts";
 import { speechQuery } from "@/shared/api/queries.ts";
 import { speakerAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -18,6 +19,7 @@ export function useSpeakWord(word: string) {
   useEffect(() => () => stop(audioRef.current), []);
 
   const speak = async () => {
+    if (!(await ensureModel(queryClient, "voice", { toast: true }))) return;
     setLoading(true);
     try {
       const opus = await queryClient.query(speechQuery(word, speaker));

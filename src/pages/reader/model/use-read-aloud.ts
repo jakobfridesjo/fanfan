@@ -2,6 +2,7 @@ import { noop, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-store";
 import { useEffect, useRef, useState } from "react";
 import { commandErrorMessage, type SpokenPhrase } from "@/shared/api/commands.ts";
+import { ensureModel } from "@/shared/api/model-downloads.ts";
 import { speechQuery } from "@/shared/api/queries.ts";
 import { speakerAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -94,6 +95,7 @@ export function useReadAloud() {
   };
 
   const play = async (from: number, first: Reading) => {
+    if (!(await ensureModel(queryClient, "voice", { toast: true }))) return;
     stop();
     const run = runRef.current;
     const replaced = () => run !== runRef.current;

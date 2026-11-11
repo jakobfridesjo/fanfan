@@ -1,6 +1,6 @@
-//! The bundled CC-CEDICT, voice and translator as ordinary files. On Android they are APK
-//! assets that `std::fs` cannot open, so each app version copies them once
-//! into its data folder.
+//! The bundled CC-CEDICT as an ordinary file. On Android it is an APK asset
+//! that `std::fs` cannot open, so each app version copies it once into its
+//! data folder.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -12,8 +12,6 @@ pub const DICTIONARY: &str = "cedict.txt.gz";
 /// Android's asset packaging unpacks a `.gz` asset and drops the suffix.
 #[cfg(target_os = "android")]
 pub const DICTIONARY: &str = "cedict.txt";
-pub const VOICE: &str = "voice";
-pub const TRANSLATOR: &str = "translator";
 
 pub struct Resources {
     app: AppHandle,
@@ -57,18 +55,20 @@ fn locate(app: &AppHandle) -> std::io::Result<PathBuf> {
     use tauri::path::BaseDirectory;
     use tauri_plugin_fs::{FsExt, OpenOptions};
 
-    let root = app
-        .path()
-        .app_data_dir()
-        .map_err(io::Error::other)?
-        .join("resources");
+    let data_dir = app.path().app_data_dir().map_err(io::Error::other)?;
+    let root = data_dir.join("dictionary");
     let dir = root.join(app.package_info().version.to_string());
     let extracted = dir.join(".extracted");
     if extracted.is_file() {
         return Ok(dir);
     }
 
-    // Copies for earlier versions: the voice alone is hundreds of megabytes.
+    // Earlier versions copied the voice and translator here too, hundreds of megabytes.
+    match fs::remove_dir_all(data_dir.join("resources")) {
+        Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
+        _ => {}
+    }
+    // Copies for earlier versions.
     for entry in fs::read_dir(&root).into_iter().flatten().flatten() {
         if entry.path() != dir {
             fs::remove_dir_all(entry.path())?;
@@ -81,34 +81,18 @@ fn locate(app: &AppHandle) -> std::io::Result<PathBuf> {
         .app_cache_dir()
         .map_err(io::Error::other)?
         .join("_assets/resources");
-    let files = std::iter::once(DICTIONARY.to_owned())
-        .chain(
-            vocab_core::speech::FILES
-                .iter()
-                .map(|name| format!("{VOICE}/{name}")),
-        )
-        .chain(
-            vocab_core::translation::FILES
-                .iter()
-                .map(|name| format!("{TRANSLATOR}/{name}")),
-        );
-    for name in files {
-        let asset = app
-            .path()
-            .resolve(format!("resources/{name}"), BaseDirectory::Resource)
-            .map_err(io::Error::other)?;
-        let target = dir.join(&name);
-        if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let mut options = OpenOptions::new();
-        options.read(true);
-        io::copy(
-            &mut app.fs().open(asset, options)?,
-            &mut File::create(&target)?,
-        )?;
-        let _ = fs::remove_file(asset_cache.join(&name));
-    }
+    let asset = app
+        .path()
+        .resolve(format!("resources/{DICTIONARY}"), BaseDirectory::Resource)
+        .map_err(io::Error::other)?;
+    fs::create_dir_all(&dir)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    io::copy(
+        &mut app.fs().open(asset, options)?,
+        &mut File::create(dir.join(DICTIONARY))?,
+    )?;
+    let _ = fs::remove_file(asset_cache.join(DICTIONARY));
     File::create(extracted)?;
     Ok(dir)
 }

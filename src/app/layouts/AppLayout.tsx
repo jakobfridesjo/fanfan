@@ -5,6 +5,7 @@ import { getSidebarDefaultOpen } from "@/app/layouts/sidebar-default-open.ts";
 import { PageBackground } from "@/app/layouts/PageBackground.tsx";
 import { BottomNav } from "@/app/layouts/BottomNav.tsx";
 import { useIsMobile } from "@/shared/lib/use-mobile.ts";
+import { ModelDownloadDialog } from "@/shared/ui/ModelDownloadDialog.tsx";
 
 const SIDEBAR_STYLE = {
   "--sidebar-width": "13rem",
@@ -27,6 +28,7 @@ function AppLayout({ children }: { children: ReactNode }) {
         <div className="min-h-0 flex-1">{children}</div>
         {isMobile && <BottomNav />}
       </SidebarInset>
+      <ModelDownloadDialog />
     </SidebarProvider>
   );
 }

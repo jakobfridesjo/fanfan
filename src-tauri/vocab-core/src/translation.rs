@@ -37,7 +37,7 @@ const TARGET_TOKENS_PER_SOURCE_TOKEN: usize = 3;
 const WORD_START: char = '▁';
 
 /// Helsinki-NLP's opus-mt-zh-en (Marian), its graphs quantized to int8 by
-/// Xenova, from `mise translator:fetch`. Translates Chinese in either script
+/// Xenova, downloaded by `models`. Translates Chinese in either script
 /// to English, greedily, on every CPU core.
 pub struct Translator {
     executor: Executor,
@@ -215,14 +215,12 @@ mod tests {
 
     use super::*;
 
-    /// Needs `mise translator:fetch`.
+    /// Needs the real translator, which it downloads into `target/models` the first time.
     #[test]
     #[ignore]
     fn translates_simplified_and_traditional_sentences() {
-        let translator = Translator::load(
-            &Path::new(env!("CARGO_MANIFEST_DIR")).join("../resources/translator"),
-        )
-        .unwrap();
+        let translator =
+            Translator::load(&crate::models::downloaded(crate::models::Model::Translator)).unwrap();
         for (text, expected) in [
             ("我们明天一起去图书馆学习中文。", "library"),
             ("我們明天一起去圖書館學習中文。", "library"),

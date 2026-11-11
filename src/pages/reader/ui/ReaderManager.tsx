@@ -34,6 +34,7 @@ function ReaderManager({ documentId }: { documentId: number }) {
             translation: reader.translation,
             loading: reader.translationLoading,
             error: reader.translationError,
+            missingTranslator: reader.missingTranslator,
             onListen: reader.listenToPassage,
           }
         : null,

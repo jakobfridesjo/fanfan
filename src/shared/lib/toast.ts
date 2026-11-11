@@ -22,12 +22,17 @@ function toastWarning(message: string, options?: ToastOptions) {
   toast.warning(message, { ...sticky, ...options });
 }
 
-function toastSuccess(message: string, options?: ToastOptions) {
+export function toastSuccess(message: string, options?: ToastOptions) {
   toast.success(message, options);
 }
 
 function toastInfo(message: string, options?: ToastOptions) {
   toast.info(message, options);
+}
+
+/** A toast that stays up while something runs; call again with the same `id` to update it. */
+export function toastLoading(message: string, options: ToastOptions & { id: string }) {
+  toast.loading(message, { ...sticky, ...options });
 }
 
 export function dismissToast(id: string) {

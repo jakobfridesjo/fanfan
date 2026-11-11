@@ -295,6 +295,37 @@ export const en = {
       cangjie: "Cangjie codes",
     },
   },
+  models: {
+    title: "Offline models",
+    description:
+      "Reading aloud and translating run on this device. Download each once and it works without internet.",
+    names: { voice: "Speech", translator: "Translation" },
+    sources: { voice: "MOSS-TTS-Nano", translator: "opus-mt-zh-en" },
+    uses: { voice: "Reads words and books aloud", translator: "Translates passages into English" },
+    downloaded: "Downloaded",
+    download: "Download",
+    progress: (done: string, total: string) => `${done} of ${total}`,
+    downloading: (done: string, total: string) => `Downloading… ${done} of ${total}`,
+    stopped: (done: string, total: string) => `The download stopped at ${done} of ${total}.`,
+    resumes: "Trying again carries on from there.",
+    downloadFailed: "Could not download the model",
+    hint: "A download carries on while you read. Over mobile data it can cost you; Wi-Fi is better.",
+    deleteTitle: { voice: "Delete speech?", translator: "Delete the translator?" },
+    deleteMessage: (size: string) => `This frees ${size}. You can download it again at any time.`,
+    deleteFailed: "Could not delete the model",
+    promptTitle: { voice: "Download speech?", translator: "Download the translator?" },
+    promptDescription: {
+      voice: (size: string) =>
+        `Reading aloud runs on your device, so it needs a one-time download of ${size}. After that it works offline. You can remove it in Settings.`,
+      translator: (size: string) =>
+        `Translating runs on your device, so it needs a one-time download of ${size}. After that it works offline. You can remove it in Settings.`,
+    },
+    toastDownloading: { voice: "Downloading speech", translator: "Downloading the translator" },
+    ready: { voice: "Speech is ready", translator: "The translator is ready" },
+    translatorDownloading: "Downloading the translator…",
+    translationWhenDone: "The translation shows when it’s done.",
+    translatorMissing: "The translator is not downloaded.",
+  },
   fallback: {
     notFoundTitle: "Page not found",
     notFoundDescription: "This address does not match any page.",

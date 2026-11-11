@@ -9,10 +9,11 @@ import { render } from "vitest-browser-react";
 import { IconButtonTooltip } from "@/shared/ui/TooltipIconButton.tsx";
 import type { ReactNode } from "react";
 import { SidebarInset, SidebarProvider } from "@/shared/ui/shadcn/sidebar.tsx";
+import { ModelDownloadDialog } from "@/shared/ui/ModelDownloadDialog.tsx";
 import { Toaster } from "@/shared/ui/Toaster.tsx";
 import { createTestQueryClient } from "@/shared/test/query.tsx";
 
-/** Render a page with the query client and sidebar context supplied by the app shell. */
+/** Render a page with the query client, sidebar context and overlays supplied by the app shell. */
 export async function renderPage(
   ui: ReactNode,
   queryClient: QueryClient = createTestQueryClient()
@@ -23,6 +24,7 @@ export async function renderPage(
         <SidebarInset>{ui}</SidebarInset>
       </SidebarProvider>
       <IconButtonTooltip />
+      <ModelDownloadDialog />
       <Toaster />
     </QueryClientProvider>
   );
