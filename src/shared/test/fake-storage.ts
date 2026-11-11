@@ -9,8 +9,5 @@ export function createFakeStorage(initial: Record<string, string> = {}): ValueSt
     setItem: (key, value) => {
       values.set(key, value);
     },
-    removeItem: (key) => {
-      values.delete(key);
-    },
   };
 }

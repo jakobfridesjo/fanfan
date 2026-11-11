@@ -1,6 +1,10 @@
 import { createAtom, type Atom } from "@tanstack/react-store";
 import * as z from "zod/mini";
-import { persistedJson, persistedString } from "@/shared/lib/persisted-value.ts";
+import {
+  persistedJson,
+  persistedString,
+  type PersistedValue,
+} from "@/shared/lib/persisted-value.ts";
 
 export const THEMES = ["light", "dark", "auto"] as const;
 export const LANGUAGES = ["en", "sv", "zh"] as const;
@@ -35,12 +39,16 @@ export type ReaderNotation = (typeof READER_NOTATIONS)[number];
 /** The voice that reads aloud; Rust keeps each one's audio apart. */
 export type Speaker = (typeof SPEAKERS)[number];
 
-/** A preference kept in `localStorage`, readable outside React (query keys, formatters). */
-function persistedAtom<T extends string>(key: string, values: readonly [T, ...T[]], fallback: T) {
-  const stored = persistedString<T>({ key, schema: z.enum(values), fallback });
+/** An atom that starts from what `stored` holds and saves every change to it. */
+function storedAtom<T>(stored: PersistedValue<T>, fallback: () => T) {
   const atom = createAtom(stored.load());
   atom.subscribe((value) => stored.save(value));
-  return Object.assign(atom, { reset: () => atom.set(fallback) }) satisfies Atom<T>;
+  return Object.assign(atom, { reset: () => atom.set(fallback()) }) satisfies Atom<T>;
+}
+
+/** A preference kept in `localStorage`, readable outside React (query keys, formatters). */
+function persistedAtom<T extends string>(key: string, values: readonly [T, ...T[]], fallback: T) {
+  return storedAtom(persistedString<T>({ key, schema: z.enum(values), fallback }), () => fallback);
 }
 
 export const themeAtom = persistedAtom<Theme>("themePreference", THEMES, "auto");
@@ -60,10 +68,9 @@ function persistedListAtom<T extends string>(
   values: readonly [T, ...T[]],
   fallback: T[]
 ) {
-  const stored = persistedJson<T[]>({ key, schema: z.array(z.enum(values)), fallback });
-  const atom = createAtom(stored.load());
-  atom.subscribe((value) => stored.save(value));
-  return Object.assign(atom, { reset: () => atom.set([...fallback]) }) satisfies Atom<T[]>;
+  return storedAtom(persistedJson<T[]>({ key, schema: z.array(z.enum(values)), fallback }), () => [
+    ...fallback,
+  ]);
 }
 
 export const shownExamsAtom = persistedListAtom<Exam>("shownExams", EXAMS, [...EXAMS]);

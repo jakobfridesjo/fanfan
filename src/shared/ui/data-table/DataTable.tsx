@@ -95,7 +95,7 @@ function DataTableCardList<TData extends RowData>({
               key={row.id}
               ref={measureElement}
               index={index}
-              cells={row.getVisibleCells()}
+              cells={row.getAllCells()}
             />
           ))}
           {spaceAfter > 0 && <div aria-hidden style={{ height: spaceAfter }} />}
@@ -113,7 +113,7 @@ function DataTableGrid<TData extends RowData>({
   emptyStateMessage = "No results.",
 }: DataTableProps<TData>) {
   const rows = table.getRowModel().rows;
-  const visibleColumns = table.getVisibleLeafColumns();
+  const columns = table.getAllLeafColumns();
   const { scrollRef, measureElement, visible, spaceBefore, spaceAfter } = useVirtualRows(
     rows,
     ESTIMATED_ROW_HEIGHT
@@ -135,7 +135,7 @@ function DataTableGrid<TData extends RowData>({
       <Table
         className="table-fixed"
         style={{
-          minWidth: tableMinWidth(visibleColumns.map((column) => column.columnDef.meta?.width)),
+          minWidth: tableMinWidth(columns.map((column) => column.columnDef.meta?.width)),
         }}
       >
         <TableHeader>
@@ -181,7 +181,7 @@ function DataTableGrid<TData extends RowData>({
             {Array.from({ length: skeletonRowCount }).map((_, i) => (
               // oxlint-disable-next-line react/no-array-index-key -- static placeholders, never reordered
               <TableRow key={`skeleton-${i}`}>
-                {visibleColumns.map((column) => (
+                {columns.map((column) => (
                   <TableCell key={column.id} className="h-12">
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
@@ -197,7 +197,7 @@ function DataTableGrid<TData extends RowData>({
                 key={row.id}
                 ref={measureElement}
                 index={index}
-                cells={row.getVisibleCells()}
+                cells={row.getAllCells()}
               />
             ))}
             {spacer(spaceAfter)}
@@ -206,7 +206,7 @@ function DataTableGrid<TData extends RowData>({
           <tbody>
             <TableRow className="border-0">
               <TableCell
-                colSpan={visibleColumns.length}
+                colSpan={columns.length}
                 className="h-24 text-center text-muted-foreground"
               >
                 {emptyStateMessage}

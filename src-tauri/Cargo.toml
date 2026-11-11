@@ -1,14 +1,32 @@
 [package]
 name = "fanfan"
-version = "0.1.0"
 description = "Chinese vocabulary reader for desktop and Android"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[workspace]
+members = ["vocab-core"]
+
+[workspace.package]
+version = "0.1.0"
 license = "MIT OR Apache-2.0"
 edition = "2024"
 rust-version = "1.90"
 publish = false
 
-[workspace]
-members = ["vocab-core"]
+[workspace.dependencies]
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+
+# Clippy's default lints are errors, with or without the Git hooks.
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+
+[lints]
+workspace = true
 
 [lib]
 name = "fanfan_lib"
@@ -18,12 +36,12 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde.workspace = true
 log = "0.4"
 tauri = { version = "2.12.5", features = [] }
 tauri-plugin-log = "2.10.1"
 tauri-plugin-dialog = "2.8.4"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { workspace = true, features = ["serde"] }
 vocab-core = { path = "vocab-core" }
 
 [target.'cfg(target_os = "android")'.dependencies]

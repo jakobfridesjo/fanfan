@@ -1,6 +1,12 @@
+import { scaleBand } from "@tanstack/charts/scales/band";
 import { scaleLinear } from "@tanstack/charts/scales/linear";
 import { formatWireDateShort, parseWireDate } from "@/shared/lib/date.ts";
 import { appLocale } from "@/shared/lib/locale.ts";
+import { formatInteger } from "@/shared/lib/number-format.ts";
+import { CHART_GRID, TICK_LABELS } from "@/shared/ui/charts/chart-defaults.ts";
+
+/** Room the count axis takes beside the plot. */
+export const COUNT_AXIS_WIDTH = 40;
 
 /** A date tick's label: weekday within a week, day number within a month, else month and day. */
 export function formatDateTick(isoDate: string, days: number): string {
@@ -39,4 +45,36 @@ export function evenlySpaced<T>(values: readonly T[], width: number, slotWidth =
   const slots = Math.max(1, Math.floor(width / slotWidth));
   const step = Math.ceil(values.length / slots);
   return values.filter((_, index) => index % step === 0);
+}
+
+/** The y scale of a bar chart of counts: whole numbers from zero, with grid lines. */
+export function countScale(max: number) {
+  const { scale, values } = countAxis(max);
+  return {
+    scale,
+    grid: CHART_GRID,
+    axis: {
+      line: false,
+      ticks: { values, size: 0, padding: 8, format: formatInteger },
+      tickLabels: TICK_LABELS,
+    },
+  };
+}
+
+/** The x scale of a bar chart: one band a bar, labelled as `ticks` says. */
+export function bandScale(
+  ticks: { values?: string[]; format: (value: string) => string },
+  domain?: string[]
+) {
+  return {
+    scale: () => {
+      const scale = scaleBand<string>().padding(0.3);
+      return domain ? scale.domain(domain) : scale;
+    },
+    axis: {
+      line: false,
+      ticks: { size: 0, padding: 4, ...ticks },
+      tickLabels: { ...TICK_LABELS, thin: false },
+    },
+  };
 }

@@ -63,11 +63,6 @@ fn locate(app: &AppHandle) -> std::io::Result<PathBuf> {
         return Ok(dir);
     }
 
-    // Earlier versions copied the voice and translator here too, hundreds of megabytes.
-    match fs::remove_dir_all(data_dir.join("resources")) {
-        Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
-        _ => {}
-    }
     // Copies for earlier versions.
     for entry in fs::read_dir(&root).into_iter().flatten().flatten() {
         if entry.path() != dir {

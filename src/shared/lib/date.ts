@@ -22,14 +22,6 @@ export function formatShortDate(value: string | null | undefined): string {
   return toValidDate(value)?.toLocaleDateString(appLocale(), SHORT_DATE_OPTIONS) ?? "Invalid Date";
 }
 
-export function formatLocalDate(value: string): string {
-  return toValidDate(value)?.toLocaleDateString(appLocale()) ?? value;
-}
-
-export function formatLocalDateTime(value: string): string {
-  return toValidDate(value)?.toLocaleString(appLocale()) ?? value;
-}
-
 export function formatShortDateTime(value: string): string {
   const date = toValidDate(value);
   return date ? format(date, DATE_TIME_OPTIONS) : value;
@@ -80,8 +72,4 @@ export function formatWireDateRange(from: string, to: string): string {
       ? MONTH_DAY_OPTIONS
       : SHORT_DATE_OPTIONS;
   return new Intl.DateTimeFormat(appLocale(), options).formatRange(start, end);
-}
-
-export function formatLongDate(isoDate: string): string {
-  return format(parseWireDate(isoDate), { dateStyle: "long" });
 }

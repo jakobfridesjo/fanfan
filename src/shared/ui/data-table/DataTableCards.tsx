@@ -45,9 +45,8 @@ export const DataTableCard = memo(function DataTableCard<TData extends RowData>(
   cells,
 }: DataTableCardProps<TData>) {
   const titleCell = titleCellOf(cells);
-  const visibleCells = cells.filter((cell) => !cell.column.columnDef.meta?.mobileHidden);
-  const actionCells = visibleCells.filter((cell) => cell.column.columnDef.meta?.actions);
-  const detailCells = visibleCells.filter(
+  const actionCells = cells.filter((cell) => cell.column.columnDef.meta?.actions);
+  const detailCells = cells.filter(
     (cell) => cell.id !== titleCell?.id && !cell.column.columnDef.meta?.actions
   );
 
@@ -80,8 +79,7 @@ export const DataTableCard = memo(function DataTableCard<TData extends RowData>(
         <div className="space-y-2">
           {detailCells.map((cell) => {
             const { header, meta } = cell.column.columnDef;
-            const label =
-              meta?.mobileLabel ?? (typeof header === "string" ? header : cell.column.id);
+            const label = typeof header === "string" ? header : cell.column.id;
 
             return (
               <div

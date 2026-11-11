@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as z from "zod/mini";
 import { persistedJson, persistedString, type ValueStorage } from "@/shared/lib/persisted-value.ts";
-import { BooleanStringSchema } from "@/shared/lib/field-schemas.ts";
 import { createFakeStorage } from "@/shared/test/fake-storage.ts";
 
 const NameSchema = z.object({ name: z.string() });
@@ -33,38 +32,15 @@ describe("persistedJson", () => {
     expect(value.load(createFakeStorage({ k: '{"name":42}' }))).toEqual({ name: "fallback" });
   });
 
-  it("falls back when the value parses but `accept` rejects it", () => {
-    const value = persistedJson<{ name: string }>({
-      key: "k",
-      schema: NameSchema,
-      fallback: { name: "fallback" },
-      accept: (parsed) => parsed.name.length > 0,
-    });
-
-    expect(value.load(createFakeStorage({ k: '{"name":""}' }))).toEqual({ name: "fallback" });
-    expect(value.load(createFakeStorage({ k: '{"name":"ok"}' }))).toEqual({ name: "ok" });
-  });
-
-  it("removes the key", () => {
-    const storage = createFakeStorage();
-    const value = jsonValue();
-
-    value.save({ name: "stored" }, storage);
-    value.remove(storage);
-
-    expect(storage.getItem("k")).toBeNull();
-  });
-
   it("swallows a storage that throws on every operation", () => {
     const boom = () => {
       throw new Error("quota");
     };
-    const hostile: ValueStorage = { getItem: boom, setItem: boom, removeItem: boom };
+    const hostile: ValueStorage = { getItem: boom, setItem: boom };
     const value = jsonValue();
 
     expect(value.load(hostile)).toEqual({ name: "fallback" });
     expect(() => value.save({ name: "stored" }, hostile)).not.toThrow();
-    expect(() => value.remove(hostile)).not.toThrow();
   });
 });
 
@@ -83,44 +59,13 @@ describe("persistedString", () => {
     expect(theme.load(storage)).toBe("dark");
   });
 
-  it("round-trips a boolean through BooleanStringSchema", () => {
-    const storage = createFakeStorage();
-    const open = persistedString<boolean>({
-      key: "open",
-      schema: BooleanStringSchema,
-      fallback: false,
-    });
-
-    open.save(true, storage);
-    expect(storage.getItem("open")).toBe("true");
-    expect(open.load(storage)).toBe(true);
-
-    open.save(false, storage);
-    expect(open.load(storage)).toBe(false);
-  });
-
   it("falls back on a value outside the schema", () => {
-    const open = persistedString<boolean>({
-      key: "open",
-      schema: BooleanStringSchema,
-      fallback: false,
+    const theme = persistedString<"light" | "dark">({
+      key: "theme",
+      schema: z.enum(["light", "dark"]),
+      fallback: "light",
     });
 
-    expect(open.load(createFakeStorage({ open: "yes" }))).toBe(false);
-  });
-});
-
-describe("storage lifecycle", () => {
-  it("round-trips and removes a value in the supplied storage", () => {
-    const storage = createFakeStorage();
-    const value = jsonValue();
-
-    value.save({ name: "stored" }, storage);
-    expect(storage.getItem("k")).toBe('{"name":"stored"}');
-    expect(value.load(storage)).toEqual({ name: "stored" });
-
-    value.remove(storage);
-    expect(storage.getItem("k")).toBeNull();
-    expect(value.load(storage)).toEqual({ name: "fallback" });
+    expect(theme.load(createFakeStorage({ theme: "sepia" }))).toBe("light");
   });
 });

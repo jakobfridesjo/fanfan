@@ -7,36 +7,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/shared/ui/shadcn/dropdown-menu.tsx";
-import { StatusBadge } from "@/shared/ui/StatusBadge.tsx";
 import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { useIsMobile } from "@/shared/lib/use-mobile.ts";
-import { headerColor, headerText } from "@/shared/config/env.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { cn } from "@/shared/lib/class-names.ts";
-
-function isLightColor(hex: string) {
-  const digits = hex.slice(1);
-  const rgb = Number.parseInt(digits.length === 3 ? digits.replace(/./g, "$&$&") : digits, 16);
-  const [red, green, blue] = [(rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255];
-  return 0.299 * red + 0.587 * green + 0.114 * blue > 150;
-}
-
-const headerColorStyle = headerColor
-  ? { backgroundColor: headerColor, color: isLightColor(headerColor) ? "black" : "white" }
-  : undefined;
-
-function HeaderLabel() {
-  return (
-    <StatusBadge
-      tone="warning"
-      role="status"
-      style={headerColorStyle}
-      className="bg-warning font-semibold text-warning-foreground"
-    >
-      {headerText}
-    </StatusBadge>
-  );
-}
 
 interface PageHeaderProps {
   title: React.ReactNode;
@@ -136,18 +110,14 @@ export function PageHeader({
     <div className="mb-1.5 flex shrink-0 flex-col gap-3 sm:min-h-10 sm:justify-center">
       <div
         ref={rowRef}
-        style={headerColor ? ({ "--header-color": headerColor } as React.CSSProperties) : undefined}
         className={cn(
           "flex min-h-10 items-center justify-between gap-3",
-          centered && "grid grid-cols-[1fr_auto_1fr]",
-          headerText &&
-            "rounded-2xl bg-[color-mix(in_oklch,var(--header-color,var(--warning))_15%,transparent)] px-1.5"
+          centered && "grid grid-cols-[1fr_auto_1fr]"
         )}
       >
         <div ref={titleRef} className="flex min-w-0 items-center gap-2">
           {onBack && <BackButton onBack={onBack} backLabel={backLabel ?? m.common.back} />}
           <div className="min-w-0 text-lg font-medium">{title}</div>
-          {headerText && <HeaderLabel />}
         </div>
         {centered && (
           <div ref={centerRef} className="flex items-center gap-2">

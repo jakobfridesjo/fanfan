@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  formatLocalDate,
-  formatLocalDateTime,
-  formatLongDate,
   formatShortDate,
   formatWireDateShort,
   parseWireDate,
@@ -13,11 +10,6 @@ describe("date formatters", () => {
   it("uses explicit fallbacks for missing and invalid short dates", () => {
     expect(formatShortDate(null)).toBe("N/A");
     expect(formatShortDate("not-a-date")).toBe("Invalid Date");
-  });
-
-  it("preserves invalid source values for local date formats", () => {
-    expect(formatLocalDate("not-a-date")).toBe("not-a-date");
-    expect(formatLocalDateTime("not-a-date")).toBe("not-a-date");
   });
 });
 
@@ -30,8 +22,7 @@ describe("wire dates", () => {
     expect(toLocalDateString(parseWireDate("2026-03-07"))).toBe("2026-03-07");
   });
 
-  it("labels a wire date with month and day, or in full", () => {
+  it("labels a wire date with month and day", () => {
     expect(formatWireDateShort("2026-03-07")).toBe("Mar 7");
-    expect(formatLongDate("2026-06-30")).toBe("June 30, 2026");
   });
 });

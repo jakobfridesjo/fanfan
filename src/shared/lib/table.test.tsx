@@ -38,12 +38,6 @@ function Harness() {
         Filter to bravo
       </button>
       <DataTable table={table} />
-      <output data-testid="facets">
-        {[...table.getColumn("kind")!.getFacetedUniqueValues().keys()]
-          .map(String)
-          .sort((a, b) => a.localeCompare(b))
-          .join(",")}
-      </output>
     </div>
   );
 }
@@ -75,13 +69,10 @@ function bodyRowNames() {
   return rows.map((row) => row.getByRole("cell").first().element().textContent);
 }
 describe("shared data table features", () => {
-  it("sorts, filters and facets through the registered features", async () => {
+  it("sorts and filters through the registered features", async () => {
     await render(<Harness />);
 
     expect(bodyRowNames()).toEqual(["Charlie", "alpha", "Bravo"]);
-
-    // facetedUniqueValues via columnFacetingFeature
-    expect(screen.getByTestId("facets").element().textContent).toBe("beta,gamma");
 
     // sortedRowModel + registered sortFns (text/alphanumeric auto resolution)
     await screen.getByRole("button", { name: /Name/ }).click();

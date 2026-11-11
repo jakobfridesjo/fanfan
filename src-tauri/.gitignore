@@ -5,9 +5,3 @@
 
 # CC-CEDICT, downloaded by `mise dictionary:fetch`
 /resources/cedict.txt.gz
-
-# MOSS-TTS-Nano and its reference voice, downloaded by `mise voice:fetch`
-/resources/voice/
-
-# opus-mt-zh-en, downloaded by `mise translator:fetch`
-/resources/translator/

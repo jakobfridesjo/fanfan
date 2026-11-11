@@ -3,19 +3,11 @@ import {
   type CellData,
   type Column,
   type ColumnDef,
-  columnFacetingFeature,
   columnFilteringFeature,
-  columnVisibilityFeature,
-  createFacetedRowModel,
-  createFacetedUniqueValues,
   createFilteredRowModel,
   createSortedRowModel,
   filterFn_arrIncludes,
-  filterFn_equals,
   filterFn_includesString,
-  filterFn_inDateRange,
-  filterFn_inNumberRange,
-  filterFn_weakEquals,
   globalFilteringFeature,
   metaHelper,
   type ReactTable,
@@ -23,7 +15,6 @@ import {
   type RowData,
   rowSortingFeature,
   sortFn_alphanumeric,
-  sortFn_datetime,
   sortFn_text,
   type TableOptions,
   tableFeatures,
@@ -33,9 +24,7 @@ import {
 interface DataTableColumnMeta {
   align?: "center";
   tooltip?: string;
-  mobileLabel?: string;
   primary?: boolean;
-  mobileHidden?: boolean;
   actions?: boolean;
   mobileFullWidth?: boolean;
   /** A CSS width; columns without one share the rest of the table. */
@@ -43,26 +32,17 @@ interface DataTableColumnMeta {
 }
 
 const dataTableFeatures = tableFeatures({
-  columnFacetingFeature,
   columnFilteringFeature,
-  columnVisibilityFeature,
   globalFilteringFeature,
   rowSortingFeature,
-  facetedRowModel: createFacetedRowModel(),
-  facetedUniqueValues: createFacetedUniqueValues(),
   filteredRowModel: createFilteredRowModel(),
   sortedRowModel: createSortedRowModel(),
   filterFns: {
     arrIncludes: filterFn_arrIncludes,
-    equals: filterFn_equals,
     includesString: filterFn_includesString,
-    inDateRange: filterFn_inDateRange,
-    inNumberRange: filterFn_inNumberRange,
-    weakEquals: filterFn_weakEquals,
   },
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
-    datetime: sortFn_datetime,
     text: sortFn_text,
   },
   columnMeta: metaHelper<DataTableColumnMeta>(),
