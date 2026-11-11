@@ -9,7 +9,7 @@ Update a documentation file so it matches the current state of the code, using t
 
 ## Arguments
 
-An optional path to a specific doc file. Without an argument, sweep the standard docs: `README.md`, `docs/*.md`, and every tracked `AGENTS.md` (`git ls-files '*AGENTS.md'`: the root and `src/shared/ui/`). Each `CLAUDE.md` is a symlink to its sibling `AGENTS.md` — edit only `AGENTS.md`, and restore the symlink if a `CLAUDE.md` has become a regular file. A rule belongs in the most specific `AGENTS.md` that covers it; everything not specific to `src/shared/ui/` goes in the root one.
+An optional path to a specific doc file. Without an argument, sweep `README.md`, `AGENTS.md` and `docs/*.md`. `CLAUDE.md` is a symlink to `AGENTS.md` — edit only `AGENTS.md`, and restore the symlink if `CLAUDE.md` has become a regular file. Keep `AGENTS.md` minimal (a few hard rules and links into `docs/`); descriptive documentation belongs in `docs/`, linked from `AGENTS.md` and `README.md`.
 
 ## Procedure
 

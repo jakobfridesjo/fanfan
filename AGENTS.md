@@ -1,44 +1,20 @@
 # AGENTS.md
 
-- A Tauri 2 app for desktop and Android: import a Chinese .txt/.epub/.pdf, get its words as a frequency-ranked swipe deck, read it chapter by chapter with each word coloured by status, review learned words with FSRS
-- Standard Tauri layout: the React frontend (Vite, `src/`) is the top-level project and `src-tauri/` is the Rust project inside it
-- `src-tauri` is the Rust side: `src/commands.rs` is a thin layer of Tauri commands over `vocab-core/`, which holds all logic (text extraction into chapters, jieba segmentation shared by decks and the reader, CC-CEDICT, SQLite store, FSRS, MOSS-TTS-Nano speech, opus-mt translation) and never depends on Tauri
-- The frontend talks to Rust only through `invoke`, wrapped in `src/shared/api/commands.ts`. Its types mirror the serde types by hand: change both together, and keep `serializes_decks_and_queues_with_the_frontend_field_names` in `vocab-core/src/service.rs` in step
-- Run everything as mise tasks from the repo root: `mise <task>`. Rust needs the system packages in the README (Fedora `dnf` or Ubuntu/WSL `apt`): the speech model compiles SentencePiece (C++) and libopus, both with `cmake`. On a Fedora Atomic Desktop host all Rust (`mise desktop`, `mise test:rust`, any `cargo`) builds only inside the `fedora-toolbox-45` toolbox
-- CC-CEDICT (CC BY-SA 4.0) is downloaded by `mise dictionary:fetch` into `src-tauri/resources/` (gitignored) and bundled. The two models are not bundled: `vocab-core/src/models.rs` downloads each on request (ureq, rustls) from its pinned Hugging Face revision into the app data folder's `models/`, resuming a dropped download and checking every file's SHA-256 before it takes its name; its file list is the one source of URLs, sizes and checksums. MOSS-TTS-Nano (Apache-2.0: int8 ONNX graphs, run with tract, and the audio codec) speaks; when bumping a revision, update its files, its `folder` name and `MODEL_ID` in `vocab-core/src/speech.rs` together. The six built-in Chinese voices are `Speaker`s: the `speaker` preference is a `speak` argument and part of the speech query key, and each voice's audio is cached apart. opus-mt-zh-en (Helsinki-NLP, CC BY 4.0, credited on the About page; Xenova's int8 ONNX encoder and decoders) translates, run greedily by `vocab-core/src/translation.rs`. In the frontend, `shared/api/model-downloads.ts` holds the running downloads and `ensureModel`, which Listen, read-aloud and Translate call first: a missing model opens the app-wide `ModelDownloadDialog`, and Settings lists both models to download or delete. `vocab-core/src/onnx.rs` loads every ONNX graph into tract. A tapped word shows only its dictionary card; dragging over a stretch of the reader's text (`use-drag-select.ts`: hold still on a token, then drag; a press that moves first scrolls; holding pauses read-aloud) selects it, and `SelectionToolbar` offers Translate (the translation view in place of the card, kept while scrolling until the drawer is swiped down, Esc or a word tap), Listen and Copy. The webview's `speechSynthesis` has no Chinese voice on Linux (WebKitGTK uses Flite)
-- HSK 3.0 (drkameleon/complete-hsk-vocabulary, MIT), TBCL (Taiwan's 臺灣華語文能力基準 word list from NAER, under NAER's open-data declaration, which requires naming the source) and TOCFL (華語八千詞, from LinZi's open data at linzi.app/data, CC BY-SA 4.0, credited on the About page) levels are vendored in `src-tauri/vocab-core/data/levels.tsv`, compiled into `vocab-core` and keyed by both scripts (TBCL's simplified forms come from CC-CEDICT); `mise data:update` rebuilds it, and `cangjie.tsv`, from the pinned sources. Cards carry `hskLevel`/`tbclLevel`/`tocflLevel`, each 1 to 7 (TOCFL's Novice 1 and 2, then Levels 1 to 5); the `shownExams` preference picks which to show. LinZi's TOCFL file is used deliberately: SC-TOP reserves 華語八千詞's rights, LinZi says it is freely redistributable, and the owner accepted that
-- Each reading carries `pinyin` and `zhuyin`, both converted in `vocab-core/src/pinyin.rs` from CC-CEDICT's numbered pinyin. Cards carry `cangjie`/`alternateCangjie`, each character's code from Unihan's kCangjie (Unicode License v3, vendored in `src-tauri/vocab-core/data/cangjie.tsv` with `UNICODE-LICENSE.txt`, which the About page's licences list ships). The `shownNotations` preference turns pinyin, zhuyin and Cangjie on and off independently. The reader writes pinyin or zhuyin small above each character as the `readerNotation` preference picks (off by default): it is a `get_section` argument and part of the section query key, and each `ReaderToken` carries one syllable per character from its word's most likely reading
-- Android: `mise android:build` installs the NDK (`android:sdk`), creates the release key in `~/.android` (`android:keystore`), and builds a signed arm64 APK; `mise android:install` puts it on the adb-connected phone. Android-only crates (fs plugin and `percent-encoding` for `content://` URIs) are under `cfg(target_os = "android")` in `src-tauri/Cargo.toml`
-- macOS: `mise desktop:build:mac` builds the `.app` and `.dmg` on a Mac only (Xcode Command Line Tools and `cmake` needed). `src-tauri/tauri.macos.conf.json` signs ad-hoc; set `APPLE_SIGNING_IDENTITY` (and the notarization variables) to sign for distribution
-- The About page lists every shipped crate's and npm package's licence notice, generated by `mise licenses:generate` (cargo-about with `src-tauri/about.toml`, and `pnpm list --prod`) into the gitignored `src/pages/about/model/third-party-licenses.gen.json`; mise regenerates it when a lockfile changes. A crate under a licence not yet in `accepted` fails it: check the licence before adding it
-- `speaks_simplified_and_traditional_words` and `translates_simplified_and_traditional_sentences` need the real models, which they download into `src-tauri/target/models` the first time, so they are `#[ignore]`d: run them with `cargo test --release -p vocab-core -- --ignored`
+翻翻 FanFan: a Tauri 2 app (React in `src/`, Rust in `src-tauri/`) that turns a Chinese book into a vocabulary deck, a reader and FSRS reviews. See [README.md](README.md).
+
+- Run everything as mise tasks from the repo root; verify with `mise check` and `mise test`
+- On a Fedora Atomic Desktop host, all Rust builds only inside the `fedora-toolbox-45` toolbox
+- Logic lives in `src-tauri/vocab-core/`; the frontend reaches Rust only through `src/shared/api/commands.ts`, whose types mirror the serde types by hand
+- Never hard-code user-facing strings; never edit `src/shared/ui/shadcn/` or `routeTree.gen.ts`
 - Clear code beats comments
-- Edit only `AGENTS.md`; each `CLAUDE.md` is a symlink to it
-- Verify with `mise check` (lint, format, typecheck) and `mise test` (Rust core, then frontend)
+- Edit only `AGENTS.md`; `CLAUDE.md` is a symlink to it. Documentation lives in `docs/`; keep it in sync when the code it describes changes
 
-## Frontend structure
+Read the doc for the area you touch:
 
-- FSD v2.1, layers `app → pages → features → entities → shared`: import only from lower layers, never sideways between slices; no barrels, import the concrete file via `@/` with its extension (`@/pages/deck/model/use-deck-manager.ts`); `shared/` has no slices. `mise fsd`
-- Filenames: kebab-case modules, PascalCase components; `app/routes/` follows TanStack Router (`_app/` is the pathless sidebar shell). Never edit `routeTree.gen.ts`
-- A page slice's state and mutations live in `model/use-<x>-manager.ts`; `ui/<X>Manager.tsx` only renders. `pages/deck` is the reference slice
-- Forms are TanStack Form via `shared/lib/form.ts`: `useAppForm` with `schemaFormOptions(schema, empty)`, submit from `validatorOutputs[0]`. Render text fields with `field.TextField` (`shared/ui/FormFields.tsx`); add other field components there when a form needs them. Errors show inline after blur or submit, never as toasts
-- UI text lives in `shared/i18n/messages-{en,sv,zh}.ts`: English defines the `Messages` type, the others must match it. Read it with `useMessages()` (or `currentMessages()` outside a render, e.g. zod `error: () => ...`); never hard-code user-facing strings. Numbers and dates follow the language through `appLocale()`
-- Settings (language, script, background, voice, shown exams and notations) are persisted atoms in `shared/config/preferences.ts`, read with `useSelector`. The script is a command argument and part of the deck and review query keys: Rust converts each card's `displayWord` and `example`, while `word` stays the stored key
-- Chinese text gets `lang="zh"`, so the webview picks a Chinese font
-- Use LTS Node.js and Node.js types
-- UI components: see `src/shared/ui/AGENTS.md`
-- `knip.json` treats the vendored `src/shared/ui/shadcn/` components as entry points, so it skips their unused exports; delete a vendored component once no file imports it, and anything else knip reports as unused gets deleted
-
-## Frontend: commands (Rust)
-
-- The app runs only in Tauri: there is no HTTP backend. Every call to Rust goes through `commands` in `shared/api/commands.ts`; never call `invoke` elsewhere. Rust rejects with its error message as a string: show it with `commandErrorMessage(error, fallback)`
-- Query options and keys live in `shared/api/queries.ts`. A word's status changes every deck, coverage figure and the review queue, so word mutations call `invalidateStudyData`
-- Slow commands report progress through a Tauri `Channel` (see `importDocument`)
-- `zod/mini` only: wrap, don't chain (`z.optional(x)`, `z.extend`, `x.check(...)`)
-
-## Frontend tests
-
-- `*.test.ts` runs in Node; `*.test.tsx` and `*.browser.test.ts` in Chromium (Vitest Browser Mode, `vitest-browser-react`, no jsdom) on one shared page: reset global stores in `app/testing/browser-shared-page.ts`. Chromium: `mise test:web:browsers` (`--with-deps` on fresh Linux)
-- Rust is mocked at the IPC boundary with `mockCommands` (`shared/test/tauri.ts`, Tauri's `mockIPC`); push `Channel` messages with `sendToChannel`. Never `vi.mock` `commands.ts`. Assert on what was sent with `callsTo`
-- Build command results with `shared/test/fixtures.ts` (`makeDocument`, `makeCard`, `makeDeck`, ...), overriding only the fields the test or UI reads. A handler that keeps state (a `Map` of statuses) beats scripting each refetch
-- Prefer the DOM, `renderPageInRouter`/`renderRoute` and props over `vi.mock()`. A browser test file that mocks must be `*.isolated.test.tsx`, and a mock targets a concrete module
+- [docs/architecture.md](docs/architecture.md): layout, the command contract, data, models
+- [docs/frontend.md](docs/frontend.md): FSD structure, commands and queries, forms, i18n, UI components
+- [docs/testing.md](docs/testing.md): Rust and frontend tests, mocking Rust
+- [docs/building.md](docs/building.md): system packages, desktop, Android, macOS
+- [docs/licences.md](docs/licences.md): data and model sources, licence checks
+- [docs/dependency-upgrades.md](docs/dependency-upgrades.md): pnpm, Cargo and mise upgrades
+- [docs/skills.md](docs/skills.md): agent skills
