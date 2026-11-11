@@ -52,6 +52,7 @@ export function makeCard(word: string, overrides: Partial<StudyCard> = {}): Stud
     count: 10,
     hskLevel: null,
     tbclLevel: null,
+    tocflLevel: null,
     ...overrides,
   };
 }
@@ -101,6 +102,7 @@ export function makeWordEntry(word: string, overrides: Partial<WordEntry> = {}):
     updatedAt: Date.UTC(2026, 0, 1),
     hskLevel: null,
     tbclLevel: null,
+    tocflLevel: null,
     ...overrides,
   };
 }

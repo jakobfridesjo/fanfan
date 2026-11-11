@@ -20,6 +20,7 @@ const CREDITS: { role: keyof Messages["about"]["credits"]; name: string; license
   { role: "dictionary", name: "CC-CEDICT", license: "CC BY-SA 4.0" },
   { role: "hsk", name: "complete-hsk-vocabulary", license: "MIT" },
   { role: "tbcl", name: "TBCL (NAER)", license: "NAER open data" },
+  { role: "tocfl", name: "LinZi (linzi.app)", license: "CC BY-SA 4.0" },
   { role: "cangjie", name: "Unihan (Unicode)", license: "Unicode-3.0" },
   { role: "speech", name: "MOSS-TTS-Nano", license: "Apache-2.0" },
   { role: "translation", name: "opus-mt-zh-en (Helsinki-NLP)", license: "CC BY 4.0" },

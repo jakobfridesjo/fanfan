@@ -32,6 +32,7 @@ export const sv: Messages = {
     cangjie: "Cangjie-koder",
     hskLevel: (level) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
     tbclLevel: (level) => `TBCL ${level}`,
+    tocflLevel: (level) => (level <= 2 ? `TOCFL Nybörjare ${level}` : `TOCFL ${level - 2}`),
   },
   coverage: {
     meter: "Kända ord",
@@ -242,8 +243,8 @@ export const sv: Messages = {
     },
     examLevels: "Provnivåer",
     examLevelsDescription:
-      "Visa ordets nivå i HSK 3.0 (Fastlandskina) och TBCL (Taiwan) på kortet. Ett ord som saknas i en lista får ingen nivå för den.",
-    exams: { hsk: "HSK", tbcl: "TBCL" },
+      "Visa ordets nivå i HSK 3.0 (Fastlandskina) samt TBCL och TOCFL (Taiwan) på kortet. Ett ord som saknas i en lista får ingen nivå för den.",
+    exams: { hsk: "HSK", tbcl: "TBCL", tocfl: "TOCFL" },
     notations: "Uttal och inmatningskoder",
     notationsDescription:
       "Visa valfri kombination av pinyin, zhuyin (bopomofo, som i Taiwan) och Cangjie-inmatningskoder vid varje ord.",
@@ -291,6 +292,7 @@ export const sv: Messages = {
       scheduling: "Schemaläggning av repetitioner",
       hsk: "HSK 3.0-nivåer",
       tbcl: "TBCL-nivåer",
+      tocfl: "TOCFL-nivåer",
       cangjie: "Cangjie-koder",
     },
   },

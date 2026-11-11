@@ -83,9 +83,13 @@ describe("SettingsManager", () => {
 
     const hsk = screen.getByRole("button", { name: "HSK" });
     const tbcl = screen.getByRole("button", { name: "TBCL" });
+    const tocfl = screen.getByRole("button", { name: "TOCFL" });
     await expect.element(hsk).toHaveAttribute("aria-pressed", "true");
+    await expect.element(tocfl).toHaveAttribute("aria-pressed", "true");
 
     await hsk.click();
+    expect(shownExamsAtom.get()).toEqual(["tbcl", "tocfl"]);
+    await tocfl.click();
     expect(shownExamsAtom.get()).toEqual(["tbcl"]);
     await tbcl.click();
     expect(shownExamsAtom.get()).toEqual([]);

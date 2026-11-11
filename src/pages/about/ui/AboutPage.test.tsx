@@ -11,7 +11,8 @@ describe("AboutPage", () => {
     await expect.element(screen.getByText(/^Version \d+\.\d+\.\d+/)).toBeVisible();
     await expect.element(screen.getByText("By Jakob Fridesjö")).toBeVisible();
     await expect.element(screen.getByText("CC-CEDICT")).toBeVisible();
-    await expect.element(screen.getByText("CC BY-SA 4.0")).toBeVisible();
+    await expect.element(screen.getByText("CC BY-SA 4.0").first()).toBeVisible();
+    await expect.element(screen.getByText("LinZi (linzi.app)")).toBeVisible();
 
     languageAtom.set("zh");
     await expect.element(screen.getByText("致谢")).toBeVisible();

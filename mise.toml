@@ -178,7 +178,7 @@ mv resources/cedict.txt.gz.part resources/cedict.txt.gz
 """
 
 [tasks."data:update"]
-description = "Rebuild the vendored HSK 3.0 (MIT) and TBCL (NAER open data) word levels and Unihan's Cangjie codes (Unicode License v3) from their pinned sources"
+description = "Rebuild the vendored HSK 3.0 (MIT), TBCL (NAER open data) and TOCFL (LinZi, CC BY-SA 4.0) word levels and Unihan's Cangjie codes (Unicode License v3) from their pinned sources"
 dir = "src-tauri/vocab-core/data"
 run = '''
 node --input-type=module <<'SCRIPT'
@@ -190,6 +190,9 @@ const hskUrl = "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabu
 // 臺灣華語文能力基準 (TBCL) 三等七級詞語表, April 2025: https://coct.naer.edu.tw/page.jsp?ID=41
 const tbclUrl = "https://coct.naer.edu.tw/file/files/14452%E8%A9%9E%E8%AA%9E%E8%A1%A8202504.xlsx";
 const tbclSha256 = "0cf6666bd1ed9af62b452bc5306bdc4d4520aead9c31b404e2065e8e075dfbad";
+// LinZi's TOCFL 華語八千詞 list, generated 2026-11-02: https://www.linzi.app/data/
+const tocflUrl = "https://www.linzi.app/data/files/tocfl-words.csv";
+const tocflSha256 = "1500a12f773875cde49a8070e6e19eac2c19ce0a919d2aeed052e754de15708e";
 const unihanUrl = "https://www.unicode.org/Public/18.0.0/ucd/Unihan.zip";
 const unihanSha256 = "4c93ea9c1f636451729a840978f1667a53886af37ba854fdcce109721c63d43e";
 
@@ -234,8 +237,20 @@ for (const row of sheetRows(await download(tbclUrl, tbclSha256)).slice(1)) {
   }
 }
 
-const lines = [...levels].sort(([a], [b]) => (a < b ? -1 : 1)).map(([word, e]) => `${word}\t${e.hsk ?? ""}\t${e.tbcl ?? ""}`.trimEnd());
-writeFileSync("levels.tsv", ["word\thsk\ttbcl", ...lines].join("\n") + "\n");
+// `simp,trad,pinyin,zhuyin,tocfl_level,...`, no quoted commas before the definitions.
+// Levels 0.1 and 0.2 are Novice 1 and 2, 1 to 5 Levels 1 to 5: stored as 1 to 7.
+const tocflBands = ["0.1", "0.2", "1", "2", "3", "4", "5"];
+for (const line of (await download(tocflUrl, tocflSha256)).toString().trim().split("\n").slice(1)) {
+  const [simple, traditional, , , band] = line.split(",");
+  const tocfl = tocflBands.indexOf(band) + 1;
+  if (tocfl === 0) throw new Error(`unknown TOCFL level ${band} for ${traditional}`);
+  for (const form of new Set([simple, traditional])) lower(entry(form), "tocfl", tocfl);
+}
+
+const lines = [...levels]
+  .sort(([a], [b]) => (a < b ? -1 : 1))
+  .map(([word, e]) => `${word}\t${e.hsk ?? ""}\t${e.tbcl ?? ""}\t${e.tocfl ?? ""}`.trimEnd());
+writeFileSync("levels.tsv", ["word\thsk\ttbcl\ttocfl", ...lines].join("\n") + "\n");
 
 // Unihan's kCangjie: `U+5B78\tkCangjie\tHBND`.
 const cangjie = [];

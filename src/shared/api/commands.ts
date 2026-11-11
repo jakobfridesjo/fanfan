@@ -60,6 +60,8 @@ export interface StudyCard {
   hskLevel: number | null;
   /** Taiwan's TBCL, 1 to 7; null when the word is not on the list. */
   tbclLevel: number | null;
+  /** Taiwan's TOCFL, 1 to 7 (Novice 1 and 2, then Levels 1 to 5); null when the word is not on the list. */
+  tocflLevel: number | null;
 }
 
 export interface Deck {
@@ -145,6 +147,8 @@ export interface WordEntry {
   hskLevel: number | null;
   /** Taiwan's TBCL, 1 to 7; null when the word is not on the list. */
   tbclLevel: number | null;
+  /** Taiwan's TOCFL, 1 to 7 (Novice 1 and 2, then Levels 1 to 5); null when the word is not on the list. */
+  tocflLevel: number | null;
 }
 
 export interface WordCounts {

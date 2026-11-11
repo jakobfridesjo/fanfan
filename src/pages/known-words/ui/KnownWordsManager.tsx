@@ -9,6 +9,7 @@ import {
   type Notation,
 } from "@/shared/config/preferences.ts";
 import { ExamLevels } from "@/entities/word/ui/ExamLevels.tsx";
+import { examLevel } from "@/entities/word/model/exam-levels.ts";
 import { pronunciationText, showsPronunciation } from "@/entities/word/model/pronunciation.ts";
 import { ReadingPronunciation } from "@/entities/word/ui/Pronunciation.tsx";
 import { SpeakButton } from "@/entities/word/ui/WordCard.tsx";
@@ -131,7 +132,7 @@ type SetStatus = (change: { entry: WordEntry; status: WordStatus }) => void;
 
 /** Sorts by the shown exams in order, easiest first; undefined for a word on neither list. */
 function levelRank(entry: WordEntry, exams: Exam[]): number | undefined {
-  const ranks = exams.map((exam) => (exam === "hsk" ? entry.hskLevel : entry.tbclLevel));
+  const ranks = exams.map((exam) => examLevel(entry, exam));
   if (ranks.every((rank) => rank === null)) return undefined;
   return ranks.reduce<number>((sum, rank) => sum * 10 + (rank ?? 9), 0);
 }

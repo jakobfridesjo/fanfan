@@ -32,6 +32,7 @@ export const en = {
     cangjie: "Cangjie codes",
     hskLevel: (level: number) => (level === 7 ? "HSK 7–9" : `HSK ${level}`),
     tbclLevel: (level: number) => `TBCL ${level}`,
+    tocflLevel: (level: number) => (level <= 2 ? `TOCFL Novice ${level}` : `TOCFL ${level - 2}`),
   },
   coverage: {
     meter: "Known words",
@@ -241,8 +242,8 @@ export const en = {
     },
     examLevels: "Exam levels",
     examLevelsDescription:
-      "Show each word's HSK 3.0 level (mainland China) and TBCL level (Taiwan) on its card. A word missing from a list shows no level for it.",
-    exams: { hsk: "HSK", tbcl: "TBCL" },
+      "Show each word's HSK 3.0 level (mainland China) and TBCL and TOCFL levels (Taiwan) on its card. A word missing from a list shows no level for it.",
+    exams: { hsk: "HSK", tbcl: "TBCL", tocfl: "TOCFL" },
     notations: "Readings and input codes",
     notationsDescription:
       "Show any combination of pinyin, zhuyin (bopomofo, as taught in Taiwan) and Cangjie input codes with each word.",
@@ -290,6 +291,7 @@ export const en = {
       scheduling: "Review scheduling",
       hsk: "HSK 3.0 levels",
       tbcl: "TBCL levels",
+      tocfl: "TOCFL levels",
       cangjie: "Cangjie codes",
     },
   },

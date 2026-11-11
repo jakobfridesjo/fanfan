@@ -15,7 +15,7 @@ export const BACKGROUNDS = [
   "pyreflies",
   "plain",
 ] as const;
-export const EXAMS = ["hsk", "tbcl"] as const;
+export const EXAMS = ["hsk", "tbcl", "tocfl"] as const;
 export const NOTATIONS = ["pinyin", "zhuyin", "cangjie"] as const;
 export const READER_NOTATIONS = ["off", "pinyin", "zhuyin"] as const;
 export const SPEAKERS = ["lingyu", "weiguo", "junhao", "zhiming", "xiaoyu", "yuewen"] as const;

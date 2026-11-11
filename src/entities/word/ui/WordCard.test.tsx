@@ -24,15 +24,27 @@ function render(ui: ReactNode) {
 
 describe("WordCard", () => {
   it("shows the exam levels the settings ask for", async () => {
-    await render(<WordCard card={makeCard("学习", { hskLevel: 7, tbclLevel: 2 })} />);
+    await render(
+      <WordCard card={makeCard("学习", { hskLevel: 7, tbclLevel: 2, tocflLevel: 3 })} />
+    );
 
     const levels = page.getByRole("list", { name: "Exam levels" });
-    await expect.element(levels).toHaveTextContent("HSK 7–9TBCL 2");
+    await expect.element(levels).toHaveTextContent("HSK 7–9TBCL 2TOCFL 1");
 
     shownExamsAtom.set(["tbcl"]);
     await expect.element(levels).toHaveTextContent("TBCL 2");
+    shownExamsAtom.set(["tocfl"]);
+    await expect.element(levels).toHaveTextContent("TOCFL 1");
     shownExamsAtom.set([]);
     await expect.element(levels).not.toBeInTheDocument();
+  });
+
+  it("names TOCFL's two Novice bands", async () => {
+    await render(<WordCard card={makeCard("八", { tocflLevel: 2 })} />);
+
+    await expect
+      .element(page.getByRole("list", { name: "Exam levels" }))
+      .toHaveTextContent("TOCFL Novice 2");
   });
 
   it("shows pinyin, zhuyin and Cangjie codes each as the settings turn them on", async () => {

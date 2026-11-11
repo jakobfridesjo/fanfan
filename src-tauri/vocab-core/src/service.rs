@@ -82,6 +82,8 @@ pub struct StudyCard {
     pub hsk_level: Option<u8>,
     /// TBCL, 1 to 7.
     pub tbcl_level: Option<u8>,
+    /// TOCFL, 1 to 7: Novice 1 and 2, then Levels 1 to 5.
+    pub tocfl_level: Option<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -163,6 +165,8 @@ pub struct WordEntry {
     pub hsk_level: Option<u8>,
     /// TBCL, 1 to 7.
     pub tbcl_level: Option<u8>,
+    /// TOCFL, 1 to 7: Novice 1 and 2, then Levels 1 to 5.
+    pub tocfl_level: Option<u8>,
 }
 
 /// The SHA-256 of the file's bytes, which tells a re-import of the same file apart.
@@ -434,6 +438,7 @@ pub fn word_list(
                 updated_at: tracked.updated_at,
                 hsk_level: levels.hsk,
                 tbcl_level: levels.tbcl,
+                tocfl_level: levels.tocfl,
             }
         })
         .collect()
@@ -469,6 +474,7 @@ fn study_card(
         count,
         hsk_level: levels.hsk,
         tbcl_level: levels.tbcl,
+        tocfl_level: levels.tocfl,
     }
 }
 
@@ -806,6 +812,7 @@ mod tests {
                 "intervals",
                 "readings",
                 "tbclLevel",
+                "tocflLevel",
                 "word"
             ]
         );
@@ -887,6 +894,7 @@ mod tests {
                 "readings",
                 "status",
                 "tbclLevel",
+                "tocflLevel",
                 "updatedAt",
                 "word"
             ]
@@ -961,6 +969,7 @@ mod tests {
             count: Some(3),
             hsk_level: Some(1),
             tbcl_level: Some(2),
+            tocfl_level: Some(3),
         };
         assert_eq!(
             serde_json::to_value(&card).unwrap(),
@@ -979,7 +988,8 @@ mod tests {
                 "example": "北京很好。",
                 "count": 3,
                 "hskLevel": 1,
-                "tbclLevel": 2
+                "tbclLevel": 2,
+                "tocflLevel": 3
             })
         );
     }

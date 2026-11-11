@@ -29,6 +29,7 @@ export const zh: Messages = {
     cangjie: "仓颉码",
     hskLevel: (level) => (level === 7 ? "HSK 7–9级" : `HSK ${level}级`),
     tbclLevel: (level) => `TBCL ${level} 级`,
+    tocflLevel: (level) => (level <= 2 ? `TOCFL 准备${level}级` : `TOCFL ${level - 2} 级`),
   },
   coverage: {
     meter: "已认识的词",
@@ -234,8 +235,8 @@ export const zh: Messages = {
     },
     examLevels: "考试等级",
     examLevelsDescription:
-      "在词卡上显示词语的 HSK 3.0 等级（中国大陆）和 TBCL 等级（台湾）。不在某个词表中的词不显示该等级。",
-    exams: { hsk: "HSK", tbcl: "TBCL" },
+      "在词卡上显示词语的 HSK 3.0 等级（中国大陆）以及 TBCL 和 TOCFL 等级（台湾）。不在某个词表中的词不显示该等级。",
+    exams: { hsk: "HSK", tbcl: "TBCL", tocfl: "TOCFL" },
     notations: "读音与输入码",
     notationsDescription: "在每个词旁显示拼音、注音符号（台湾通行）和仓颉输入码，可任意组合。",
     notationNames: { pinyin: "拼音", zhuyin: "注音", cangjie: "仓颉" },
@@ -281,6 +282,7 @@ export const zh: Messages = {
       scheduling: "复习排程",
       hsk: "HSK 3.0 等级",
       tbcl: "TBCL 等级",
+      tocfl: "TOCFL 等级",
       cangjie: "仓颉码",
     },
   },

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-/// `word\thsk\ttbcl`, empty or missing where a list lacks the word, in simplified and
+/// `word\thsk\ttbcl\ttocfl`, empty or missing where a list lacks the word, in simplified and
 /// traditional forms; rebuilt by `mise data:update`.
 const LEVELS: &str = include_str!("../data/levels.tsv");
 
@@ -11,6 +11,8 @@ pub struct WordLevels {
     pub hsk: Option<u8>,
     /// Taiwan's TBCL (臺灣華語文能力基準), 1 to 7.
     pub tbcl: Option<u8>,
+    /// Taiwan's TOCFL (華語八千詞), 1 to 7: Novice 1 and 2, then Levels 1 to 5.
+    pub tocfl: Option<u8>,
 }
 
 static TABLE: LazyLock<HashMap<&'static str, WordLevels>> = LazyLock::new(|| {
@@ -22,7 +24,8 @@ static TABLE: LazyLock<HashMap<&'static str, WordLevels>> = LazyLock::new(|| {
             let word = columns.next()?;
             let hsk = columns.next().and_then(|level| level.parse().ok());
             let tbcl = columns.next().and_then(|level| level.parse().ok());
-            Some((word, WordLevels { hsk, tbcl }))
+            let tocfl = columns.next().and_then(|level| level.parse().ok());
+            Some((word, WordLevels { hsk, tbcl, tocfl }))
         })
         .collect()
 });
@@ -41,6 +44,7 @@ mod tests {
         let expected = WordLevels {
             hsk: Some(1),
             tbcl: Some(2),
+            tocfl: Some(3),
         };
         assert_eq!(levels_of("学习"), expected);
         assert_eq!(levels_of("學習"), expected);
@@ -49,6 +53,7 @@ mod tests {
     #[test]
     fn leaves_unlisted_words_and_tests_empty() {
         assert_eq!(levels_of("阿拉伯语").tbcl, None);
+        assert_eq!(levels_of("阿拉伯语").tocfl, None);
         assert_eq!(levels_of("阿拉伯语").hsk, Some(7));
         assert_eq!(levels_of("北京大学生"), WordLevels::default());
     }
