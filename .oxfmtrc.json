@@ -1,0 +1,13 @@
+{
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "ignorePatterns": [
+    "coverage",
+    "mise.toml",
+    "src/app/routeTree.gen.ts",
+    "src/pages/about/model/third-party-licenses.gen.json"
+  ]
+}

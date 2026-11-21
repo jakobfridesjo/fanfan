@@ -1,0 +1,68 @@
+diff --git a/dist/dismissable-layer/D_MF27Ne.jsx b/dist/dismissable-layer/D_MF27Ne.jsx
+index 47b820a29031ac3e8f18312aa9c6f1751dac7a7e..ea07c993b8cd4c35ddc4b7671aab1181e2faa98f 100644
+--- a/dist/dismissable-layer/D_MF27Ne.jsx
++++ b/dist/dismissable-layer/D_MF27Ne.jsx
+@@ -60,22 +60,21 @@ function DismissableLayer(props) {
+ 			}
+ 		});
+ 	}, { preventDefault: false });
+-	onSettled(() => {
+-		if (!ref()) return;
++	createEffect(() => ref(), (node) => {
++		if (!node) return;
+ 		layerStack.addLayer({
+-			node: ref(),
++			node: node,
+ 			isPointerBlocking: isPointerBlocking(),
+ 			dismiss: props.onDismiss
+ 		});
+-		const unregisterFromParentLayer = parentContext?.registerNestedLayer(ref());
++		const unregisterFromParentLayer = parentContext?.registerNestedLayer(node);
+ 		layerStack.assignPointerEventToLayers();
+-		layerStack.disableBodyPointerEvents(ref());
++		layerStack.disableBodyPointerEvents(node);
+ 		return () => {
+-			if (!ref()) return;
+-			layerStack.removeLayer(ref());
++			layerStack.removeLayer(node);
+ 			unregisterFromParentLayer?.();
+ 			layerStack.assignPointerEventToLayers();
+-			layerStack.restoreBodyPointerEvents(ref());
++			layerStack.restoreBodyPointerEvents(node);
+ 		};
+ 	});
+ 	createEffect(() => ({
+diff --git a/dist/dismissable-layer/DoCcOu3x.js b/dist/dismissable-layer/DoCcOu3x.js
+index d34088dbe07ba312beace0885555547ac66669cf..974883f9df7ffaa646f52a4b26c640d9301455f6 100644
+--- a/dist/dismissable-layer/DoCcOu3x.js
++++ b/dist/dismissable-layer/DoCcOu3x.js
+@@ -62,22 +62,21 @@ function DismissableLayer(props) {
+ 			}
+ 		});
+ 	}, { preventDefault: false });
+-	onSettled(() => {
+-		if (!ref$1()) return;
++	createEffect(() => ref$1(), (node) => {
++		if (!node) return;
+ 		layerStack.addLayer({
+-			node: ref$1(),
++			node: node,
+ 			isPointerBlocking: isPointerBlocking(),
+ 			dismiss: props.onDismiss
+ 		});
+-		const unregisterFromParentLayer = parentContext?.registerNestedLayer(ref$1());
++		const unregisterFromParentLayer = parentContext?.registerNestedLayer(node);
+ 		layerStack.assignPointerEventToLayers();
+-		layerStack.disableBodyPointerEvents(ref$1());
++		layerStack.disableBodyPointerEvents(node);
+ 		return () => {
+-			if (!ref$1()) return;
+-			layerStack.removeLayer(ref$1());
++			layerStack.removeLayer(node);
+ 			unregisterFromParentLayer?.();
+ 			layerStack.assignPointerEventToLayers();
+-			layerStack.restoreBodyPointerEvents(ref$1());
++			layerStack.restoreBodyPointerEvents(node);
+ 		};
+ 	});
+ 	createEffect(() => ({

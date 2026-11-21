@@ -1,0 +1,40 @@
+allowBuilds:
+  esbuild: false
+blockExoticSubdeps: true
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - playwright@1.65.0
+  - playwright-core@1.65.0
+  # The Solid 2 releases the app is built on, taken before they were three days old.
+  # Drop them all from 2026-11-24.
+  - "@kobalte/core@2.0.0-alpha.5"
+  - "@kobalte/utils@2.0.0-alpha.2"
+  - solid-sonner@1.0.0
+  - solid-js@2.0.3
+  - "@solidjs/web@2.0.3"
+  - "@solidjs/signals@2.0.3"
+  - "@tanstack/solid-router@2.0.0-rc.11"
+  - "@tanstack/solid-router-devtools@2.0.0-rc.9"
+  - "@tanstack/solid-devtools@0.9.0"
+  - "@tanstack/devtools@0.17.0"
+registrySupportsTimeField: false
+resolutionMode: highest
+
+# steiger-rust is a bin-less meta-package; the executable lives in the
+# platform-specific optional dependency, so hoist it to get `steiger` on PATH.
+publicHoistPattern:
+  - steiger-rust-*
+permissions:
+  "@tanstack/charts":
+    skills: true
+  "@solidjs/web":
+    # Its one skill is for server components, which a Tauri app has none of.
+    skills: false
+  "@tanstack/router-plugin":
+    skills: true
+  "@tanstack/solid-router":
+    skills: true
+  solid-js:
+    skills: true
+patchedDependencies:
+  "@kobalte/core@2.0.0-alpha.5": patches/@kobalte__core@2.0.0-alpha.5.patch

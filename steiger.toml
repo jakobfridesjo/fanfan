@@ -1,0 +1,28 @@
+# Feature-Sliced Design structure check (steiger-rust: native, no Node runtime).
+# TOML rather than JS/TS on purpose — the native binary does not evaluate
+# JavaScript config, and the Node steiger's TS loader breaks on TypeScript 7.
+
+global_ignores = ["**/src/app/routeTree.gen.ts"]
+
+[rules]
+# Advisory: reported as warnings so the follow-up list stays visible.
+"fsd/insignificant-slice" = "warn"
+"fsd/repetitive-naming" = "off"
+"fsd/shared-lib-grouping" = "off"
+"fsd/segments-by-purpose" = "warn"
+"fsd/inconsistent-naming" = "warn"
+# No layer in this repo has slice barrels: every module is imported by its own
+# path. Measured before removal, 181 of 274 barrel import sites pulled at least
+# twice the modules they used (median 23 wasted per site), and route loaders
+# reaching a barrel dragged feature UI into first paint. Layer direction and
+# slice isolation are still enforced by fsd/forbidden-imports, which matches on
+# paths and does not need a public API to do its job.
+"fsd/public-api" = "off"
+"fsd/no-public-api-sidestep" = "off"
+
+[[overrides]]
+# `app` is sliceless; its segments follow the framework's names (routes,
+# layouts, providers, styles), not a business purpose.
+files = ["./src/app/**"]
+[overrides.rules]
+"fsd/segments-by-purpose" = "off"

@@ -1,0 +1,402 @@
+[settings]
+experimental = true
+lockfile = true
+minimum_release_age = "3d"
+
+[tools]
+node = "26.13.0"
+pnpm = "12.18.0"
+rust = { version = "1.99.1", components = "rustfmt,clippy" }
+
+hk = "2.11.1"
+pkl = "0.33.0"
+"github:EmbarkStudios/cargo-about" = "0.9.3"
+# mold ships no macOS build; Linux builds link with it (see [env]).
+mold = { version = "3.0.0", os = ["linux"] }
+
+[env]
+HK_MISE = 1
+# Link native Linux builds with mold. Android and macOS keep their own linkers.
+CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS = "-C link-arg=-fuse-ld=mold"
+
+# The Android tasks bring their own tools, installed on first run: Gradle needs a
+# JDK, Tauri the SDK and the NDK (`mise android:sdk` installs this version).
+[vars]
+ndk = "29.0.14206865"
+
+[deps.web]
+auto = true
+description = "Install web dependencies"
+sources = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+outputs = ["node_modules/"]
+run = "pnpm install --frozen-lockfile"
+
+[deps.dictionary]
+auto = true
+description = "Download CC-CEDICT, which the app bundles"
+outputs = ["src-tauri/resources/cedict.txt.gz"]
+run = "mise run --no-deps dictionary:fetch"
+
+[deps.licenses]
+auto = true
+description = "Collect the third-party licence notices the About page shows"
+depends = ["web"]
+sources = [
+  "mise.toml",
+  "pnpm-lock.yaml",
+  "src-tauri/Cargo.lock",
+  "src-tauri/about.toml",
+  "src-tauri/vocab-core/data/UNICODE-LICENSE.txt",
+]
+outputs = ["src/pages/about/model/third-party-licenses.gen.json"]
+run = "mise run --no-deps licenses:generate"
+
+# The rest of `mise setup`. Without `auto`, these run only on `mise deps`, not
+# before every task; `--no-deps` keeps their tasks from re-entering `mise deps`.
+[deps.env]
+description = "Create local env files"
+outputs = [".env.local", "mise.local.toml"]
+run = "mise run --no-deps env:init"
+
+[deps.skills]
+description = "Restore project skills and link the active tools' skills"
+sources = ["skills-lock.json", "mise.lock"]
+outputs = [".agents/skills/"]
+run = "mise run --no-deps skills:install"
+
+[deps.hooks]
+description = "Install hk Git hooks"
+outputs = [".git/hooks/pre-commit", ".git/hooks/pre-push"]
+run = "mise run --no-deps hooks:install"
+
+[deps.browsers]
+description = "Install Chromium for frontend tests"
+depends = ["web"]
+# The lockfile pins Playwright, which pins the browser build.
+sources = ["pnpm-lock.yaml"]
+run = "mise run --no-deps test:web:browsers"
+
+[tasks."desktop"]
+description = "Start the Tauri desktop app with the Vite dev server"
+env = { _.file = { path = ".env.local", redact = true } }
+run = "pnpm tauri:dev"
+
+[tasks."desktop:build"]
+description = "Build the Tauri desktop app and its installers (.deb and .rpm on Linux, in src-tauri/target/release/bundle/)"
+run = "pnpm tauri:build"
+
+[tasks."desktop:build:mac"]
+description = "Build the macOS app and DMG on a Mac, ad-hoc signed (src-tauri/target/release/bundle/)"
+run = """
+set -e
+[ "$(uname)" = Darwin ] || { echo "Tauri builds macOS apps only on a Mac." >&2; exit 1; }
+xcode-select -p > /dev/null 2>&1 || { echo "Install the Xcode Command Line Tools: xcode-select --install" >&2; exit 1; }
+command -v cmake > /dev/null || { echo "Install CMake (brew install cmake): SentencePiece and Opus build with it." >&2; exit 1; }
+pnpm tauri build --bundles app,dmg --config src-tauri/tauri.build.conf.json
+"""
+
+[tasks."android:sdk"]
+description = "Install the Android NDK and platform tools into the mise Android SDK"
+tools = { java = "temurin-21.0.13+9.0.LTS", android-sdk = "20.0" }
+run = """
+set -e
+[ -d "$ANDROID_HOME/ndk/{{vars.ndk}}" ] && [ -d "$ANDROID_HOME/platform-tools" ] && exit 0
+yes | sdkmanager --licenses > /dev/null
+sdkmanager --install platform-tools "ndk;{{vars.ndk}}"
+"""
+
+[tasks."android:keystore"]
+description = "Create the key that signs release APKs, kept in ~/.android outside the repo"
+dir = "src-tauri/gen/android"
+tools = { java = "temurin-21.0.13+9.0.LTS" }
+run = """
+set -e
+[ -f keystore.properties ] && exit 0
+umask 077
+store="$HOME/.android/fanfan-release.jks"
+mkdir -p "$(dirname "$store")"
+export KEYSTORE_PASSWORD="$(head -c 24 /dev/urandom | base64 | tr -d '/+=')"
+keytool -genkeypair -keystore "$store" -alias release -keyalg RSA -keysize 4096 -validity 10000 \
+  -storepass:env KEYSTORE_PASSWORD -keypass:env KEYSTORE_PASSWORD -dname "CN=FanFan"
+printf 'password=%s\\nkeyAlias=release\\nstoreFile=%s\\n' "$KEYSTORE_PASSWORD" "$store" > keystore.properties
+"""
+
+[tasks."android:build"]
+description = "Build a signed release APK for arm64 phones"
+depends = ["android:sdk", "android:keystore"]
+tools = { java = "temurin-21.0.13+9.0.LTS", android-sdk = "20.0", rust = { version = "1.99.1", targets = "aarch64-linux-android" } }
+run = """
+# Tauri finds the NDK through NDK_HOME.
+export NDK_HOME="$ANDROID_HOME/ndk/{{vars.ndk}}"
+# CMake (SentencePiece, Opus) finds the NDK by this name.
+export ANDROID_NDK_ROOT="$NDK_HOME"
+# Tauri copies the bundle resources into the Android assets but never removes old ones.
+rm -rf src-tauri/gen/android/app/src/main/assets/resources
+pnpm tauri android build --apk --target aarch64 --config src-tauri/tauri.build.conf.json
+"""
+
+[tasks."android:install"]
+description = "Install the release APK on the phone adb is connected to (pair over Wi-Fi with `adb pair`)"
+dir = "src-tauri/gen/android/app/build/outputs/apk"
+tools = { android-sdk = "20.0" }
+run = "adb install -r universal/release/app-universal-release.apk"
+
+[tasks."dictionary:fetch"]
+description = "Download the latest CC-CEDICT (CC BY-SA 4.0) into the Tauri resources"
+dir = "src-tauri"
+run = """
+mkdir -p resources
+curl -fsSL -o resources/cedict.txt.gz.part https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz
+gzip -t resources/cedict.txt.gz.part
+mv resources/cedict.txt.gz.part resources/cedict.txt.gz
+"""
+
+[tasks."data:update"]
+description = "Rebuild the vendored HSK 3.0 (MIT), TBCL (NAER open data) and TOCFL (LinZi, CC BY-SA 4.0) word levels and Unihan's Cangjie codes (Unicode License v3) from their pinned sources"
+dir = "src-tauri/vocab-core/data"
+run = '''
+node --input-type=module <<'SCRIPT'
+import { createHash } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
+import { gunzipSync, inflateRawSync } from "node:zlib";
+
+const hskUrl = "https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.min.json";
+// 臺灣華語文能力基準 (TBCL) 三等七級詞語表, April 2025: https://coct.naer.edu.tw/page.jsp?ID=41
+const tbclUrl = "https://coct.naer.edu.tw/file/files/14452%E8%A9%9E%E8%AA%9E%E8%A1%A8202504.xlsx";
+const tbclSha256 = "0cf6666bd1ed9af62b452bc5306bdc4d4520aead9c31b404e2065e8e075dfbad";
+// LinZi's TOCFL 華語八千詞 list, generated 2026-11-02: https://www.linzi.app/data/
+const tocflUrl = "https://www.linzi.app/data/files/tocfl-words.csv";
+const tocflSha256 = "1500a12f773875cde49a8070e6e19eac2c19ce0a919d2aeed052e754de15708e";
+const unihanUrl = "https://www.unicode.org/Public/18.0.0/ucd/Unihan.zip";
+const unihanSha256 = "4c93ea9c1f636451729a840978f1667a53886af37ba854fdcce109721c63d43e";
+
+const download = async (url, sha256) => {
+  const bytes = Buffer.from(await (await fetch(url)).arrayBuffer());
+  const digest = createHash("sha256").update(bytes).digest("hex");
+  if (digest !== sha256) throw new Error(`${url} changed (sha256 ${digest}); check it, then update its URL and checksum`);
+  return bytes;
+};
+
+const levels = new Map();
+const entry = (word) => levels.get(word) ?? levels.set(word, {}).get(word);
+const lower = (e, list, level) => (e[list] = Math.min(e[list] ?? level, level));
+
+for (const word of await (await fetch(hskUrl)).json()) {
+  // `n1`..`n7` are HSK 3.0 levels, `n7` standing for 7-9.
+  const hsk = Math.min(...word.l.filter((l) => l.startsWith("n")).map((l) => Number(l.slice(1))));
+  if (!Number.isFinite(hsk)) continue;
+  for (const form of new Set([word.s, ...word.f.map((f) => f.t)])) lower(entry(form), "hsk", hsk);
+}
+
+// TBCL lists traditional forms only; CC-CEDICT gives their simplified ones,
+// character by character for a word it lacks.
+const simplified = new Map();
+for (const line of gunzipSync(readFileSync("../../resources/cedict.txt.gz")).toString().split("\n")) {
+  const [traditional, simple] = line.split(" ", 2);
+  if (line.startsWith("#") || !simple) continue;
+  (simplified.get(traditional) ?? simplified.set(traditional, new Set()).get(traditional)).add(simple);
+}
+const simplifiedForms = (word) =>
+  simplified.get(word) ?? [[...word].map((c) => [...(simplified.get(c) ?? [c])][0]).join("")];
+
+for (const row of sheetRows(await download(tbclUrl, tbclSha256)).slice(1)) {
+  // `第4*級` and `第4級` are both level 4; a digit after a word numbers its senses (和1, 和2).
+  const tbcl = Number(row.ji.match(/\d/)[0]);
+  for (const alternative of row.word.replace(/\d/g, "").split("/")) {
+    // 沒(有)用 stands for 沒有用 and 沒用.
+    const forms = [alternative.replace(/[()（）]/g, ""), alternative.replace(/[(（].*?[)）]/g, "")];
+    for (const form of new Set(forms.flatMap((form) => [form, ...simplifiedForms(form)]))) {
+      lower(entry(form), "tbcl", tbcl);
+    }
+  }
+}
+
+// `simp,trad,pinyin,zhuyin,tocfl_level,...`, no quoted commas before the definitions.
+// Levels 0.1 and 0.2 are Novice 1 and 2, 1 to 5 Levels 1 to 5: stored as 1 to 7.
+const tocflBands = ["0.1", "0.2", "1", "2", "3", "4", "5"];
+for (const line of (await download(tocflUrl, tocflSha256)).toString().trim().split("\n").slice(1)) {
+  const [simple, traditional, , , band] = line.split(",");
+  const tocfl = tocflBands.indexOf(band) + 1;
+  if (tocfl === 0) throw new Error(`unknown TOCFL level ${band} for ${traditional}`);
+  for (const form of new Set([simple, traditional])) lower(entry(form), "tocfl", tocfl);
+}
+
+const lines = [...levels]
+  .sort(([a], [b]) => (a < b ? -1 : 1))
+  .map(([word, e]) => `${word}\t${e.hsk ?? ""}\t${e.tbcl ?? ""}\t${e.tocfl ?? ""}`.trimEnd());
+writeFileSync("levels.tsv", ["word\thsk\ttbcl\ttocfl", ...lines].join("\n") + "\n");
+
+// Unihan's kCangjie: `U+5B78\tkCangjie\tHBND`.
+const cangjie = [];
+for (const text of Object.values(unzip(await download(unihanUrl, unihanSha256)))) {
+  for (const [, codePoint, code] of text.matchAll(/^U\+([0-9A-F]+)\tkCangjie\t([A-Z]+)$/gm)) {
+    cangjie.push([String.fromCodePoint(parseInt(codePoint, 16)), code]);
+  }
+}
+cangjie.sort(([a], [b]) => a.codePointAt(0) - b.codePointAt(0));
+writeFileSync("cangjie.tsv", ["character\tcangjie", ...cangjie.map((row) => row.join("\t"))].join("\n") + "\n");
+writeFileSync("UNICODE-LICENSE.txt", await (await fetch("https://www.unicode.org/license.txt")).text());
+
+/** The first sheet of an .xlsx as objects keyed by its header row. */
+function sheetRows(xlsx) {
+  const files = unzip(xlsx);
+  const decode = (text) => text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+  const strings = [...files["xl/sharedStrings.xml"].matchAll(/<si>([\s\S]*?)<\/si>/g)].map(([, si]) =>
+    decode([...si.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(([, t]) => t).join("")),
+  );
+  const rows = [...files["xl/worksheets/sheet1.xml"].matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)].map(([, row]) => {
+    const cells = {};
+    for (const [, column, attributes, inner = ""] of row.matchAll(/<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const value = inner.match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? "";
+      cells[column] = attributes.includes('t="s"') ? strings[Number(value)] : decode(value);
+    }
+    return cells;
+  });
+  const header = rows[0];
+  return rows.map((cells) => Object.fromEntries(Object.entries(header).map(([column, name]) => [name, cells[column] ?? ""])));
+}
+
+/** The text files of a zip archive, by name. */
+function unzip(zip) {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const files = {};
+  let offset = zip.readUInt32LE(end + 16);
+  for (let index = 0; index < zip.readUInt16LE(end + 10); index++) {
+    const method = zip.readUInt16LE(offset + 10);
+    const size = zip.readUInt32LE(offset + 20);
+    const nameLength = zip.readUInt16LE(offset + 28);
+    const name = zip.toString("utf8", offset + 46, offset + 46 + nameLength);
+    const local = zip.readUInt32LE(offset + 42);
+    const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28);
+    const data = zip.subarray(start, start + size);
+    files[name] = (method === 8 ? inflateRawSync(data) : data).toString("utf8");
+    offset += 46 + nameLength + zip.readUInt16LE(offset + 30) + zip.readUInt16LE(offset + 32);
+  }
+  return files;
+}
+SCRIPT
+'''
+
+[tasks."licenses:generate"]
+description = "Collect the licence notices of every Rust crate and npm package the app ships, for the About page"
+run = '''
+cargo fetch --locked --quiet --manifest-path src-tauri/Cargo.toml
+node --input-type=module <<'SCRIPT'
+import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const run = (command, args) => execFileSync(command, args, { encoding: "utf8", maxBuffer: 1 << 28 });
+const notices = new Map();
+const add = (license, text, name) => {
+  const key = `${license}\0${text}`;
+  const notice = notices.get(key) ?? notices.set(key, { license, text, packages: new Set() }).get(key);
+  notice.packages.add(name);
+};
+
+// Rust: every crate linked into the app on each platform it ships on (src-tauri/about.toml).
+const rust = JSON.parse(
+  run("cargo-about", ["generate", "--format", "json", "--frozen", "--manifest-path", "src-tauri/Cargo.toml"]),
+);
+for (const { id, text, used_by } of rust.licenses) {
+  for (const { crate } of used_by) add(id, text.trim(), `${crate.name} ${crate.version}`);
+}
+
+// shadcn: the stylesheet copied from it, and the look of the components written after it.
+add("MIT", readFileSync("src/app/styles/shadcn/LICENSE", "utf8").trim(), "shadcn");
+
+// npm: the runtime dependencies.
+const seen = new Set();
+const visit = (dependencies = {}) => {
+  for (const [name, { version, path, dependencies: children }] of Object.entries(dependencies)) {
+    if (seen.has(path)) continue;
+    seen.add(path);
+    const manifest = JSON.parse(readFileSync(join(path, "package.json"), "utf8"));
+    const files = readdirSync(path).filter((file) => /^(licen[cs]e|copying|notice)/i.test(file)).sort();
+    const text = files.map((file) => readFileSync(join(path, file), "utf8").trim()).join("\n\n");
+    add(manifest.license ?? "UNKNOWN", text, `${name} ${version}`);
+    visit(children);
+  }
+};
+visit(JSON.parse(run("pnpm", ["list", "--prod", "--json", "--depth", "Infinity"]))[0].dependencies);
+
+// Data: Unihan's Cangjie codes (`mise data:update`), whose licence asks for its notice.
+add("Unicode-3.0", readFileSync("src-tauri/vocab-core/data/UNICODE-LICENSE.txt", "utf8").trim(), "Unihan 18.0.0");
+
+const collator = new Intl.Collator("en");
+const list = [...notices.values()]
+  .map(({ license, text, packages }) => ({ license, text, packages: [...packages].sort(collator.compare) }))
+  .sort((a, b) => collator.compare(a.license, b.license) || collator.compare(a.packages[0], b.packages[0]));
+writeFileSync("src/pages/about/model/third-party-licenses.gen.json", JSON.stringify(list) + "\n");
+console.log(`${list.length} notices for ${list.reduce((sum, n) => sum + n.packages.length, 0)} packages`);
+SCRIPT
+'''
+
+[tasks."env:init"]
+description = "Create local env files if missing"
+run = """
+[ -f .env.local ] || cp .env.example .env.local
+# Holds tokens, so create it unreadable to anyone else from the start.
+[ -f mise.local.toml ] || { cp mise.local.toml.example mise.local.toml && chmod 600 mise.local.toml; }
+"""
+
+[tasks."setup"]
+description = "Run every stale `[deps]` provider (env files, dependencies, skills, git hooks, test browser)"
+run = "mise deps"
+
+[tasks."hooks:install"]
+description = "Install hk Git hooks for pre-commit and pre-push"
+# `--legacy --force`: on Git 2.54+ hk defaults to config-based hooks that leave
+# `.git/hooks` untouched, so leftover shims there would keep firing alongside.
+run = "hk install --mise --legacy --force"
+
+[tasks."skills:install"]
+description = "Install project skills from skills-lock.json and link the active tools' skills"
+dir = "{{config_root}}"
+run = ["pnpx skills experimental_install -y", "mise skills sync"]
+
+# `skills update` skips a skill whose upstream still matches the lock, even when
+# the copy on disk differs; `--force` reinstalls every locked skill from upstream.
+[tasks."skills:update"]
+description = "Reinstall project skills from upstream and record their new hashes in skills-lock.json"
+dir = "{{config_root}}"
+run = ["pnpx skills experimental_install -y --force", "mise skills sync"]
+
+[tasks."audit"]
+description = "Audit production web dependencies (fails on high/critical)"
+run = "pnpm audit --prod --audit-level high"
+
+[tasks."test:web:browsers"]
+description = "Install Chromium for frontend tests (pass --with-deps on fresh Linux/WSL)"
+run = "pnpm exec playwright install chromium"
+
+[tasks."test"]
+description = "Run Rust core tests, then frontend tests with coverage"
+depends = ["test:rust"]
+run = "pnpm test:coverage"
+
+[tasks."test:web"]
+description = "Run frontend tests with coverage"
+run = "pnpm test:coverage"
+
+# Only the core crate: it has no webview dependency, so it builds outside the Tauri toolchain too.
+[tasks."test:rust"]
+description = "Run the Rust core tests (text extraction, segmentation, dictionary, storage, scheduling)"
+dir = "src-tauri"
+run = "cargo test -p vocab-core"
+
+[tasks."fsd"]
+description = "Check Feature-Sliced Design structure"
+run = "pnpm exec steiger ./src"
+
+[tasks."check"]
+description = "Run lint, format, and typecheck checks via hk"
+run = "hk check --all"
+
+[tasks."fix"]
+description = "Auto-fix lint and formatting issues via hk"
+run = "hk fix --all"
+
+[tasks."check:push"]
+description = "Run the pre-push checks on everything this branch adds over origin/main, without pushing"
+run = ["git fetch --quiet origin main", "hk run pre-push --pr"]

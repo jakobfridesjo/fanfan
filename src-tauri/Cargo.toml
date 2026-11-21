@@ -1,0 +1,75 @@
+[package]
+name = "fanfan"
+description = "Chinese vocabulary reader for desktop and Android"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[workspace]
+members = ["vocab-core"]
+
+[workspace.package]
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+
+[workspace.dependencies]
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+
+# Clippy's default lints are errors, with or without the Git hooks.
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+
+[lints]
+workspace = true
+
+[lib]
+name = "fanfan_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+serde.workspace = true
+log = "0.4"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-log = "2.10.1"
+tauri-plugin-dialog = "2.8.4"
+chrono = { workspace = true, features = ["serde"] }
+vocab-core = { path = "vocab-core" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+# Reads APK assets and the content:// URIs the file picker returns, and asks
+# the content provider for a picked file's name.
+tauri-plugin-fs = "2.7.1"
+percent-encoding = "2.3"
+jni = "0.21.1"
+ndk-context = "0.1.1"
+
+# Full debug info makes every link slow and the build outputs gigabytes large;
+# line tables keep file and line numbers in backtraces.
+[profile.dev]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+# MOSS-TTS-Nano runs its neural network in tract, which is far too slow to
+# speak a word unoptimized; dependencies build optimized even in `mise desktop`,
+# and without debug info, since they are not stepped through.
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
+
+# Smaller and slightly faster, at the cost of slower release builds. opt-level
+# stays at 3, since speech and translation run neural networks on the CPU, and
+# panics stay unwinding, so one in a command becomes an error, not a crash.
+[profile.release]
+lto = true
+codegen-units = 1
+# Keeps debug symbols out of the shipped library, which they would otherwise make several times larger.
+strip = true

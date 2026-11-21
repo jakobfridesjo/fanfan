@@ -1,0 +1,524 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./shadcn/scroll-fade.css";
+@import "@fontsource-variable/ibm-plex-sans";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* The hue of the accent colours and the faint tint of the greys; each background sets its own. */
+  --theme-hue: 172;
+  /* 0 turns the accent colours into neutral greys. */
+  --theme-chroma: 1;
+  /* The page card; translucent, so the scene shows through it. */
+  --shell-card: color-mix(in oklch, var(--canvas) 45%, transparent);
+  /* Controls paint --background, so the page canvas is its own token. */
+  --canvas: oklch(0.96 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  /* Cards on the page: a step more solid than it and tinted the same, so the scene still shows. */
+  --card: oklch(0.995 calc(0.004 * var(--theme-chroma)) var(--theme-hue) / 0.72);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.52 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
+  --primary-foreground: oklch(0.985 calc(0.008 * var(--theme-chroma)) var(--theme-hue));
+  --secondary: oklch(0.962 calc(0.002 * var(--theme-chroma)) var(--theme-hue));
+  --secondary-foreground: oklch(0.21 calc(0.006 * var(--theme-chroma)) var(--theme-hue));
+  /* Hover, pressed and subtle fills are washes of the text colour, so translucent cards and the scene show through them. */
+  --muted: color-mix(in oklch, var(--foreground) 6%, transparent);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.54 0.17 18);
+  --border: oklch(0.916 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
+  --input: oklch(0.916 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
+  --ring: oklch(0.65 calc(0.09 * var(--theme-chroma)) var(--theme-hue));
+  --radius: 0.625rem;
+  --sidebar: oklch(0.935 calc(0.004 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.54 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-primary-foreground: oklch(0.985 calc(0.008 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-accent: oklch(0.895 calc(0.004 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.916 calc(0.003 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-ring: oklch(0.65 calc(0.09 * var(--theme-chroma)) var(--theme-hue));
+  --chart-1: oklch(0.82 calc(0.072 * var(--theme-chroma)) var(--theme-hue));
+  --chart-2: oklch(0.69 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --chart-3: oklch(0.6 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --chart-4: oklch(0.52 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
+  --chart-5: oklch(0.44 calc(0.079 * var(--theme-chroma)) var(--theme-hue));
+  --primary-text: oklch(0.45 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
+  --success: oklch(0.52 0.13 145);
+  --success-foreground: oklch(0.98 0 0);
+  --warning: oklch(0.66 0.12 85);
+  --warning-foreground: oklch(0.2 0 0);
+  /* Exam levels, easiest to hardest: green through blue and violet to red. */
+  --level-1: oklch(0.52 0.14 145);
+  --level-2: oklch(0.52 0.14 180);
+  --level-3: oklch(0.52 0.14 225);
+  --level-4: oklch(0.52 0.14 265);
+  --level-5: oklch(0.52 0.14 300);
+  --level-6: oklch(0.52 0.14 345);
+  --level-7: oklch(0.52 0.14 25);
+}
+
+:root[data-background="fireflies"] {
+  --theme-hue: 135;
+}
+
+/* shadcn's neutral palette: near-black accents in light, near-white in dark, on a solid card. */
+:root[data-background="plain"] {
+  --theme-chroma: 0;
+  --shell-card: var(--background);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-text: oklch(0.205 0 0);
+  --ring: oklch(0.708 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+:root.dark[data-background="plain"] {
+  --card: oklch(0.205 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --primary-text: oklch(0.922 0 0);
+  --ring: oklch(0.556 0 0);
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+:root[data-background="mist"] {
+  --theme-chroma: 0;
+}
+
+:root[data-background="cherry"] {
+  --theme-hue: 355;
+}
+
+:root[data-background="sunset"] {
+  --theme-hue: 45;
+}
+
+:root[data-background="ink"] {
+  --theme-hue: 250;
+  --theme-chroma: 0.4;
+}
+
+:root[data-background="pyreflies"] {
+  --theme-hue: 225;
+}
+
+:root[data-background="sea"] {
+  --theme-hue: 225;
+}
+
+.dark {
+  --canvas: oklch(0.18 0 0);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.26 calc(0.018 * var(--theme-chroma)) var(--theme-hue) / 0.55);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.245 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.47 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
+  --primary-foreground: oklch(0.985 calc(0.008 * var(--theme-chroma)) var(--theme-hue));
+  --secondary: oklch(0.274 calc(0.006 * var(--theme-chroma)) var(--theme-hue));
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: color-mix(in oklch, var(--foreground) 8%, transparent);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.7 0.15 18);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.6 calc(0.09 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar: oklch(0.155 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.7 calc(0.115 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-primary-foreground: oklch(0.25 calc(0.03 * var(--theme-chroma)) var(--theme-hue));
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.6 calc(0.09 * var(--theme-chroma)) var(--theme-hue));
+  --chart-1: oklch(0.82 calc(0.072 * var(--theme-chroma)) var(--theme-hue));
+  --chart-2: oklch(0.69 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --chart-3: oklch(0.6 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --chart-4: oklch(0.52 calc(0.095 * var(--theme-chroma)) var(--theme-hue));
+  --chart-5: oklch(0.44 calc(0.079 * var(--theme-chroma)) var(--theme-hue));
+  --primary-text: oklch(0.76 calc(0.108 * var(--theme-chroma)) var(--theme-hue));
+  --success: oklch(0.7 0.13 145);
+  --success-foreground: oklch(0.98 0 0);
+  --warning: oklch(0.76 0.1 85);
+  --warning-foreground: oklch(0.2 0 0);
+  --level-1: oklch(0.76 0.12 145);
+  --level-2: oklch(0.76 0.12 180);
+  --level-3: oklch(0.76 0.12 225);
+  --level-4: oklch(0.76 0.12 265);
+  --level-5: oklch(0.76 0.12 300);
+  --level-6: oklch(0.76 0.12 345);
+  --level-7: oklch(0.76 0.12 25);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-primary-text: var(--primary-text);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-level-1: var(--level-1);
+  --color-level-2: var(--level-2);
+  --color-level-3: var(--level-3);
+  --color-level-4: var(--level-4);
+  --color-level-5: var(--level-5);
+  --color-level-6: var(--level-6);
+  --color-level-7: var(--level-7);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --font-sans: "IBM Plex Sans Variable", sans-serif;
+  --font-heading: var(--font-sans);
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-editor: 0.8125rem;
+  --text-editor--line-height: 1.25rem;
+  --text-kpi: 1.75rem;
+  --text-kpi--line-height: 1;
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@utility font-heading {
+  font-family: var(--font-heading);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground select-none;
+  }
+  input,
+  textarea,
+  [contenteditable="true"] {
+    @apply select-text;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* Fireflies: the scene's colours, read by its WebGL canvas. */
+.fireflies {
+  --firefly-color: oklch(0.78 0.2 128);
+  --firefly-core: oklch(0.98 0.08 120);
+}
+
+.dark .fireflies {
+  --firefly-color: oklch(0.9 0.21 125);
+}
+
+/* Cherry: a blush sky in daylight, a plum dusk in the dark, warmer where the blossom glows. */
+.cherry {
+  --cherry-top: oklch(0.95 0.025 350);
+  --cherry-bottom: oklch(0.92 0.04 10);
+  --cherry-glow: oklch(0.9 0.07 355 / 0.5);
+  --petal-light: oklch(0.93 0.045 355 / 0.75);
+  --petal-deep: oklch(0.8 0.1 355 / 0.75);
+  background:
+    radial-gradient(ellipse 50% 40% at 85% 15%, var(--cherry-glow), transparent 70%),
+    radial-gradient(ellipse 60% 35% at 10% 90%, var(--cherry-glow), transparent 70%),
+    linear-gradient(to bottom, var(--cherry-top), var(--cherry-bottom));
+}
+
+.dark .cherry {
+  --cherry-top: oklch(0.19 0.035 330);
+  --cherry-bottom: oklch(0.25 0.05 355);
+  --cherry-glow: oklch(0.55 0.1 355 / 0.15);
+  --petal-light: oklch(0.93 0.045 355 / 0.4);
+  --petal-deep: oklch(0.8 0.1 355 / 0.4);
+}
+
+/* Mist: an overcast grey with paler banks of fog rolling across it. */
+.mist-sky {
+  --mist-top: oklch(0.9 0.004 250);
+  --mist-bottom: oklch(0.95 0.003 250);
+  --mist-fog: oklch(1 0 0 / 0.75);
+  background: linear-gradient(to bottom, var(--mist-top), var(--mist-bottom));
+}
+
+.dark .mist-sky {
+  --mist-top: oklch(0.19 0.004 250);
+  --mist-bottom: oklch(0.25 0.005 250);
+  --mist-fog: oklch(0.6 0.005 250 / 0.22);
+}
+
+/* Sunset: lavender to gold in daylight, violet to ember in the dark; the shader adds the light. */
+.sunset {
+  --sunset-top: oklch(0.86 0.05 300);
+  --sunset-middle: oklch(0.89 0.07 40);
+  --sunset-bottom: oklch(0.91 0.09 70);
+  --sunset-glow: oklch(0.95 0.1 80 / 0.75);
+  --sunset-ray: oklch(0.97 0.07 80 / 0.6);
+  background: linear-gradient(
+    to bottom,
+    var(--sunset-top),
+    var(--sunset-middle) 55%,
+    var(--sunset-bottom)
+  );
+}
+
+.dark .sunset {
+  --sunset-top: oklch(0.17 0.04 290);
+  --sunset-middle: oklch(0.24 0.07 330);
+  --sunset-bottom: oklch(0.32 0.09 35);
+  --sunset-glow: oklch(0.62 0.17 45 / 0.5);
+  --sunset-ray: oklch(0.75 0.13 60 / 0.22);
+}
+
+/* Ink wash: ink on warm rice paper in daylight, dark ranges in a sepia night. */
+.ink-wash {
+  --ink-paper: oklch(0.94 0.035 85);
+  --ink-stroke: oklch(0.24 0.015 70 / 0.78);
+  --ink-mist: oklch(0.97 0.022 88 / 0.85);
+  background: linear-gradient(to bottom, var(--ink-paper), oklch(from var(--ink-mist) l c h));
+}
+
+.dark .ink-wash {
+  --ink-paper: oklch(0.24 0.014 80);
+  --ink-stroke: oklch(0.09 0.008 70 / 0.8);
+  --ink-mist: oklch(0.32 0.016 82 / 0.6);
+}
+
+/* Pyreflies: a blue-green night with a cold teal haze over the middle; misty and pale in daylight. */
+.pyreflies {
+  --pyreflies-top: oklch(0.8 0.027 240);
+  --pyreflies-middle: oklch(0.88 0.027 220);
+  --pyreflies-bottom: oklch(0.76 0.03 235);
+  --pyreflies-haze: oklch(0.95 0.022 215 / 0.6);
+  --pyreflies-cloud: oklch(1 0 0 / 0.4);
+  --pyrefly-core: oklch(1 0 0);
+  --pyrefly-glow: oklch(0.95 0.05 340 / 0.8);
+  background:
+    radial-gradient(ellipse 70% 35% at 55% 40%, var(--pyreflies-haze), transparent 70%),
+    linear-gradient(
+      to bottom,
+      var(--pyreflies-top),
+      var(--pyreflies-middle) 45%,
+      var(--pyreflies-bottom)
+    );
+}
+
+.dark .pyreflies {
+  --pyreflies-top: oklch(0.13 0.022 250);
+  --pyreflies-middle: oklch(0.22 0.034 230);
+  --pyreflies-bottom: oklch(0.12 0.022 245);
+  --pyreflies-haze: oklch(0.45 0.052 220 / 0.25);
+  --pyreflies-cloud: oklch(0.85 0.02 230 / 0.22);
+  --pyrefly-glow: oklch(0.85 0.09 340 / 0.7);
+}
+
+/*
+ * Every theme shares one shell: the sidebar sits directly on the theme's backdrop and the page
+ * is an outlined card on it; themes change only the colours.
+ */
+[data-slot="sidebar-wrapper"] {
+  /* Selected and hovered sidebar items: a wash of the accent the backdrop shows through. */
+  --sidebar-accent: color-mix(in oklch, var(--sidebar-primary) 18%, transparent);
+
+  [data-slot="sidebar-container"],
+  [data-slot="sidebar-inner"] {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  [data-slot="sidebar-inset"] {
+    background: var(--shell-card);
+    box-shadow: 0 0 0 1px var(--sidebar-border);
+  }
+
+  /* The collapsed rail already pads its icons on both sides, so the card adds no gap of its own. */
+  @media (width >= 48rem) {
+    [data-slot="sidebar"][data-state="collapsed"] ~ [data-slot="sidebar-inset"] {
+      margin-left: 0;
+    }
+  }
+}
+
+/* Menus are solid, so the text they cover does not show through. */
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="select-content"] {
+  @apply animate-none! bg-popover **:data-[slot$=-separator]:bg-foreground/5 **:data-[variant=destructive]:focus:bg-foreground/10! **:data-[variant=destructive]:text-accent-foreground! **:data-[variant=destructive]:**:text-accent-foreground!;
+}
+
+/* The drawer floats over the page like a menu: solid, with the card's ring instead of a border. */
+[data-slot="drawer-popup"] {
+  @apply border-transparent bg-popover text-popover-foreground ring-1 ring-foreground/5 dark:border-transparent dark:ring-foreground/10;
+}
+[data-slot="drawer-swipe-handle"] {
+  @apply after:bg-foreground/25;
+}
+
+/* An empty state's icon takes the same accent wash, so it reads as the theme's colour, not grey. */
+[data-slot="empty-icon"][data-variant="icon"] {
+  @apply bg-sidebar-primary/18 text-primary-text;
+}
+
+/* Toggles mark the chosen option like the sidebar marks the current page: a wash of the accent. */
+[data-slot="toggle"],
+[data-slot="toggle-group-item"] {
+  @apply aria-pressed:border-primary-text/40 aria-pressed:bg-sidebar-primary/18 aria-pressed:text-primary-text;
+}
+
+/* The calendar marks its range the same way: chosen ends washed and outlined, the days between washed. */
+[data-slot="calendar"] {
+  .rdp-range_start,
+  .rdp-range_end,
+  .rdp-range_start::after,
+  .rdp-range_end::after {
+    @apply bg-sidebar-primary/10;
+  }
+  [data-range-start="true"],
+  [data-range-end="true"],
+  [data-selected-single="true"] {
+    @apply border border-primary-text/40 bg-sidebar-primary/18 text-primary-text;
+  }
+  [data-range-middle="true"] {
+    @apply bg-transparent text-primary-text;
+  }
+  .rdp-range_middle {
+    @apply bg-sidebar-primary/10;
+  }
+}
+
+/* Navigation links mark the current page like the sidebar does: the accent wash, not opaque grey. */
+[data-slot="navigation-menu-link"] {
+  &:focus {
+    background: transparent;
+  }
+  &:hover,
+  &:focus-visible,
+  &[aria-expanded="true"],
+  &[data-active] {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
+  }
+}
+
+/* Sea: deep blue-teal water lit from below by crystals, with lights rising through it. */
+.sea {
+  --sea-top: oklch(0.17 0.04 250);
+  --sea-middle: oklch(0.22 0.06 238);
+  --sea-bottom: oklch(0.27 0.07 225);
+  --sea-crystal: oklch(0.72 0.12 210 / 0.14);
+  --sea-moon: oklch(0.8 0.08 220 / 0.08);
+  --sea-halo: oklch(0.82 0.12 215);
+  --sea-core: oklch(0.98 0.02 210);
+  background:
+    radial-gradient(ellipse 80% 30% at 45% 105%, var(--sea-crystal), transparent 70%),
+    radial-gradient(ellipse 30% 35% at 92% 12%, var(--sea-moon), transparent 70%),
+    linear-gradient(to bottom, var(--sea-top), var(--sea-middle) 55%, var(--sea-bottom));
+}
+
+:root:not(.dark) .sea {
+  --sea-top: oklch(0.9 0.03 245);
+  --sea-middle: oklch(0.93 0.025 232);
+  --sea-bottom: oklch(0.95 0.02 220);
+  --sea-crystal: oklch(0.85 0.08 210 / 0.35);
+  --sea-moon: oklch(1 0 0 / 0.4);
+  --sea-halo: oklch(0.68 0.12 220);
+  --sea-core: oklch(0.97 0.03 210);
+}
+
+/* TanStack Charts: the SVG is the tab stop and its ChartCard paints the focus ring. */
+.ts-chart:focus-visible {
+  outline: none;
+}
+.ts-chart-host {
+  --ts-chart-focus-fill: var(--color-background);
+}
+
+/* Toasts are floating surfaces like popovers: Rhea's radius, ring and shadow
+   instead of Sonner's border, and its own type, buttons and close button.
+   Selectors repeat Sonner's attributes to outrank its stylesheet. */
+[data-sonner-toaster].toaster {
+  @apply font-sans;
+}
+[data-sonner-toast][data-styled="true"].cn-toast {
+  @apply rounded-3xl border-transparent text-sm shadow-lg ring-1 ring-foreground/5 dark:ring-foreground/10;
+}
+[data-sonner-toast][data-styled="true"].cn-toast [data-description] {
+  @apply text-muted-foreground;
+}
+[data-sonner-toast][data-styled="true"].cn-toast [data-button] {
+  @apply rounded-2xl bg-primary px-2.5 text-xs text-primary-foreground transition-colors hover:bg-primary/80;
+}
+[data-sonner-toast][data-styled="true"].cn-toast [data-cancel] {
+  @apply bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)];
+}
+[data-sonner-toast][data-styled="true"].cn-toast [data-close-button] {
+  @apply border-transparent bg-popover text-popover-foreground shadow-sm ring-1 ring-foreground/5 dark:ring-foreground/10;
+}
+[data-sonner-toast][data-styled="true"].cn-toast:hover [data-close-button]:hover {
+  @apply border-transparent bg-muted text-foreground;
+}
+
+/* Sonner draws every toast icon in the toast's text color, so a failure reads
+   the same as a success. Tint the icon per type using the app's tokens. */
+.cn-toast[data-type="success"] [data-icon] {
+  color: var(--success);
+}
+.cn-toast[data-type="warning"] [data-icon] {
+  color: var(--warning);
+}
+.cn-toast[data-type="error"] [data-icon] {
+  color: var(--destructive);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

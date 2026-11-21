@@ -1,0 +1,50 @@
+[package]
+name = "vocab-core"
+description = "Turns a Chinese document into a frequency-ranked study deck"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.22"
+chardetng = "1.0"
+chrono.workspace = true
+encoding_rs = "0.8"
+flate2 = "1.1"
+jieba-rs = "0.11"
+ogg = "0.9"
+# libopus, built from source and linked statically (needs cmake).
+opus = "0.4"
+percent-encoding = "2.3"
+# `rendering` draws a PDF's first page as its cover.
+pdf_oxide = { version = "0.3", features = ["rendering"] }
+roxmltree = "0.20"
+rs-fsrs = { version = "1.2", features = ["serde"] }
+# rusqlite_migration 2.6 is built against rusqlite 0.40.
+rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite_migration = "2.6"
+scraper = "0.29"
+# MOSS-TTS-Nano's text tokenizer, built from source (needs cmake).
+sentencepiece = "0.13"
+serde.workspace = true
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "2.0"
+# Runs the voice's and translator's ONNX graphs.
+tract-onnx = "0.23.10"
+# tract's own kernels; `multithread-mm` lets them split matrix products over every core.
+tract-linalg = { version = "0.23.10", features = ["multithread-mm"] }
+unicode-normalization = "0.1"
+# Downloads the voice and translator over HTTPS (rustls, Mozilla's root certificates).
+ureq = "3"
+# Reads EPUBs; only deflate, the one compression EPUB allows besides none.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+
+[dev-dependencies]
+tempfile = "3"
