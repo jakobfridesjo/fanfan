@@ -36,12 +36,14 @@ pub fn run() {
             let writer = Store::open(&database)?;
             let reader = Store::open_reader(&database)?;
             let speech_cache_dir = app.path().app_cache_dir()?.join("speech");
+            let book_audio_dir = data_dir.join("book-audio");
             app.manage(AppState::new(
                 writer,
                 reader,
                 Resources::new(app.handle().clone()),
                 Models::new(data_dir.join("models")),
                 speech_cache_dir,
+                book_audio_dir,
                 ScreenAwake::new(app.config().identifier.clone()),
             ));
 
@@ -54,6 +56,9 @@ pub fn run() {
                     log::error!("{error:?}");
                 }
                 if let Err(error) = state.tidy_speech_cache() {
+                    log::error!("{error:?}");
+                }
+                if let Err(error) = state.tidy_book_audio() {
                     log::error!("{error:?}");
                 }
                 if let Err(error) = state.tidy_models() {
@@ -93,6 +98,11 @@ pub fn run() {
             commands::list_words,
             commands::get_statistics,
             commands::speak,
+            commands::list_section_lengths,
+            commands::prepare_book_audio,
+            commands::cancel_book_audio,
+            commands::list_book_audio,
+            commands::delete_book_audio,
             commands::translate,
             commands::list_models,
             commands::download_model,

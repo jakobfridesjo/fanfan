@@ -41,6 +41,18 @@ export const sectionsQuery = (documentId: number, script: Script) =>
     staleTime: "static",
   });
 
+/** A book's text never changes, so neither do its sections' lengths. */
+export const sectionLengthsQuery = (documentId: number) =>
+  queryOptions({
+    queryKey: ["section-lengths", documentId],
+    queryFn: () => commands.listSectionLengths(documentId),
+    staleTime: "static",
+  });
+
+/** Every book and voice with audio prepared ahead of time. */
+export const bookAudioQuery = () =>
+  queryOptions({ queryKey: ["book-audio"], queryFn: commands.listBookAudio });
+
 /** Skipped until the reading position is known. */
 export const sectionQuery = (
   documentId: number,

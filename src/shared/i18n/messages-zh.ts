@@ -353,6 +353,55 @@ export const zh: Messages = {
     translationWhenDone: "下载完成后会显示翻译。",
     translatorMissing: "翻译模型尚未下载。",
   },
+  bookAudio: {
+    prepare: "准备音频…",
+    title: "准备音频",
+    description: "准备好后，朗读会立即播放这些章节。它在后台运行，你可以继续阅读。",
+    voice: "声音",
+    from: "从",
+    to: "到",
+    chapterOption: (number, title) => `${formatInteger(number)}. ${title}`,
+    range: (count, whole) => `${whole ? "整本书，" : ""}${formatInteger(count)} 章`,
+    skipped: (count) => `已准备的 ${formatInteger(count)} 章将跳过`,
+    audio: "音频",
+    diskSpace: "磁盘空间",
+    time: "时间",
+    timeAfterFirst: "第一章完成后显示",
+    nothingNew: "没有新内容",
+    duration: (hours, minutes) =>
+      hours > 0
+        ? `${formatInteger(hours)} 小时 ${formatInteger(minutes)} 分钟`
+        : `${formatInteger(minutes)} 分钟`,
+    about: (value) => `约 ${value}`,
+    start: "开始",
+    busy: "正在为另一本书准备音频。请等它完成，或在它的封面上取消。",
+    preparing: "正在准备音频",
+    waiting: "收听时暂停",
+    chapterOf: (number, total) => `第 ${formatInteger(number)} 章，共 ${formatInteger(total)} 章`,
+    timeLeft: (time) => `还剩 ${time}`,
+    readyOf: (done, total) => `已完成 ${formatInteger(done)}/${formatInteger(total)}`,
+    ready: "音频已就绪",
+    readyToast: (book) => `《${book}》的音频已就绪`,
+    failed: "无法准备音频",
+    preparedSection: "音频已就绪",
+    settingsTitle: "书籍音频",
+    settingsDescription:
+      "准备好的章节会一直保留，直到你删除它们或这本书。其他播放的词句使用单独的缓存。",
+    empty: "还没有准备音频。可在书库中书籍的菜单里准备。",
+    chapters: (from, to) =>
+      from === to
+        ? `第 ${formatInteger(from)} 章`
+        : `第 ${formatInteger(from)}–${formatInteger(to)} 章`,
+    preparingNow: "准备中",
+    deleteLabel: (book) => `删除《${book}》的音频`,
+    deleteTitle: "删除此音频？",
+    deleteMessage: (book, size) =>
+      `这会删除《${book}》已准备的音频，释放 ${size}。你可以随时重新准备。`,
+    deleteAll: "全部删除",
+    deleteAllTitle: "删除所有书籍音频？",
+    deleteAllMessage: (size) => `这会释放 ${size}。你可以随时重新准备任何一本书。`,
+    deleteFailed: "无法删除音频",
+  },
   fallback: {
     notFoundTitle: "找不到页面",
     notFoundDescription: "这个地址没有对应的页面。",

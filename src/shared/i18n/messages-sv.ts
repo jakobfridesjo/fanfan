@@ -364,6 +364,57 @@ export const sv: Messages = {
     translationWhenDone: "Översättningen visas när den är klar.",
     translatorMissing: "Översättaren är inte nedladdad.",
   },
+  bookAudio: {
+    prepare: "Förbered ljud…",
+    title: "Förbered ljud",
+    description:
+      "Uppläsningen spelar sedan de här kapitlen direkt. Det sker i bakgrunden medan du läser vidare.",
+    voice: "Röst",
+    from: "Från",
+    to: "Till",
+    chapterOption: (number, title) => `${formatInteger(number)}. ${title}`,
+    range: (count, whole) => `${whole ? "Hela boken, " : ""}${formatInteger(count)} kapitel`,
+    skipped: (count) => `${formatInteger(count)} redan förberedda hoppas över`,
+    audio: "Ljud",
+    diskSpace: "Diskutrymme",
+    time: "Tid",
+    timeAfterFirst: "Visas efter första kapitlet",
+    nothingNew: "Inget nytt",
+    duration: (hours, minutes) =>
+      hours > 0
+        ? `${formatInteger(hours)} h ${formatInteger(minutes)} min`
+        : `${formatInteger(minutes)} min`,
+    about: (value) => `≈ ${value}`,
+    start: "Starta",
+    busy: "Ljud förbereds redan för en annan bok. Vänta tills det är klart eller avbryt det på dess omslag.",
+    preparing: "Förbereder ljud",
+    waiting: "Pausat medan du lyssnar",
+    chapterOf: (number, total) => `Kapitel ${formatInteger(number)} av ${formatInteger(total)}`,
+    timeLeft: (time) => `${time} kvar`,
+    readyOf: (done, total) => `${formatInteger(done)} av ${formatInteger(total)} klara`,
+    ready: "Ljud klart",
+    readyToast: (book) => `Ljudet för ${book} är klart`,
+    failed: "Kunde inte förbereda ljudet",
+    preparedSection: "ljud klart",
+    settingsTitle: "Bokljud",
+    settingsDescription:
+      "Förberedda kapitel finns kvar tills du tar bort dem eller boken. Ord och meningar du annars spelar upp har en egen cache.",
+    empty: "Inget ljud förberett än. Förbered det från en boks meny i biblioteket.",
+    chapters: (from, to) =>
+      from === to
+        ? `kapitel ${formatInteger(from)}`
+        : `kapitel ${formatInteger(from)}–${formatInteger(to)}`,
+    preparingNow: "förbereds",
+    deleteLabel: (book) => `Ta bort ljud för ${book}`,
+    deleteTitle: "Ta bort ljudet?",
+    deleteMessage: (book, size) =>
+      `Det förberedda ljudet för ”${book}” tas bort och ${size} frigörs. Du kan förbereda det igen när som helst.`,
+    deleteAll: "Ta bort allt",
+    deleteAllTitle: "Ta bort allt bokljud?",
+    deleteAllMessage: (size) =>
+      `${size} frigörs. Du kan förbereda vilken bok som helst igen när som helst.`,
+    deleteFailed: "Kunde inte ta bort ljudet",
+  },
   fallback: {
     notFoundTitle: "Sidan hittades inte",
     notFoundDescription: "Adressen matchar ingen sida.",

@@ -137,6 +137,18 @@ impl Store {
         Ok(titles)
     }
 
+    /// How many characters each section has, in reading order.
+    pub fn section_lengths(&self, document_id: i64) -> Result<Vec<u32>> {
+        self.ensure_document(document_id)?;
+        let mut statement = self.connection.prepare(
+            "SELECT length(text) FROM document_sections WHERE document_id = ?1 ORDER BY position",
+        )?;
+        let lengths = statement
+            .query_map([document_id], |row| row.get(0))?
+            .collect::<rusqlite::Result<_>>()?;
+        Ok(lengths)
+    }
+
     pub fn section(&self, document_id: i64, position: u32) -> Result<Section> {
         self.connection
             .query_row(

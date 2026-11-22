@@ -1,5 +1,13 @@
 import { Link, useNavigate } from "@tanstack/solid-router";
-import { BookCheck, CalendarCheck, Ellipsis, FolderOutput, Pencil, Trash2 } from "lucide";
+import {
+  BookCheck,
+  CalendarCheck,
+  Ellipsis,
+  FolderOutput,
+  Headphones,
+  Pencil,
+  Trash2,
+} from "lucide";
 import { Show } from "solid-js";
 import type { DocumentSummary } from "@/shared/api/commands.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
@@ -15,6 +23,7 @@ import {
 import { coverageOf, formatShare } from "@/entities/document/model/coverage.ts";
 import { CoverageBar } from "@/entities/document/ui/CoverageBar.tsx";
 import { DocumentCover } from "@/entities/document/ui/DocumentCover.tsx";
+import { BookAudioStatus } from "@/features/book-audio/ui/BookAudioStatus.tsx";
 import {
   dropTargetProps,
   type DragHandlers,
@@ -31,6 +40,7 @@ interface DocumentCardProps {
   acceptsDrop: boolean;
   landing: boolean;
   onRename: () => void;
+  onPrepareAudio: () => void;
   onDelete: () => void;
   /** Shown inside a folder. */
   onTakeOut?: () => void;
@@ -38,7 +48,7 @@ interface DocumentCardProps {
 
 /**
  * A cover that opens the reader, and below it a link to study its words and a menu
- * that renames or deletes the book or, in a folder, takes it out.
+ * that reviews, renames, prepares audio for or deletes the book or, in a folder, takes it out.
  */
 export function DocumentCard(props: DocumentCardProps) {
   const m = useMessages();
@@ -70,24 +80,27 @@ export function DocumentCard(props: DocumentCardProps) {
         props.drag && "pointer-events-none z-10 scale-105 opacity-80"
       )}
     >
-      <Link
-        onPointerDown={(event: PointerEvent) => props.dragHandlers.onPointerDown(event)}
-        onContextMenu={(event: MouseEvent) => props.dragHandlers.onContextMenu(event)}
-        onClick={(event: MouseEvent) => props.dragHandlers.onClick(event)}
-        to="/read/$documentId"
-        params={params()}
-        draggable={false}
-        aria-label={m.library.readBook(props.document.title)}
-        title={details()}
-        class={cn(POSTER, "bg-muted", props.landing && LANDING, props.drag && "shadow-xl")}
-      >
-        <DocumentCover document={props.document} />
-        <CoverageBar
-          document={props.document}
-          variant="strip"
-          class="absolute inset-x-0 bottom-0"
-        />
-      </Link>
+      <div class="relative">
+        <Link
+          onPointerDown={(event: PointerEvent) => props.dragHandlers.onPointerDown(event)}
+          onContextMenu={(event: MouseEvent) => props.dragHandlers.onContextMenu(event)}
+          onClick={(event: MouseEvent) => props.dragHandlers.onClick(event)}
+          to="/read/$documentId"
+          params={params()}
+          draggable={false}
+          aria-label={m.library.readBook(props.document.title)}
+          title={details()}
+          class={cn(POSTER, "bg-muted", props.landing && LANDING, props.drag && "shadow-xl")}
+        >
+          <DocumentCover document={props.document} />
+          <CoverageBar
+            document={props.document}
+            variant="strip"
+            class="absolute inset-x-0 bottom-0"
+          />
+        </Link>
+        <BookAudioStatus documentId={props.document.id} class={cn(props.drag && "invisible")} />
+      </div>
       <div class={cn("flex items-center justify-between gap-1", props.drag && "invisible")}>
         <Link
           to="/library/$documentId"
@@ -129,6 +142,10 @@ export function DocumentCard(props: DocumentCardProps) {
                 {m.library.takeOut}
               </DropdownMenuItem>
             </Show>
+            <DropdownMenuItem onSelect={() => props.onPrepareAudio()}>
+              <Icon icon={Headphones} />
+              {m.bookAudio.prepare}
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => props.onRename()}>
               <Icon icon={Pencil} />
               {m.common.rename}

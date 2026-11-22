@@ -81,6 +81,8 @@ export function useLibraryManager() {
   const queryClient = useQueryClient();
   const [progress, setProgress] = createSignal(NO_PROGRESS);
   const [deletingDocument, setDeletingDocument] = createSignal<DocumentSummary | null>(null);
+  /** The book whose audio the prepare dialog is open for. */
+  const [preparingAudio, setPreparingAudio] = createSignal<DocumentSummary | null>(null);
 
   const [openFolderId, setOpenFolderId] = useHistoryState(
     "libraryFolder",
@@ -253,6 +255,10 @@ export function useLibraryManager() {
       return deletingDocument();
     },
     setDeletingDocument: (document: DocumentSummary | null) => void setDeletingDocument(document),
+    get preparingAudio() {
+      return preparingAudio();
+    },
+    setPreparingAudio: (document: DocumentSummary | null) => void setPreparingAudio(document),
     get deleting() {
       return deleteMutation.isPending;
     },

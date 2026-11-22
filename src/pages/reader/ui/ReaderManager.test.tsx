@@ -16,6 +16,8 @@ interface BookOptions {
   /** What `list_models` answers; none means nothing is downloadable. */
   models?: ModelStatus[];
   download?: (args: Record<string, unknown>) => unknown;
+  /** Sections whose audio is prepared in the default voice. */
+  preparedSections?: number[];
 }
 
 /** A book backed by an in-memory word status table, like the Rust store. */
@@ -25,6 +27,7 @@ function mockBook({
   learning = [],
   models = [],
   download = () => true,
+  preparedSections = [],
 }: BookOptions = {}) {
   const statuses = new Map<string, WordStatus>([
     ...known.map((word): [string, WordStatus] => [word, "known"]),
@@ -86,6 +89,20 @@ function mockBook({
     translate: ({ text }) => `In English: ${text as string}`,
     list_models: () => models.map((entry) => ({ ...entry })),
     download_model: download,
+    list_book_audio: () =>
+      preparedSections.length > 0
+        ? [
+            {
+              documentId: 1,
+              speaker: "lingyu",
+              from: 0,
+              to: 2,
+              sections: preparedSections,
+              bytes: 1,
+            },
+          ]
+        : [],
+    list_section_lengths: () => [10, 20, 30],
   });
   return { calls, statuses };
 }
@@ -549,5 +566,25 @@ describe("ReaderManager", () => {
     await expect.element(prompt).not.toBeInTheDocument();
     expect(callsTo(calls, "speak")).toEqual([]);
     expect(callsTo(calls, "download_model")).toEqual([]);
+  });
+
+  it("marks chapters whose audio is prepared and opens the prepare dialog", async () => {
+    mockBook({ readingSection: 1, preparedSections: [1] });
+    await renderPageInRouter(() => <ReaderManager documentId={1} />);
+
+    await screen.getByRole("combobox").click();
+    await expect
+      .element(screen.getByRole("option", { name: /第一章/ }).getByText("audio ready"))
+      .toBeInTheDocument();
+    await expect
+      .element(screen.getByRole("option", { name: /第二章/ }).getByText("audio ready"))
+      .not.toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+
+    await screen.getByRole("button", { name: "Prepare audio" }).click();
+    const dialog = screen.getByRole("dialog", { name: "Prepare audio · 三体" });
+    await expect
+      .element(dialog.getByText("Whole book, 3 chapters · 1 already prepared, skipped"))
+      .toBeVisible();
   });
 });

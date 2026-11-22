@@ -11,7 +11,7 @@ use anyhow::{Context, bail};
 use kitoken::Kitoken;
 use ogg::{PacketWriteEndInfo, PacketWriter};
 use opus::{Application, Bitrate, Channels, Encoder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tract_linalg::multithread::{Executor, multithread_tract_scope};
 use tract_onnx::prelude::*;
@@ -45,7 +45,7 @@ pub const MODEL_ID: &str = "moss-tts-nano-fp16-f5f2cf42";
 
 /// The manifest's built-in Chinese voices, each a short recording it carries
 /// already encoded. The others speak Chinese with an English or Japanese accent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Speaker {
     /// `zh_1.wav`, a lively promotional line.
@@ -73,7 +73,7 @@ impl Speaker {
     ];
 
     /// The voice's name in the manifest, and its folder in the speech cache.
-    fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Junhao => "Junhao",
             Self::Zhiming => "Zhiming",
@@ -82,6 +82,10 @@ impl Speaker {
             Self::Yuewen => "Yuewen",
             Self::Lingyu => "Lingyu",
         }
+    }
+
+    pub(crate) fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|speaker| speaker.name() == name)
     }
 }
 
@@ -101,7 +105,7 @@ const PREFILL_ROWS: usize = 64;
 const MAX_HEX_NAMED_BYTES: usize = 64;
 
 const SAMPLE_RATE: u32 = 48_000;
-const OPUS_BITRATE: i32 = 64_000;
+const OPUS_BITRATE: i32 = 32_000;
 /// 20 ms at 48 kHz, the usual Opus frame.
 const OPUS_FRAME: usize = 960;
 const OGG_SERIAL: u32 = 1;
@@ -579,22 +583,34 @@ impl SpeechCache {
             return Ok(audio);
         }
         let audio = speak(text)?;
-        fs::create_dir_all(path.parent().unwrap_or(&self.dir))?;
-        // Renaming into place means a crash never leaves half a file behind.
-        let partial = path.with_extension("opus.part");
-        fs::write(&partial, &audio)?;
-        fs::rename(&partial, &path)?;
+        write_whole(&path, &audio)?;
         Ok(audio)
     }
 
     fn path(&self, text: &str, speaker: Speaker) -> PathBuf {
-        let name = if text.len() <= MAX_HEX_NAMED_BYTES {
-            hex(text.as_bytes())
-        } else {
-            format!("sha256-{}", hex(&Sha256::digest(text)))
-        };
-        self.dir.join(speaker.name()).join(format!("{name}.opus"))
+        self.dir.join(speaker.name()).join(clip_name(text))
     }
+}
+
+/// `<hex of the text>.opus`, or `sha256-<hex of its hash>.opus` when long.
+pub(crate) fn clip_name(text: &str) -> String {
+    let name = if text.len() <= MAX_HEX_NAMED_BYTES {
+        hex(text.as_bytes())
+    } else {
+        format!("sha256-{}", hex(&Sha256::digest(text)))
+    };
+    format!("{name}.opus")
+}
+
+/// Writes `contents` beside `path` and renames it into place, so a crash never leaves half a file.
+pub(crate) fn write_whole(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut partial = path.as_os_str().to_owned();
+    partial.push(".part");
+    fs::write(&partial, contents)?;
+    fs::rename(&partial, path)
 }
 
 fn remove(path: &Path) -> std::io::Result<()> {

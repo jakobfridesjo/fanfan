@@ -250,6 +250,30 @@ export interface DownloadProgress {
   total: number;
 }
 
+/** What is prepared of one book in one voice; see `PreparedAudio` in `book_audio.rs`. */
+export interface PreparedAudio {
+  documentId: number;
+  speaker: Speaker;
+  /** The first and last section asked for, by position. */
+  from: number;
+  to: number;
+  /** The sections whose every phrase is saved, in order. */
+  sections: number[];
+  bytes: number;
+}
+
+export interface PrepareProgress {
+  /** The section being prepared, by position. */
+  section: number;
+  sectionsDone: number;
+  sectionsTotal: number;
+  /** Phrases of `section` saved so far, out of `phrasesTotal`. */
+  phrasesDone: number;
+  phrasesTotal: number;
+  /** Waiting while words or read-aloud are spoken live. */
+  waiting: boolean;
+}
+
 export type CommandName =
   | "list_documents"
   | "import_document"
@@ -281,6 +305,11 @@ export type CommandName =
   | "list_words"
   | "get_statistics"
   | "speak"
+  | "list_section_lengths"
+  | "prepare_book_audio"
+  | "cancel_book_audio"
+  | "list_book_audio"
+  | "delete_book_audio"
   | "translate"
   | "list_models"
   | "download_model"
@@ -385,8 +414,41 @@ export const commands = {
   /** `from` and `to` are local calendar days (`YYYY-MM-DD`), both included. */
   getStatistics: (from: string, to: string) => invoke<Statistics>("get_statistics", { from, to }),
 
-  /** A word or phrase spoken aloud, as an Ogg Opus file; Rust saves it, so each is generated once. */
+  /** A word or phrase spoken aloud, as an Ogg Opus file: from a prepared book, else generated once and saved. */
   speak: (text: string, speaker: Speaker) => invoke<ArrayBuffer>("speak", { text, speaker }),
+
+  /** How many characters each section has, in reading order. */
+  listSectionLengths: (documentId: number) =>
+    invoke<number[]>("list_section_lengths", { documentId }),
+
+  /**
+   * Speaks sections `from` to `to` (positions, both included) ahead of time; one book at a time.
+   * Resolves to false when `cancelBookAudio` stopped it; what was saved stays for next time.
+   */
+  prepareBookAudio: (
+    documentId: number,
+    speaker: Speaker,
+    from: number,
+    to: number,
+    onProgress: (progress: PrepareProgress) => void
+  ) => {
+    const channel = new Channel<PrepareProgress>(onProgress);
+    return invoke<boolean>("prepare_book_audio", {
+      documentId,
+      speaker,
+      from,
+      to,
+      onProgress: channel,
+    });
+  },
+
+  cancelBookAudio: () => invoke<null>("cancel_book_audio"),
+
+  /** Every book and voice with audio prepared. */
+  listBookAudio: () => invoke<PreparedAudio[]>("list_book_audio"),
+
+  deleteBookAudio: (documentId: number, speaker: Speaker) =>
+    invoke<null>("delete_book_audio", { documentId, speaker }),
 
   /** Chinese text, a sentence or a few, in English. */
   translate: (text: string) => invoke<string>("translate", { text }),

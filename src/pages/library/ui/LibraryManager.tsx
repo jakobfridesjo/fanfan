@@ -16,6 +16,7 @@ import {
 } from "@/shared/ui/shadcn/empty.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { useLibraryManager, type ShelfItem } from "@/pages/library/model/use-library-manager.ts";
+import { PrepareAudioDialog } from "@/features/book-audio/ui/PrepareAudioDialog.tsx";
 import { ContinueReadingCard } from "@/pages/library/ui/ContinueReadingCard.tsx";
 import { DocumentCard } from "@/pages/library/ui/DocumentCard.tsx";
 import { FolderCard } from "@/pages/library/ui/FolderCard.tsx";
@@ -128,6 +129,7 @@ function LibraryManager() {
                               document: loose().document,
                             })
                           }
+                          onPrepareAudio={() => library.setPreparingAudio(loose().document)}
                           onDelete={() => library.setDeletingDocument(loose().document)}
                           onTakeOut={
                             library.openFolder
@@ -163,6 +165,16 @@ function LibraryManager() {
             saving={library.savingName}
             onSubmit={library.submitName}
             onClose={() => library.setNameDialog(null)}
+          />
+        )}
+      </Show>
+
+      <Show when={library.preparingAudio} keyed>
+        {(document) => (
+          <PrepareAudioDialog
+            documentId={document.id}
+            title={document.title}
+            onClose={() => library.setPreparingAudio(null)}
           />
         )}
       </Show>

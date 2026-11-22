@@ -11,7 +11,7 @@ import {
   themeAtom,
 } from "@/shared/config/preferences.ts";
 import { formatInteger } from "@/shared/lib/number-format.ts";
-import { silentOpus } from "@/shared/test/fixtures.ts";
+import { makeDocument, silentOpus } from "@/shared/test/fixtures.ts";
 import { renderPageInRouter } from "@/shared/test/render.tsx";
 import { callsTo, mockCommands, sendToChannel } from "@/shared/test/tauri.ts";
 import SettingsManager from "@/pages/settings/ui/SettingsManager.tsx";
@@ -239,5 +239,36 @@ describe("SettingsManager", () => {
     await translation.getByRole("button", { name: "Try again" }).click();
     await expect.element(translation.getByText("Downloaded")).toBeVisible();
     expect(callsTo(calls, "download_model")).toHaveLength(2);
+  });
+
+  it("lists each book's prepared audio and deletes it after asking", async () => {
+    let prepared = [
+      {
+        documentId: 3,
+        speaker: "weiguo",
+        from: 0,
+        to: 9,
+        sections: [0, 1, 2, 3],
+        bytes: 22_000_000,
+      },
+    ];
+    const calls = mockCommands({
+      list_book_audio: () => prepared,
+      list_documents: () => [makeDocument({ id: 3, title: "边城" })],
+      delete_book_audio: () => {
+        prepared = [];
+        return null;
+      },
+    });
+    await renderPageInRouter(() => <SettingsManager />);
+
+    await expect.element(screen.getByText("Weiguo · chapters 1–10 · 4 of 10 ready")).toBeVisible();
+    await screen.getByRole("button", { name: "Delete audio for 边城" }).click();
+    const confirm = screen.getByRole("alertdialog", { name: "Delete this audio?" });
+    await expect.element(confirm.getByText(/“边城” and frees 22 MB/)).toBeVisible();
+    await confirm.getByRole("button", { name: "Delete" }).click();
+
+    await expect.element(screen.getByText(/No audio prepared yet/)).toBeVisible();
+    expect(callsTo(calls, "delete_book_audio")).toEqual([{ documentId: 3, speaker: "weiguo" }]);
   });
 });

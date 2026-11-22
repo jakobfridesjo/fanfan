@@ -456,4 +456,81 @@ describe("LibraryManager", () => {
         .toBeVisible();
     });
   });
+
+  describe("book audio", () => {
+    it("prepares a book's audio, whole book by default, and shows its progress", async () => {
+      const finished = deferred<boolean>();
+      let channel: unknown;
+      const calls = mockCommands({
+        list_documents: () => [makeDocument({ id: 3, title: "三体" })],
+        list_folders: () => [],
+        list_models: () => [{ model: "voice", bytes: 1, downloaded: true }],
+        list_sections: () => ["第一章", "第二章", "第三章"],
+        list_section_lengths: () => [3300, 3300, 6600],
+        list_book_audio: () => [
+          { documentId: 3, speaker: "lingyu", from: 0, to: 0, sections: [0], bytes: 1 },
+        ],
+        prepare_book_audio: (args) => {
+          channel = args.onProgress;
+          return finished.promise;
+        },
+        cancel_book_audio: () => null,
+      });
+      await renderPageInRouter(() => <LibraryManager />);
+
+      await screen.getByRole("button", { name: "Actions for 三体" }).click();
+      await screen.getByRole("menuitem", { name: "Prepare audio…" }).click();
+      const dialog = screen.getByRole("dialog", { name: "Prepare audio · 三体" });
+      await expect
+        .element(dialog.getByText("Whole book, 3 chapters · 1 already prepared, skipped"))
+        .toBeVisible();
+      // 9,900 characters at 3.3 a second: 50 minutes, 12 MB at 32 kbps.
+      await expect.element(dialog.getByText("≈ 50 min")).toBeVisible();
+      await expect.element(dialog.getByText("≈ 12 MB")).toBeVisible();
+
+      await dialog.getByRole("button", { name: "Start" }).click();
+      await expect.element(dialog).not.toBeInTheDocument();
+      await expect
+        .poll(() => callsTo(calls, "prepare_book_audio"))
+        .toEqual([expect.objectContaining({ documentId: 3, speaker: "lingyu", from: 0, to: 2 })]);
+
+      sendToChannel(channel, {
+        section: 1,
+        sectionsDone: 1,
+        sectionsTotal: 3,
+        phrasesDone: 2,
+        phrasesTotal: 4,
+        waiting: false,
+      });
+      await expect.element(screen.getByText("Preparing audio")).toBeVisible();
+      await expect.element(screen.getByText("Chapter 2 of 3")).toBeVisible();
+      await expect.element(screen.getByText("50%")).toBeVisible();
+
+      await screen.getByRole("button", { name: "Cancel" }).click();
+      expect(callsTo(calls, "cancel_book_audio")).toHaveLength(1);
+      finished.resolve(false);
+      await expect.element(screen.getByText("Preparing audio")).not.toBeInTheDocument();
+    });
+
+    it("leaves the cover alone when audio stopped part way, and badges it once ready", async () => {
+      let prepared = [
+        { documentId: 3, speaker: "weiguo", from: 0, to: 3, sections: [0], bytes: 1 },
+      ];
+      mockCommands({
+        list_documents: () => [makeDocument({ id: 3, title: "三体" })],
+        list_folders: () => [],
+        list_book_audio: () => prepared,
+      });
+      const { queryClient } = await renderPageInRouter(() => <LibraryManager />);
+
+      await expect.element(screen.getByRole("link", { name: "Read 三体" })).toBeVisible();
+      await expect.element(screen.getByText("Audio ready")).not.toBeInTheDocument();
+
+      prepared = [
+        { documentId: 3, speaker: "weiguo", from: 0, to: 3, sections: [0, 1, 2, 3], bytes: 1 },
+      ];
+      await queryClient.invalidateQueries();
+      await expect.element(screen.getByText("Audio ready")).toBeVisible();
+    });
+  });
 });

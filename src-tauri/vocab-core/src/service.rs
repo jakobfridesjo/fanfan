@@ -333,6 +333,20 @@ pub fn reader_section(
     }
 }
 
+/// The texts read-aloud speaks for `section`, in order: the same phrases as its `ReaderSection`.
+pub fn spoken_texts(section: &Section, language: &Language) -> Vec<String> {
+    section
+        .text
+        .lines()
+        .enumerate()
+        .flat_map(|(index, paragraph)| {
+            let pieces = tokenize(paragraph, &language.jieba, &language.dictionary);
+            spoken_phrases(index as u32, &pieces)
+        })
+        .map(|phrase| phrase.text)
+        .collect()
+}
+
 /// Speech gets slow and unsteady past this, so a longer sentence is also split at a pause.
 const PHRASE_MAX_CHARS: usize = 30;
 

@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use chrono::{NaiveDate, Utc};
 use serde::{Serialize, Serializer};
 use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Manager, State};
+use vocab_core::book_audio::{BookAudio, PrepareJob, PrepareProgress, PreparedAudio};
 use vocab_core::dictionary::{Notation, Script};
 use vocab_core::models::{DownloadProgress, Model, ModelStatus, Models};
 use vocab_core::service::{
@@ -56,6 +57,11 @@ pub struct AppState {
     /// Loaded on first use; a failure is not kept, so a download can follow it.
     voice: Mutex<Option<Arc<Voice>>>,
     speech: SpeechCache,
+    book_audio: BookAudio,
+    /// The book whose audio is being prepared, and the flag that cancels it.
+    preparing: Mutex<Option<(i64, Arc<AtomicBool>)>>,
+    /// `speak` calls running now; preparing a book waits for them.
+    live_speech: AtomicUsize,
     translator: Mutex<Option<Arc<Translator>>>,
     screen_awake: ScreenAwake,
 }
@@ -67,6 +73,7 @@ impl AppState {
         resources: Resources,
         models: Models,
         speech_cache_dir: PathBuf,
+        book_audio_dir: PathBuf,
         screen_awake: ScreenAwake,
     ) -> Self {
         Self {
@@ -78,6 +85,9 @@ impl AppState {
             language: OnceLock::new(),
             voice: Mutex::new(None),
             speech: SpeechCache::new(&speech_cache_dir),
+            book_audio: BookAudio::new(&book_audio_dir),
+            preparing: Mutex::new(None),
+            live_speech: AtomicUsize::new(0),
             translator: Mutex::new(None),
             screen_awake,
         }
@@ -109,6 +119,13 @@ impl AppState {
         self.speech.tidy(SPEECH_CACHE_BYTES)
     }
 
+    /// Drops book audio from earlier voice models and of books no longer in the library.
+    pub fn tidy_book_audio(&self) -> CommandResult<()> {
+        let documents = self.reader()?.documents()?;
+        let ids: Vec<i64> = documents.iter().map(|document| document.id).collect();
+        Ok(self.book_audio.tidy(&ids)?)
+    }
+
     /// Drops downloads of model revisions no longer used.
     pub fn tidy_models(&self) -> vocab_core::error::Result<()> {
         self.models.tidy()
@@ -136,6 +153,21 @@ impl AppState {
             }
             Translator::load(&self.models.dir(Model::Translator))
         })
+    }
+
+    fn preparing(&self) -> MutexGuard<'_, Option<(i64, Arc<AtomicBool>)>> {
+        self.preparing
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Stops preparing `document_id`'s audio, if that is what runs.
+    fn cancel_preparing(&self, document_id: i64) {
+        if let Some((preparing, cancelled)) = self.preparing().as_ref()
+            && *preparing == document_id
+        {
+            cancelled.store(true, Ordering::Relaxed);
+        }
     }
 
     fn downloads(&self) -> MutexGuard<'_, HashMap<Model, Arc<AtomicBool>>> {
@@ -229,7 +261,12 @@ pub async fn rename_document(app: AppHandle, id: i64, title: String) -> CommandR
 
 #[tauri::command]
 pub async fn delete_document(app: AppHandle, id: i64) -> CommandResult<()> {
-    blocking(app, move |state| Ok(state.writer()?.delete_document(id)?)).await
+    blocking(app, move |state| {
+        state.cancel_preparing(id);
+        state.writer()?.delete_document(id)?;
+        Ok(state.book_audio.remove(id, None)?)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -560,10 +597,104 @@ pub async fn get_statistics(
 #[tauri::command]
 pub async fn speak(app: AppHandle, text: String, speaker: Speaker) -> CommandResult<Response> {
     blocking(app, move |state| {
+        if let Some(audio) = state.book_audio.find(&text, speaker) {
+            return Ok(Response::new(audio));
+        }
+        state.live_speech.fetch_add(1, Ordering::AcqRel);
         let audio = state
             .speech
-            .get_or_speak(&text, speaker, |text| state.voice()?.speak(text, speaker))?;
-        Ok(Response::new(audio))
+            .get_or_speak(&text, speaker, |text| state.voice()?.speak(text, speaker));
+        state.live_speech.fetch_sub(1, Ordering::AcqRel);
+        Ok(Response::new(audio?))
+    })
+    .await
+}
+
+/// How many characters each section has, for estimating how long its audio runs.
+#[tauri::command]
+pub async fn list_section_lengths(app: AppHandle, document_id: i64) -> CommandResult<Vec<u32>> {
+    blocking(app, move |state| {
+        Ok(state.reader()?.section_lengths(document_id)?)
+    })
+    .await
+}
+
+/// Speaks sections `from` to `to` of a book ahead of time, one book at a time,
+/// reporting progress. Resolves to false when `cancel_book_audio` stopped it.
+#[tauri::command]
+pub async fn prepare_book_audio(
+    app: AppHandle,
+    document_id: i64,
+    speaker: Speaker,
+    from: u32,
+    to: u32,
+    on_progress: Channel<PrepareProgress>,
+) -> CommandResult<bool> {
+    blocking(app, move |state| {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        {
+            let mut preparing = state.preparing();
+            if preparing.is_some() {
+                return Err(CommandError(
+                    "Another book's audio is being prepared".into(),
+                ));
+            }
+            *preparing = Some((document_id, Arc::clone(&cancelled)));
+        }
+        let prepare = || -> CommandResult<bool> {
+            let voice = state.voice()?;
+            let language = state.language()?;
+            let job = PrepareJob {
+                document_id,
+                speaker,
+                from,
+                to,
+                cancelled: &cancelled,
+                live: &state.live_speech,
+            };
+            let phrases_of = |position| {
+                let section = state
+                    .reader()
+                    .map_err(|error| vocab_core::error::Error::BookAudio(error.0))?
+                    .section(document_id, position)?;
+                Ok(service::spoken_texts(&section, language))
+            };
+            let speak = |text: &str| voice.speak(text, speaker);
+            let report = |progress| {
+                let _ = on_progress.send(progress);
+            };
+            Ok(state.book_audio.prepare(&job, phrases_of, speak, report)?)
+        };
+        let result = prepare();
+        *state.preparing() = None;
+        result
+    })
+    .await
+}
+
+#[tauri::command]
+pub fn cancel_book_audio(state: State<'_, AppState>) {
+    if let Some((_, cancelled)) = state.preparing().as_ref() {
+        cancelled.store(true, Ordering::Relaxed);
+    }
+}
+
+/// Every book and voice with audio prepared.
+#[tauri::command]
+pub async fn list_book_audio(app: AppHandle) -> CommandResult<Vec<PreparedAudio>> {
+    blocking(app, |state| Ok(state.book_audio.list()?)).await
+}
+
+/// Deletes a book's prepared audio in one voice.
+#[tauri::command]
+pub async fn delete_book_audio(
+    app: AppHandle,
+    document_id: i64,
+    speaker: Speaker,
+) -> CommandResult<()> {
+    blocking(app, move |state| {
+        state.cancel_preparing(document_id);
+        Ok(state.book_audio.remove(document_id, Some(speaker))?)
     })
     .await
 }

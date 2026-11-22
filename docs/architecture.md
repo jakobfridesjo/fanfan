@@ -37,6 +37,16 @@ CC-CEDICT is bundled with the app; the `data/` files are compiled into `vocab-co
 
 The learner's own data lives in one SQLite database (`vocab-core/src/store/`). **Settings → Export** writes it as JSON (`Store::backup` in `store/backup.rs`): word statuses with their FSRS cards, the review history, and each book's reading position and bookmarks, but not the books' text. **Settings → Import** merges one back (`Store::restore_backup`): each word keeps its newer change, missing reviews are added, and a book already in the library, matched by its file's hash, gets its bookmarks, its folder and, if newer, its reading position. Nothing is deleted, so importing twice changes nothing. Bump `BACKUP_VERSION` when its shape changes; an import refuses a newer version.
 
+## Book audio
+
+Read-aloud speaks each phrase when it is reached and keeps it in a 200 MB cache (`SpeechCache`, under the app's cache folder), which drops the clips played longest ago. A book's chapters can instead be prepared ahead of time (`vocab-core/src/book_audio.rs`):
+
+- **Where:** `book-audio/<MODEL_ID>/<document id>/<speaker>/` in the app's data folder, never tidied by size. Clips are named as the cache names them, so `speak` finds a phrase by its text in any prepared book before it looks in the cache. `range.json` holds the chapters asked for, and `prepared/` an empty file per finished section.
+- **Phrases:** `service::spoken_texts` splits a section as `reader_section` does, so every phrase read-aloud asks for is the one prepared.
+- **The job:** `prepare_book_audio` prepares one book at a time and reports a `PrepareProgress` per phrase. It skips what is saved, so after a cancel, an error or a closed app it carries on where it stopped. While any `speak` runs, it waits before its next phrase: a tapped word waits for at most one phrase.
+- **Cleanup:** deleting a book deletes its audio; at start-up, audio of earlier models and of books no longer in the library goes. Export leaves it out.
+- **Frontend:** `features/book-audio` keeps the running job in an atom, so it outlives the page that started it. The dialog estimates length and size from `list_section_lengths` at 3.3 characters a second and 32 kbps (`OPUS_BITRATE` in `speech.rs`).
+
 ## Models
 
 | Model         | Used for    | Code                            |

@@ -8,6 +8,7 @@ import {
   NOTATIONS,
   READER_NOTATIONS,
   SCRIPTS,
+  SPEAKER_NAMES,
   SPEAKERS,
   THEMES,
 } from "@/shared/config/preferences.ts";
@@ -26,6 +27,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
+import { BookAudioCard } from "@/pages/settings/ui/BookAudioCard.tsx";
 import { DataCard } from "@/pages/settings/ui/DataCard.tsx";
 import { OfflineModelsCard } from "@/pages/settings/ui/OfflineModelsCard.tsx";
 
@@ -39,16 +41,6 @@ const NOTATION_SAMPLES = {
 } as const;
 /** What a voice reads to show how it sounds. */
 const VOICE_SAMPLE = "你好！我们一起来读这本书吧。";
-/** Each voice's name as upstream gives it. */
-const SPEAKER_NAMES = {
-  lingyu: "Lingyu",
-  weiguo: "Weiguo",
-  junhao: "Junhao",
-  zhiming: "Zhiming",
-  xiaoyu: "Xiaoyu",
-  yuewen: "Yuewen",
-} as const;
-
 function SettingsManager() {
   const m = useMessages();
   const settings = useSettingsManager();
@@ -142,6 +134,8 @@ function SettingsManager() {
         </SettingCard>
 
         <OfflineModelsCard />
+
+        <BookAudioCard />
 
         <SettingCard title={m.settings.appearance} description={m.settings.appearanceDescription}>
           <Choices

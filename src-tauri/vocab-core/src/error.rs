@@ -38,6 +38,8 @@ pub enum Error {
     NotLearning(String),
     #[error("Could not play the word: {0}")]
     Voice(String),
+    #[error("Could not prepare the audio: {0}")]
+    BookAudio(String),
     #[error("Could not translate: {0}")]
     Translation(String),
     #[error("Could not download the model: {0}")]

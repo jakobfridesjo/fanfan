@@ -364,6 +364,60 @@ export const en = {
     translationWhenDone: "The translation shows when it’s done.",
     translatorMissing: "The translator is not downloaded.",
   },
+  bookAudio: {
+    prepare: "Prepare audio…",
+    title: "Prepare audio",
+    description:
+      "Read-aloud then plays these chapters straight away. It runs in the background while you keep reading.",
+    voice: "Voice",
+    from: "From",
+    to: "To",
+    chapterOption: (number: number, title: string) => `${formatInteger(number)}. ${title}`,
+    range: (count: number, whole: boolean) =>
+      `${whole ? "Whole book, " : ""}${formatInteger(count)} ${count === 1 ? "chapter" : "chapters"}`,
+    skipped: (count: number) => `${formatInteger(count)} already prepared, skipped`,
+    audio: "Audio",
+    diskSpace: "Disk space",
+    time: "Time",
+    timeAfterFirst: "Shown after the first chapter",
+    nothingNew: "Nothing new",
+    duration: (hours: number, minutes: number) =>
+      hours > 0
+        ? `${formatInteger(hours)} h ${formatInteger(minutes)} min`
+        : `${formatInteger(minutes)} min`,
+    about: (value: string) => `≈ ${value}`,
+    start: "Start",
+    busy: "Another book’s audio is being prepared. Wait for it to finish, or cancel it on its cover.",
+    preparing: "Preparing audio",
+    waiting: "Paused while you listen",
+    chapterOf: (number: number, total: number) =>
+      `Chapter ${formatInteger(number)} of ${formatInteger(total)}`,
+    timeLeft: (time: string) => `${time} left`,
+    readyOf: (done: number, total: number) =>
+      `${formatInteger(done)} of ${formatInteger(total)} ready`,
+    ready: "Audio ready",
+    readyToast: (book: string) => `Audio for ${book} is ready`,
+    failed: "Could not prepare the audio",
+    preparedSection: "audio ready",
+    settingsTitle: "Book audio",
+    settingsDescription:
+      "Prepared chapters stay until you delete them or the book. Words and sentences you play otherwise use a separate cache.",
+    empty: "No audio prepared yet. Prepare it from a book’s menu in the library.",
+    chapters: (from: number, to: number) =>
+      from === to
+        ? `chapter ${formatInteger(from)}`
+        : `chapters ${formatInteger(from)}–${formatInteger(to)}`,
+    preparingNow: "preparing",
+    deleteLabel: (book: string) => `Delete audio for ${book}`,
+    deleteTitle: "Delete this audio?",
+    deleteMessage: (book: string, size: string) =>
+      `This deletes the prepared audio of “${book}” and frees ${size}. You can prepare it again at any time.`,
+    deleteAll: "Delete all",
+    deleteAllTitle: "Delete all book audio?",
+    deleteAllMessage: (size: string) =>
+      `This frees ${size}. You can prepare any book again at any time.`,
+    deleteFailed: "Could not delete the audio",
+  },
   fallback: {
     notFoundTitle: "Page not found",
     notFoundDescription: "This address does not match any page.",

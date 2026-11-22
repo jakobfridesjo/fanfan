@@ -1,14 +1,16 @@
 import { useNavigate } from "@tanstack/solid-router";
-import { ChevronLeft, ChevronRight } from "lucide";
+import { ChevronLeft, ChevronRight, Headphones } from "lucide";
 import { createMemo, For, Match, Show, Switch } from "solid-js";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { UnavailableState } from "@/shared/ui/EmptyStates.tsx";
 import { Icon } from "@/shared/ui/Icon.tsx";
 import { PageHeader } from "@/shared/ui/PageHeader.tsx";
+import { TooltipIconButton } from "@/shared/ui/TooltipIconButton.tsx";
 import { Button } from "@/shared/ui/shadcn/button.tsx";
 import { Select } from "@/shared/ui/shadcn/select.tsx";
 import { Skeleton } from "@/shared/ui/shadcn/skeleton.tsx";
 import { useIsMobile } from "@/shared/lib/use-mobile.ts";
+import { PrepareAudioDialog } from "@/features/book-audio/ui/PrepareAudioDialog.tsx";
 import { useReaderManager } from "@/pages/reader/model/use-reader-manager.ts";
 import type { PassageTranslationProps } from "@/pages/reader/ui/PassageTranslation.tsx";
 import { BookmarksMenu } from "@/pages/reader/ui/BookmarksMenu.tsx";
@@ -67,7 +69,15 @@ function ReaderManager(props: { documentId: number }) {
     reader.titles.map((_title, position) => ({
       value: `${position}`,
       label: sectionTitle(position),
-      content: () => <span lang="zh">{sectionTitle(position)}</span>,
+      content: () => (
+        <>
+          <span lang="zh">{sectionTitle(position)}</span>
+          <Show when={reader.preparedSections.has(position)}>
+            <Icon icon={Headphones} class="text-muted-foreground" />
+            <span class="sr-only">{m.bookAudio.preparedSection}</span>
+          </Show>
+        </>
+      ),
     }))
   );
   // A fresh text per section and per jump: it opens at its own place.
@@ -99,6 +109,15 @@ function ReaderManager(props: { documentId: number }) {
         }
         action={
           <>
+            <TooltipIconButton
+              label={m.bookAudio.title}
+              variant="outline"
+              size="icon"
+              disabled={!reader.document}
+              onClick={() => reader.setPreparingAudio(true)}
+            >
+              <Icon icon={Headphones} />
+            </TooltipIconButton>
             <BookmarksMenu
               bookmarks={reader.bookmarks}
               bookmarked={reader.bookmarked}
@@ -179,6 +198,16 @@ function ReaderManager(props: { documentId: number }) {
           </aside>
         </Show>
       </div>
+
+      <Show when={reader.preparingAudio && reader.document}>
+        {(document) => (
+          <PrepareAudioDialog
+            documentId={document().id}
+            title={document().title}
+            onClose={() => reader.setPreparingAudio(false)}
+          />
+        )}
+      </Show>
 
       <Show when={isMobile()}>
         <WordDrawer {...wordPanel} onClose={reader.deselectWord} />

@@ -18,6 +18,7 @@ import {
   type ModelDownload,
 } from "@/shared/api/model-downloads.ts";
 import {
+  bookAudioQuery,
   bookmarksQuery,
   documentsQuery,
   modelsQuery,
@@ -28,7 +29,7 @@ import {
   wordCardQuery,
   wordStatusesQuery,
 } from "@/shared/api/queries.ts";
-import { readerNotationAtom, scriptAtom } from "@/shared/config/preferences.ts";
+import { readerNotationAtom, scriptAtom, speakerAtom } from "@/shared/config/preferences.ts";
 import { useMessages } from "@/shared/i18n/messages.ts";
 import { actionToasts } from "@/shared/lib/toast.ts";
 import { useKeyBindings } from "@/shared/lib/use-key-bindings.ts";
@@ -72,6 +73,14 @@ export function useReaderManager(documentId: number) {
   const documents = useCommandQuery(() => documentsQuery());
   const document = () => documents.data?.find((entry) => entry.id === documentId);
   const titles = useCommandQuery(() => sectionsQuery(documentId, scriptAtom()));
+  const bookAudio = useCommandQuery(() => bookAudioQuery());
+  const preparedSections = createMemo(() => {
+    const audio = bookAudio.data?.find(
+      (entry) => entry.documentId === documentId && entry.speaker === speakerAtom()
+    );
+    return new Set(audio?.sections ?? []);
+  });
+  const [preparingAudio, setPreparingAudio] = createSignal(false);
 
   const [chosenSection, setChosenSection] = createSignal<number | null>(null);
   const position = createMemo(() => chosenSection() ?? document()?.readingSection ?? null);
@@ -347,6 +356,15 @@ export function useReaderManager(documentId: number) {
     get titles() {
       return titles.data ?? [];
     },
+    /** Sections whose audio is prepared in the chosen voice, so read-aloud plays at once. */
+    get preparedSections() {
+      return preparedSections();
+    },
+    /** Whether the prepare audio dialog is open. */
+    get preparingAudio() {
+      return preparingAudio();
+    },
+    setPreparingAudio: (open: boolean) => void setPreparingAudio(open),
     get position() {
       return position();
     },
