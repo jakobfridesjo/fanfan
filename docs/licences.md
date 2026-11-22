@@ -11,10 +11,11 @@ FanFan is licensed under either [Apache License 2.0](../LICENSE-APACHE) or [MIT]
 | TBCL          | NAER open-data declaration | Vendored in `levels.tsv`  |
 | TOCFL         | CC BY-SA 4.0               | Vendored in `levels.tsv`  |
 | Unihan 18.0.0 | Unicode License v3         | Vendored in `cangjie.tsv` |
+| pinyin-pro    | MIT                        | In the `pinyin_pro` crate |
 | MOSS-TTS-Nano | Apache-2.0                 | Downloaded on first use   |
 | opus-mt-zh-en | CC BY 4.0                  | Downloaded on first use   |
 
-HSK 3.0 comes from drkameleon/complete-hsk-vocabulary; opus-mt-zh-en is Helsinki-NLP's model in Xenova's fp16 ONNX export.
+pinyin-pro's word and polyphone dictionaries come compiled into the `pinyin_pro` crate, a Rust port of zh-lx/pinyin-pro. HSK 3.0 comes from drkameleon/complete-hsk-vocabulary; opus-mt-zh-en is Helsinki-NLP's model in Xenova's fp16 ONNX export.
 
 ### TBCL attribution
 

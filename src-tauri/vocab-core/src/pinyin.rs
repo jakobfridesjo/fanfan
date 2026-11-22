@@ -1,3 +1,53 @@
+use pinyin_pro::options::{NonZh, PinyinOptions, PinyinOutput, ToneType, TypeMode};
+
+use crate::dictionary::Notation;
+
+/// How each character of simplified `text` is read where it stands, in `notation`.
+/// Read by whole phrases, so a polyphone reads as the words around it say (银行
+/// yín háng, 行走 xíng zǒu), and 一 and 不 take the tone they are said in. Empty
+/// for what is not Chinese; `None` should the phrases not line up with the characters.
+pub fn read_in_context(text: &str, notation: Notation) -> Option<Vec<String>> {
+    let options = PinyinOptions {
+        type_mode: TypeMode::All,
+        tone_type: ToneType::Symbol,
+        non_zh: NonZh::Spaced,
+        ..PinyinOptions::default()
+    };
+    let PinyinOutput::All(read) = pinyin_pro::pinyin::pinyin(text, options) else {
+        return None;
+    };
+    let mut readings = Vec::new();
+    for each in read {
+        let single = each.is_zh && each.origin.chars().count() == 1 && each.pinyin != each.origin;
+        if !single {
+            readings.extend(each.origin.chars().map(|_| String::new()));
+            continue;
+        }
+        readings.push(match notation {
+            Notation::Pinyin => each.pinyin,
+            Notation::Zhuyin => {
+                let tone = if each.num == 0 { 5 } else { each.num };
+                let plain: String = each.pinyin.chars().map(untoned).collect();
+                zhuyin_syllable(&format!("{plain}{tone}")).unwrap_or_default()
+            }
+        });
+    }
+    (readings.len() == text.chars().count()).then_some(readings)
+}
+
+/// `c` without its tone mark; ü keeps its dots.
+fn untoned(c: char) -> char {
+    match c {
+        'ā' | 'á' | 'ǎ' | 'à' => 'a',
+        'ē' | 'é' | 'ě' | 'è' => 'e',
+        'ī' | 'í' | 'ǐ' | 'ì' => 'i',
+        'ō' | 'ó' | 'ǒ' | 'ò' => 'o',
+        'ū' | 'ú' | 'ǔ' | 'ù' => 'u',
+        'ǖ' | 'ǘ' | 'ǚ' | 'ǜ' => 'ü',
+        other => other,
+    }
+}
+
 /// CC-CEDICT's numbered pinyin ("Bei3 jing1", "nu:3 er2") with tone marks
 /// ("Běi jīng", "nǚ ér"). Tokens without a tone digit pass through unchanged.
 pub fn to_tone_marks(numbered: &str) -> String {
@@ -204,7 +254,43 @@ fn zhuyin_final(final_: &str) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{to_tone_marks, to_zhuyin};
+    use super::{Notation, read_in_context, to_tone_marks, to_zhuyin};
+
+    #[test]
+    fn reads_polyphones_by_the_words_around_them() {
+        assert_eq!(
+            read_in_context("银行行长", Notation::Pinyin).unwrap(),
+            ["yín", "háng", "háng", "zhǎng"]
+        );
+        assert_eq!(
+            read_in_context("他长大了", Notation::Pinyin).unwrap(),
+            ["tā", "zhǎng", "dà", "le"]
+        );
+    }
+
+    #[test]
+    fn changes_the_tone_of_yi_and_bu_as_they_are_said() {
+        assert_eq!(
+            read_in_context("一个不是", Notation::Pinyin).unwrap(),
+            ["yí", "gè", "bú", "shì"]
+        );
+        assert_eq!(
+            read_in_context("不去", Notation::Zhuyin).unwrap(),
+            ["ㄅㄨˊ", "ㄑㄩˋ"]
+        );
+    }
+
+    #[test]
+    fn reads_in_context_in_zhuyin_and_leaves_the_rest_unread() {
+        assert_eq!(
+            read_in_context("我们去学校", Notation::Zhuyin).unwrap(),
+            ["ㄨㄛˇ", "˙ㄇㄣ", "ㄑㄩˋ", "ㄒㄩㄝˊ", "ㄒㄧㄠˋ"]
+        );
+        assert_eq!(
+            read_in_context("FM 新闻。", Notation::Pinyin).unwrap(),
+            ["", "", "", "xīn", "wén", ""]
+        );
+    }
 
     #[test]
     fn marks_the_right_vowel() {

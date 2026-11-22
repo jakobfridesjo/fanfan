@@ -28,6 +28,9 @@ ogg = "0.9"
 # libopus, built from source and linked statically (needs cmake).
 opus = "0.4"
 percent-encoding = "2.3"
+# The reader's syllables: pinyin by whole phrases, so a polyphone reads as the words
+# around it say, and 一 and 不 change tone as they are said.
+pinyin_pro = "3.29"
 # `rendering` draws a PDF's first page as its cover.
 pdf_oxide = { version = "0.3", features = ["rendering"] }
 roxmltree = "0.20"

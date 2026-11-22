@@ -35,6 +35,11 @@ Other settings only change what the UI shows.
 
 CC-CEDICT is bundled with the app; the `data/` files are compiled into `vocab-core`. Sources and licences: [licences.md](licences.md).
 
+Readings come from two places:
+
+- **Cards and lookups** show CC-CEDICT's dictionary tones (`Dictionary::lookup`).
+- **The reader** reads each paragraph as a whole with `pinyin_pro` (`pinyin::read_in_context`). That way a polyphone reads as the words around it say, and 一 and 不 take the tone they are said in. A word falls back to CC-CEDICT (`Dictionary::syllables_of`) when `pinyin_pro` leaves one of its characters unread, or when the paragraph's simplified text has a different number of characters from the original.
+
 The learner's own data lives in one SQLite database (`vocab-core/src/store/`). **Settings → Export** writes it as JSON (`Store::backup` in `store/backup.rs`): word statuses with their FSRS cards, the review history, and each book's reading position and bookmarks, but not the books' text. **Settings → Import** merges one back (`Store::restore_backup`): each word keeps its newer change, missing reviews are added, and a book already in the library, matched by its file's hash, gets its bookmarks, its folder and, if newer, its reading position. Nothing is deleted, so importing twice changes nothing. Bump `BACKUP_VERSION` when its shape changes; an import refuses a newer version.
 
 ## Book audio

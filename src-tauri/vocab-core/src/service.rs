@@ -12,6 +12,7 @@ use crate::dictionary::{Dictionary, Entry, Notation, Script};
 use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
 use crate::levels::levels_of;
+use crate::pinyin::read_in_context;
 use crate::store::{
     Backup, BackupImport, DocumentSummary, DocumentWord, DueWord, NewDocument, Store,
     StoredBookmark, TrackedWord, WordStatus,
@@ -300,6 +301,9 @@ pub fn reader_section(
         .map(|(index, paragraph)| {
             let pieces = tokenize(paragraph, &language.jieba, dictionary);
             phrases.extend(spoken_phrases(index as u32, &pieces));
+            let mut in_context = notation
+                .and_then(|notation| paragraph_readings(dictionary, &pieces, notation))
+                .map(Vec::into_iter);
             pieces
                 .into_iter()
                 .map(|piece| ReaderToken {
@@ -312,11 +316,17 @@ pub fn reader_section(
                         .is_word
                         .then(|| dictionary.alternate_in(piece.text, script))
                         .flatten(),
-                    reading: match notation {
-                        Some(notation) if piece.is_word => {
-                            dictionary.syllables_of(piece.text, notation)
+                    reading: {
+                        let characters = piece.text.chars().count();
+                        let read: Option<Vec<String>> = in_context
+                            .as_mut()
+                            .map(|readings| readings.by_ref().take(characters).collect());
+                        match notation {
+                            Some(notation) if piece.is_word => read
+                                .filter(|read| read.iter().all(|syllable| !syllable.is_empty()))
+                                .unwrap_or_else(|| dictionary.syllables_of(piece.text, notation)),
+                            _ => Vec::new(),
                         }
-                        _ => Vec::new(),
                     },
                     word: piece.is_word.then(|| piece.text.to_owned()),
                 })
@@ -388,6 +398,27 @@ fn spoken_phrases(paragraph: u32, pieces: &[Piece]) -> Vec<SpokenPhrase> {
     }
     finish(start, pieces.len());
     phrases
+}
+
+/// Each character of a paragraph's `pieces` read where it stands; `None` should
+/// the simplified text not keep one character for each.
+fn paragraph_readings(
+    dictionary: &Dictionary,
+    pieces: &[Piece],
+    notation: Notation,
+) -> Option<Vec<String>> {
+    let simplified: String = pieces
+        .iter()
+        .map(|piece| {
+            if piece.is_word {
+                dictionary.write_in(piece.text, Script::Simplified)
+            } else {
+                piece.text.to_owned()
+            }
+        })
+        .collect();
+    let characters: usize = pieces.iter().map(|piece| piece.text.chars().count()).sum();
+    read_in_context(&simplified, notation).filter(|readings| readings.len() == characters)
 }
 
 /// Every section's title in reading order, in the script the learner reads.
@@ -1021,6 +1052,30 @@ mod tests {
                 "reading": ["wǒ", "men"],
                 "word": "我们"
             })
+        );
+    }
+
+    #[test]
+    fn reads_each_character_as_the_paragraph_around_it_says() {
+        let language = language();
+        let mut store = Store::open_in_memory().unwrap();
+        let path = write("行.txt", "我不是银行行长。");
+        let summary = save_file(&mut store, &analyze(&path, &language), now()).unwrap();
+
+        let section = reader_section(
+            store.section(summary.id, 0).unwrap(),
+            &language,
+            0,
+            Script::Simplified,
+            Some(Notation::Pinyin),
+        );
+        let readings: Vec<String> = section.paragraphs[0]
+            .iter()
+            .flat_map(|token| token.reading.clone())
+            .collect();
+        assert_eq!(
+            readings,
+            ["wǒ", "bú", "shì", "yín", "háng", "háng", "zhǎng"]
         );
     }
 
