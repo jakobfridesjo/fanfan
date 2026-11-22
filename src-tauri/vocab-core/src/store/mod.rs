@@ -8,7 +8,7 @@ use crate::analysis::Analysis;
 use crate::error::Result;
 use crate::extract::{Cover, Section};
 
-pub use backup::Backup;
+pub use backup::{Backup, BackupImport};
 
 mod backup;
 mod bookmarks;

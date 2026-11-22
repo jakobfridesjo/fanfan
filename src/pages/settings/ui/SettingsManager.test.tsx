@@ -44,6 +44,32 @@ describe("SettingsManager", () => {
     expect(callsTo(calls, "export_data")).toEqual([{ path: "/home/me/backup.json" }]);
   });
 
+  it("imports the backup the open dialog picks and names the books it could not match", async () => {
+    const calls = mockCommands({
+      "plugin:dialog|open": () => "/home/me/backup.json",
+      import_data: () => ({ words: 12, reviews: 1, documents: 1, missingDocuments: 2 }),
+    });
+    await renderPageInRouter(() => <SettingsManager />);
+
+    await screen.getByRole("button", { name: "Import" }).click();
+    await expect.element(screen.getByText("Imported 12 words and 1 review")).toBeVisible();
+    await expect
+      .element(screen.getByText(/2 books from the backup are not in your library/))
+      .toBeVisible();
+    expect(callsTo(calls, "import_data")).toEqual([{ path: "/home/me/backup.json" }]);
+  });
+
+  it("says so when a backup holds nothing new", async () => {
+    mockCommands({
+      "plugin:dialog|open": () => "/home/me/backup.json",
+      import_data: () => ({ words: 0, reviews: 0, documents: 3, missingDocuments: 0 }),
+    });
+    await renderPageInRouter(() => <SettingsManager />);
+
+    await screen.getByRole("button", { name: "Import" }).click();
+    await expect.element(screen.getByText("Nothing in this backup is new")).toBeVisible();
+  });
+
   it("keeps one script and one background chosen", async () => {
     await renderPageInRouter(() => <SettingsManager />);
 

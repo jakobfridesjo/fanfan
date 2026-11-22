@@ -214,6 +214,17 @@ export type ImportStage =
   | { stage: "analyzing"; done: number }
   | { stage: "saving" };
 
+/** What importing a backup merged in; see `BackupImport` in `store/backup.rs`. */
+export interface BackupImport {
+  /** Words added, or replaced because the backup changed them more recently. */
+  words: number;
+  reviews: number;
+  /** Books in the library the backup had a reading place for. */
+  documents: number;
+  /** Books in the backup that are not in the library. */
+  missingDocuments: number;
+}
+
 export interface KnownWordsImport {
   found: number;
   added: number;
@@ -257,6 +268,7 @@ export type CommandName =
   | "add_bookmark"
   | "delete_bookmark"
   | "export_data"
+  | "import_data"
   | "get_word_statuses"
   | "get_word_card"
   | "mark_words_known"
@@ -336,6 +348,9 @@ export const commands = {
 
   /** Writes a JSON backup of words, reviews, reading positions and bookmarks to `path`. */
   exportData: (path: string) => invoke<null>("export_data", { path }),
+
+  /** Merges a backup from `exportData` in: newer changes win and nothing is deleted. */
+  importData: (path: string) => invoke<BackupImport>("import_data", { path }),
 
   /** The status of each known or learning word among `words`; unseen words are absent. */
   getWordStatuses: (words: string[]) =>

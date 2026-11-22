@@ -80,6 +80,7 @@ pub fn run() {
             commands::add_bookmark,
             commands::delete_bookmark,
             commands::export_data,
+            commands::import_data,
             commands::get_word_statuses,
             commands::get_word_card,
             commands::mark_words_known,

@@ -294,11 +294,18 @@ export const en = {
     about: "About 翻翻",
     data: "Your data",
     dataDescription:
-      "Save a backup of your word statuses, review history, reading positions and bookmarks as a JSON file. The books themselves are not included.",
+      "Save a backup of your word statuses, review history, reading positions and bookmarks as a JSON file, or import one. Importing keeps the newer of each change and deletes nothing. The books themselves are not included: import them first to get their reading positions back.",
     exportData: "Export",
     exportFilter: "JSON backup",
     exported: "Backup saved",
     exportFailed: "Could not save the backup",
+    importData: "Import",
+    imported: (wordCount: number, reviewCount: number) =>
+      `Imported ${words(wordCount)} and ${words(reviewCount, "review")}`,
+    nothingToImport: "Nothing in this backup is new",
+    missingBooks: (count: number) =>
+      `${words(count, "book")} from the backup ${count === 1 ? "is" : "are"} not in your library. Import ${count === 1 ? "it" : "them"}, then the backup again.`,
+    importFailed: "Could not import the backup",
   },
   about: {
     title: "About",

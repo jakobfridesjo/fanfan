@@ -13,8 +13,8 @@ use crate::error::{Error, Result};
 use crate::extract::{Cover, Section, extract};
 use crate::levels::levels_of;
 use crate::store::{
-    DocumentSummary, DocumentWord, DueWord, NewDocument, Store, StoredBookmark, TrackedWord,
-    WordStatus,
+    Backup, BackupImport, DocumentSummary, DocumentWord, DueWord, NewDocument, Store,
+    StoredBookmark, TrackedWord, WordStatus,
 };
 
 /// Readings shown per card; CC-CEDICT lists rare ones and names after common ones.
@@ -438,6 +438,17 @@ pub fn bookmarks(
 /// [`Store::backup`] as a JSON file.
 pub fn backup_json(store: &Store, now: DateTime<Utc>) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(&store.backup(now)?)?)
+}
+
+/// Merges a [`backup_json`] file into the store; see [`Store::restore_backup`].
+pub fn restore_backup_json(
+    store: &mut Store,
+    json: &[u8],
+    now: DateTime<Utc>,
+) -> Result<BackupImport> {
+    let backup: Backup =
+        serde_json::from_slice(json).map_err(|error| Error::InvalidBackup(error.to_string()))?;
+    store.restore_backup(&backup, now)
 }
 
 pub fn review_queue(source: ReviewSource, dictionary: &Dictionary, script: Script) -> ReviewQueue {

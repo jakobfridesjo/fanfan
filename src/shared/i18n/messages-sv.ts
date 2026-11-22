@@ -294,11 +294,18 @@ export const sv: Messages = {
     about: "Om 翻翻",
     data: "Din data",
     dataDescription:
-      "Spara en säkerhetskopia av dina ordstatusar, din repetitionshistorik, dina läspositioner och bokmärken som en JSON-fil. Själva böckerna ingår inte.",
+      "Spara en säkerhetskopia av dina ordstatusar, din repetitionshistorik, dina läspositioner och bokmärken som en JSON-fil, eller importera en. Importen behåller den nyaste av varje ändring och tar inte bort något. Själva böckerna ingår inte: importera dem först för att få tillbaka läspositionerna.",
     exportData: "Exportera",
     exportFilter: "JSON-säkerhetskopia",
     exported: "Säkerhetskopian sparades",
     exportFailed: "Kunde inte spara säkerhetskopian",
+    importData: "Importera",
+    imported: (wordCount, reviewCount) =>
+      `Importerade ${words(wordCount)} och ${formatInteger(reviewCount)} ${reviewCount === 1 ? "repetition" : "repetitioner"}`,
+    nothingToImport: "Inget i säkerhetskopian är nytt",
+    missingBooks: (count) =>
+      `${formatInteger(count)} ${count === 1 ? "bok" : "böcker"} från säkerhetskopian finns inte i ditt bibliotek. Importera ${count === 1 ? "den" : "dem"} och sedan säkerhetskopian igen.`,
+    importFailed: "Kunde inte importera säkerhetskopian",
   },
   about: {
     title: "Om",

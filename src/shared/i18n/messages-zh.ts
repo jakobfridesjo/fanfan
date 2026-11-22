@@ -283,11 +283,19 @@ export const zh: Messages = {
     appearances: { light: "浅色", dark: "深色", auto: "自动" },
     about: "关于翻翻",
     data: "你的数据",
-    dataDescription: "将你的词汇状态、复习记录、阅读位置和书签备份为 JSON 文件。书本身不包括在内。",
+    dataDescription:
+      "将你的词汇状态、复习记录、阅读位置和书签备份为 JSON 文件，或导入备份。导入时每项保留较新的更改，不会删除任何内容。书本身不包括在内：先导入书，才能恢复阅读位置。",
     exportData: "导出",
     exportFilter: "JSON 备份",
     exported: "备份已保存",
     exportFailed: "无法保存备份",
+    importData: "导入",
+    imported: (wordCount, reviewCount) =>
+      `已导入 ${formatInteger(wordCount)} 个词和 ${formatInteger(reviewCount)} 次复习`,
+    nothingToImport: "此备份中没有新内容",
+    missingBooks: (count) =>
+      `备份中有 ${formatInteger(count)} 本书不在你的书库中。请先导入这些书，再重新导入备份。`,
+    importFailed: "无法导入备份",
   },
   about: {
     title: "关于",

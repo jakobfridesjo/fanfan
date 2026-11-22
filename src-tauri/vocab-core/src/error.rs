@@ -42,6 +42,12 @@ pub enum Error {
     Translation(String),
     #[error("Could not download the model: {0}")]
     Download(String),
+    #[error("This is not a FanFan backup: {0}")]
+    InvalidBackup(String),
+    #[error(
+        "This backup comes from a newer version of FanFan (backup version {0}); update the app first"
+    )]
+    NewerBackup(u32),
     #[error("Rating must be 1 (again) to 4 (easy), got {0}")]
     InvalidRating(u8),
 }

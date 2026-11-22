@@ -15,7 +15,9 @@ use vocab_core::service::{
 };
 use vocab_core::speech::{SPEECH_CACHE_BYTES, Speaker, SpeechCache, Voice};
 use vocab_core::statistics::{self, Statistics};
-use vocab_core::store::{DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus};
+use vocab_core::store::{
+    BackupImport, DocumentSummary, Folder, ReviewSnapshot, Store, WordSnapshot, WordStatus,
+};
 use vocab_core::text::parse_word_list;
 use vocab_core::translation::Translator;
 
@@ -396,6 +398,23 @@ pub async fn export_data(app: AppHandle, path: String) -> CommandResult<()> {
         let json = service::backup_json(&*state.reader()?, Utc::now())?;
         picked_file::write(&handle, &path, &json)
             .map_err(|error| CommandError(format!("Could not save the file: {error}")))
+    })
+    .await
+}
+
+/// Merges a backup [`export_data`] wrote into the database; see `Store::restore_backup`.
+#[tauri::command]
+pub async fn import_data(app: AppHandle, path: String) -> CommandResult<BackupImport> {
+    let handle = app.clone();
+    blocking(app, move |state| {
+        let json = PickedFile::open(&handle, &path)
+            .and_then(|picked| std::fs::read(picked.path()))
+            .map_err(|error| CommandError(format!("Could not open the file: {error}")))?;
+        Ok(service::restore_backup_json(
+            &mut *state.writer()?,
+            &json,
+            Utc::now(),
+        )?)
     })
     .await
 }

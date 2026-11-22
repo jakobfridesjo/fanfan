@@ -26,7 +26,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/shadcn/toggle-group.tsx";
 import { useSpeakWord } from "@/entities/word/model/use-speak-word.ts";
 import { useSettingsManager } from "@/pages/settings/model/use-settings-manager.ts";
-import { DataExportCard } from "@/pages/settings/ui/DataExportCard.tsx";
+import { DataCard } from "@/pages/settings/ui/DataCard.tsx";
 import { OfflineModelsCard } from "@/pages/settings/ui/OfflineModelsCard.tsx";
 
 /** A sample of each script, written in itself. */
@@ -173,7 +173,7 @@ function SettingsManager() {
           />
         </SettingCard>
 
-        <DataExportCard />
+        <DataCard />
       </div>
     </>
   );
