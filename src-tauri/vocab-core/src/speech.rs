@@ -8,9 +8,9 @@ use std::thread;
 use std::time::SystemTime;
 
 use anyhow::{Context, bail};
+use kitoken::Kitoken;
 use ogg::{PacketWriteEndInfo, PacketWriter};
 use opus::{Application, Bitrate, Channels, Encoder};
-use sentencepiece::SentencePieceProcessor;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tract_linalg::multithread::{Executor, multithread_tract_scope};
@@ -143,7 +143,7 @@ struct BuiltinVoice {
 /// tract on every CPU core and speaking in any `Speaker`'s voice.
 pub struct Voice {
     executor: Executor,
-    tokenizer: SentencePieceProcessor,
+    tokenizer: Kitoken,
     ids: TokenIds,
     /// Each speaker's prompt rows before the text: instructions, their voice
     /// sample and what introduces the text.
@@ -209,7 +209,7 @@ impl Voice {
             .collect();
         Ok(Self {
             executor,
-            tokenizer: SentencePieceProcessor::open(dir.join(TOKENIZER))?,
+            tokenizer: Kitoken::from_sentencepiece_file(dir.join(TOKENIZER))?,
             decode_step: half_precision(
                 onnx::parse(dir, DECODE_STEP, &[])?,
                 DECODE_STEP,
@@ -261,9 +261,9 @@ impl Voice {
         let text = with_sentence_end(text);
         let text_ids = self
             .tokenizer
-            .encode(&text)?
+            .encode(&text, false)?
             .into_iter()
-            .map(|piece| piece.id as i32);
+            .map(|id| id as i32);
         let (mut past, mut cache) = self.prompt_cache(speaker)?;
         let mut hidden = None;
         for token in text_ids.chain(self.after_text.iter().copied()) {

@@ -21,6 +21,7 @@ use vocab_core::translation::Translator;
 
 use crate::picked_file::{self, PickedFile};
 use crate::resources::{DICTIONARY, Resources};
+use crate::screen_awake::ScreenAwake;
 
 /// Reaches the frontend as the rejected `invoke` promise's message.
 #[derive(Debug)]
@@ -54,6 +55,7 @@ pub struct AppState {
     voice: Mutex<Option<Arc<Voice>>>,
     speech: SpeechCache,
     translator: Mutex<Option<Arc<Translator>>>,
+    screen_awake: ScreenAwake,
 }
 
 impl AppState {
@@ -63,6 +65,7 @@ impl AppState {
         resources: Resources,
         models: Models,
         speech_cache_dir: PathBuf,
+        screen_awake: ScreenAwake,
     ) -> Self {
         Self {
             writer: Mutex::new(writer),
@@ -74,6 +77,7 @@ impl AppState {
             voice: Mutex::new(None),
             speech: SpeechCache::new(&speech_cache_dir),
             translator: Mutex::new(None),
+            screen_awake,
         }
     }
 
@@ -610,4 +614,12 @@ pub async fn delete_model(app: AppHandle, model: Model) -> CommandResult<()> {
         Ok(state.models.delete(model)?)
     })
     .await
+}
+
+/// Keeps the screen on while `awake`, as it is while a book is open. Not async,
+/// so it runs on the main thread in the order called: leaving a book and
+/// opening the next cannot swap.
+#[tauri::command]
+pub fn keep_screen_awake(state: State<'_, AppState>, awake: bool) -> CommandResult<()> {
+    state.screen_awake.set(awake).map_err(CommandError)
 }

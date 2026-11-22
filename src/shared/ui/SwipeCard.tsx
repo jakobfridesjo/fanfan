@@ -115,7 +115,7 @@ export function SwipeCard(props: SwipeCardProps) {
       ref={(element) => (card = element)}
       onPointerDown={onPointerDown}
       class={cn(
-        "relative animate-in touch-pan-y duration-150 select-none fade-in-0 zoom-in-95",
+        "relative animate-in touch-pan-y select-none fade-in-0 zoom-in-95",
         !props.disabled && "cursor-grab active:cursor-grabbing",
         props.class
       )}

@@ -41,6 +41,7 @@ mise android:install  # install it on the adb-connected phone
 - `android:build` first installs the NDK (`android:sdk`) and creates the release key in `~/.android` (`android:keystore`), outside the repo.
 - Pair a phone over Wi-Fi with `adb pair`.
 - Android-only crates (the fs plugin, and `percent-encoding` for `content://` URIs) are under `cfg(target_os = "android")` in `src-tauri/Cargo.toml`.
+- `MainActivity.kt` is hand-edited: Rust calls its `keepScreenOn` over JNI (`src-tauri/src/screen_awake.rs`) to keep the screen on in the reader. Keep it if Tauri regenerates `gen/android`.
 
 ## macOS
 

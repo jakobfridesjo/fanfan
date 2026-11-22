@@ -1,6 +1,7 @@
 mod commands;
 mod picked_file;
 mod resources;
+mod screen_awake;
 
 use tauri::Manager;
 use vocab_core::models::Models;
@@ -8,6 +9,7 @@ use vocab_core::store::Store;
 
 use crate::commands::AppState;
 use crate::resources::Resources;
+use crate::screen_awake::ScreenAwake;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -40,6 +42,7 @@ pub fn run() {
                 Resources::new(app.handle().clone()),
                 Models::new(data_dir.join("models")),
                 speech_cache_dir,
+                ScreenAwake::new(app.config().identifier.clone()),
             ));
 
             // Warm the dictionary up so the first import or deck does not wait for it;
@@ -94,6 +97,7 @@ pub fn run() {
             commands::download_model,
             commands::cancel_model_download,
             commands::delete_model,
+            commands::keep_screen_awake,
         ])
         .run(tauri::generate_context!())
         .expect("error while building tauri application");

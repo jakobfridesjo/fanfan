@@ -145,6 +145,10 @@ export function useReaderManager(documentId: number) {
   const positionSaver = new Debouncer(rememberPosition, { wait: SAVE_POSITION_MS });
   onCleanup(() => positionSaver.cancel());
 
+  // A screen that dims mid-page is only an annoyance, so a failure is not reported.
+  commands.keepScreenAwake(true).catch(noop);
+  onCleanup(() => void commands.keepScreenAwake(false).catch(noop));
+
   const sectionCount = () => titles.data?.length ?? 0;
   const showSection = (next: number, paragraph = 0) => {
     positionSaver.cancel();

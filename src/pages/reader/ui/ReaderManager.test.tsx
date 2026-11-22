@@ -80,6 +80,7 @@ function mockBook({
       return { word, previous: null };
     },
     set_reading_position: () => null,
+    keep_screen_awake: () => null,
     // The last paragraph never finishes synthesizing, so playback stays on it.
     speak: ({ text }) => (text === "中文很好！" ? new Promise(() => {}) : silentOpus()),
     translate: ({ text }) => `In English: ${text as string}`,
@@ -123,6 +124,17 @@ afterEach(async () => {
 });
 
 describe("ReaderManager", () => {
+  it("keeps the screen awake while the book is open", async () => {
+    const { calls } = mockBook();
+    const { unmount } = await renderPageInRouter(() => <ReaderManager documentId={1} />);
+
+    await expect.element(word("序言")).toBeVisible();
+    expect(callsTo(calls, "keep_screen_awake")).toEqual([{ awake: true }]);
+
+    unmount();
+    expect(callsTo(calls, "keep_screen_awake")).toEqual([{ awake: true }, { awake: false }]);
+  });
+
   it("reads aloud from the selected word's phrase, underlining what it speaks", async () => {
     const { calls } = mockBook({ readingSection: 1 });
     await renderPageInRouter(() => <ReaderManager documentId={1} />);

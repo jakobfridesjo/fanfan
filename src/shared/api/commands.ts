@@ -273,7 +273,8 @@ export type CommandName =
   | "list_models"
   | "download_model"
   | "cancel_model_download"
-  | "delete_model";
+  | "delete_model"
+  | "keep_screen_awake";
 
 const invoke = <T>(command: CommandName, args?: InvokeArgs) => tauriInvoke<T>(command, args);
 
@@ -386,6 +387,9 @@ export const commands = {
   cancelModelDownload: (model: Model) => invoke<null>("cancel_model_download", { model }),
 
   deleteModel: (model: Model) => invoke<null>("delete_model", { model }),
+
+  /** Keeps the screen from dimming or locking until called again with false. */
+  keepScreenAwake: (awake: boolean) => invoke<null>("keep_screen_awake", { awake }),
 };
 
 /** Rust rejects with its error's message as a plain string. */

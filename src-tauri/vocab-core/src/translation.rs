@@ -4,7 +4,7 @@ use std::path::Path;
 use std::thread;
 
 use anyhow::{Context, ensure};
-use sentencepiece::SentencePieceProcessor;
+use kitoken::{Definition, Kitoken};
 use tract_linalg::multithread::{Executor, multithread_tract_scope};
 use tract_onnx::prelude::*;
 
@@ -41,9 +41,10 @@ const WORD_START: char = '▁';
 /// to English, greedily, on every CPU core.
 pub struct Translator {
     executor: Executor,
-    tokenizer: SentencePieceProcessor,
+    tokenizer: Kitoken,
+    /// The `vocab.json` number of each of the tokenizer's tokens.
+    source_ids: Vec<i64>,
     /// Both languages share one vocabulary, numbered by `vocab.json`.
-    ids: HashMap<String, i64>,
     pieces: Vec<String>,
     unknown: i64,
     encoder: Graph,
@@ -96,10 +97,30 @@ impl Translator {
                 .chain(past.iter().map(String::as_str))
                 .map(|name| (name, None))
                 .collect();
+        let definition = Definition::from_sentencepiece_file(dir.join(SOURCE_TOKENIZER))?;
+        let tokens: Vec<(u32, &[u8])> = definition
+            .model
+            .vocab()
+            .iter()
+            .map(|token| (token.id, token.bytes.as_slice()))
+            .chain(
+                definition
+                    .specials
+                    .iter()
+                    .map(|token| (token.id, token.bytes.as_slice())),
+            )
+            .collect();
+        let count = tokens.iter().map(|&(id, _)| id as usize + 1).max();
+        let mut source_ids = vec![unknown; count.unwrap_or(0)];
+        for (id, bytes) in tokens {
+            if let Some(&number) = str::from_utf8(bytes).ok().and_then(|piece| ids.get(piece)) {
+                source_ids[id as usize] = number;
+            }
+        }
         Ok(Self {
             executor,
-            tokenizer: SentencePieceProcessor::open(dir.join(SOURCE_TOKENIZER))?,
-            ids,
+            tokenizer: Kitoken::from_definition(definition)?,
+            source_ids,
             pieces,
             unknown,
             encoder: onnx::load(
@@ -134,9 +155,14 @@ impl Translator {
     fn generate(&self, text: &str) -> TractResult<Vec<i64>> {
         let mut source: Vec<i64> = self
             .tokenizer
-            .encode(text)?
+            .encode(text, false)?
             .into_iter()
-            .map(|piece| self.ids.get(&piece.piece).copied().unwrap_or(self.unknown))
+            .map(|id| {
+                self.source_ids
+                    .get(id as usize)
+                    .copied()
+                    .unwrap_or(self.unknown)
+            })
             .collect();
         if source.is_empty() {
             return Ok(Vec::new());
