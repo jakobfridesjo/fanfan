@@ -8,7 +8,7 @@ use chrono::{NaiveDate, Utc};
 use serde::{Serialize, Serializer};
 use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Manager, State};
-use vocab_core::book_audio::{BookAudio, PrepareJob, PrepareProgress, PreparedAudio};
+use vocab_core::book_audio::{self, BookAudio, PrepareJob, PrepareProgress, PreparedAudio};
 use vocab_core::dictionary::{Notation, Script};
 use vocab_core::models::{DownloadProgress, Model, ModelStatus, Models};
 use vocab_core::service::{
@@ -649,6 +649,7 @@ pub async fn prepare_book_audio(
                 speaker,
                 from,
                 to,
+                workers: book_audio::workers(),
                 cancelled: &cancelled,
                 live: &state.live_speech,
             };

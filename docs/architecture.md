@@ -43,7 +43,7 @@ Read-aloud speaks each phrase when it is reached and keeps it in a 200 MB cache 
 
 - **Where:** `book-audio/<MODEL_ID>/<document id>/<speaker>/` in the app's data folder, never tidied by size. Clips are named as the cache names them, so `speak` finds a phrase by its text in any prepared book before it looks in the cache. `range.json` holds the chapters asked for, and `prepared/` an empty file per finished section.
 - **Phrases:** `service::spoken_texts` splits a section as `reader_section` does, so every phrase read-aloud asks for is the one prepared.
-- **The job:** `prepare_book_audio` prepares one book at a time and reports a `PrepareProgress` per phrase. It skips what is saved, so after a cancel, an error or a closed app it carries on where it stopped. While any `speak` runs, it waits before its next phrase: a tapped word waits for at most one phrase.
+- **The job:** `prepare_book_audio` prepares one book at a time and reports a `PrepareProgress` per phrase. It speaks `book_audio::workers()` phrases at once (half the logical cores, at most four), each on a thread of its own: about three times as fast as one at a time on a 6-core desktop. It skips what is saved, so after a cancel, an error or a closed app it carries on where it stopped. While any `speak` runs, each worker waits before its next phrase: a tapped word waits for at most one phrase.
 - **Cleanup:** deleting a book deletes its audio; at start-up, audio of earlier models and of books no longer in the library goes. Export leaves it out.
 - **Frontend:** `features/book-audio` keeps the running job in an atom, so it outlives the page that started it. The dialog estimates length and size from `list_section_lengths` at 3.3 characters a second and 32 kbps (`OPUS_BITRATE` in `speech.rs`).
 
@@ -58,6 +58,7 @@ Read-aloud speaks each phrase when it is reached and keeps it in a 200 MB cache 
 - The voice keeps its hidden states and attention caches in f16 between runs (`onnx::keep_half_precision`). Left in f32, converting the caches takes two fifths of a decoding step.
 - The voice's prefill is read once (`onnx::parse`) and pinned to each padded prompt length it meets. Pin input facts before typing; `TypedModel::set_symbols` on the typed prefill overflows in tract 0.23.
 - A speaker's prompt up to the text is prefilled once and its attention cache kept; each text then runs through the decode step a row at a time, which masks attention for a single row only.
+- `Voice::speak` runs on the calling thread alone. A phrase is a chain of small steps bound by per-op overhead: on a Ryzen 5 7500F one thread takes 0.86 s per second of audio and twelve take about the same, so more speed comes from speaking several phrases at once. The prefill, one large run, still uses every core.
 - Models are downloaded on first use, never bundled. The file list in `vocab-core/src/models.rs` is the single source of URLs, sizes and SHA-256 checksums.
 - **Bumping MOSS-TTS-Nano:** update its files, its `folder` name and `MODEL_ID` in `speech.rs` together.
 - In the frontend, call `ensureModel` (`src/shared/api/model-downloads.ts`) before anything that needs a model. It opens the download dialog when the model is missing.

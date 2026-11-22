@@ -144,8 +144,9 @@ struct BuiltinVoice {
 }
 
 /// MOSS-TTS-Nano, downloaded by `models`, its language model in fp16, run by
-/// tract on every CPU core and speaking in any `Speaker`'s voice.
+/// tract and speaking in any `Speaker`'s voice.
 pub struct Voice {
+    /// Every CPU core, for loading and for prefilling a speaker's prompt.
     executor: Executor,
     tokenizer: Kitoken,
     ids: TokenIds,
@@ -246,10 +247,14 @@ impl Voice {
 
     /// Speaks `text`, a word or a phrase, as a mono Ogg Opus file in
     /// `speaker`'s voice. A fixed seed makes it sound the same every time.
+    ///
+    /// Runs on the calling thread alone: a phrase is a long chain of small
+    /// steps, which more threads hardly speed up, so several phrases are
+    /// better spoken at once on threads of their own.
     pub fn speak(&self, text: &str, speaker: Speaker) -> Result<Vec<u8>> {
         let could_not_speak =
             |reason: String| Error::Voice(format!("could not speak \"{text}\"{reason}"));
-        let samples = multithread_tract_scope(self.executor.clone(), || {
+        let samples = multithread_tract_scope(Executor::SingleThread, || {
             self.generate(text, speaker)
                 .and_then(|frames| self.decode_audio(&frames))
         })
@@ -344,7 +349,11 @@ impl Voice {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let cache = match caches.entry(speaker) {
             Entry::Occupied(cache) => cache.into_mut(),
-            Entry::Vacant(cache) => cache.insert(self.prefill(prompt_start)?),
+            // One large run, which does use every core.
+            Entry::Vacant(cache) => cache
+                .insert(multithread_tract_scope(self.executor.clone(), || {
+                    self.prefill(prompt_start)
+                })?),
         };
         let cache = cache.iter().cloned().map(Arc::into_tvalue);
         Ok((prompt_start.len() / self.ids.row_width(), cache.collect()))

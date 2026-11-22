@@ -1,6 +1,8 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Mutex, PoisonError};
 use std::thread;
 use std::time::Duration;
 
@@ -15,6 +17,16 @@ const RANGE: &str = "range.json";
 const PREPARED: &str = "prepared";
 /// How often a job waiting for live speech checks again.
 const WAIT: Duration = Duration::from_millis(50);
+/// Most phrases a job speaks at once. Each runs on a thread of its own; past
+/// four, the cores fight over memory and gain little.
+const MAX_WORKERS: usize = 4;
+
+/// How many phrases a job speaks at once: half the logical cores, leaving the
+/// rest to the app and to words spoken meanwhile, and at most `MAX_WORKERS`.
+pub fn workers() -> usize {
+    let cores = thread::available_parallelism().map_or(1, |cores| cores.get());
+    (cores / 2).clamp(1, MAX_WORKERS)
+}
 
 /// What is prepared of one book in one voice.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -51,6 +63,8 @@ pub struct PrepareJob<'a> {
     pub speaker: Speaker,
     pub from: u32,
     pub to: u32,
+    /// How many phrases to speak at once, each on a thread of its own.
+    pub workers: usize,
     /// Set to stop before the next phrase.
     pub cancelled: &'a AtomicBool,
     /// Speech requests running now, which go first: the job waits while any runs.
@@ -90,14 +104,14 @@ impl BookAudio {
     }
 
     /// Speaks every phrase of sections `from..=to` that is not saved yet, saving
-    /// each as it goes, so a stopped job carries on where it left off. Resolves
-    /// to false when cancelled.
+    /// each as it goes, so a stopped job carries on where it left off. Speaks
+    /// `job.workers` phrases at once. Resolves to false when cancelled.
     pub fn prepare(
         &self,
         job: &PrepareJob,
         mut phrases_of: impl FnMut(u32) -> Result<Vec<String>>,
-        mut speak: impl FnMut(&str) -> Result<Vec<u8>>,
-        mut report: impl FnMut(PrepareProgress),
+        speak: impl Fn(&str) -> Result<Vec<u8>> + Sync,
+        report: impl FnMut(PrepareProgress) + Send,
     ) -> Result<bool> {
         if job.from > job.to {
             return Err(Error::BookAudio(format!(
@@ -109,44 +123,76 @@ impl BookAudio {
         let folder = self.folder(job.document_id, job.speaker);
         self.widen_range(&folder, job.from, job.to)?;
         let sections_total = job.to - job.from + 1;
+        let reporter = Reporter::new(report);
         for (sections_done, section) in (job.from..=job.to).enumerate() {
             let marker = folder.join(PREPARED).join(section.to_string());
             if marker.exists() {
                 continue;
             }
             let phrases = phrases_of(section)?;
-            let mut progress = PrepareProgress {
+            let mut seen = HashSet::new();
+            let distinct: Vec<&str> = phrases
+                .iter()
+                .map(String::as_str)
+                .filter(|phrase| seen.insert(*phrase))
+                .collect();
+            let unsaved: Vec<&str> = distinct
+                .iter()
+                .copied()
+                .filter(|phrase| !folder.join(clip_name(phrase)).exists())
+                .collect();
+            reporter.start(PrepareProgress {
                 section,
                 sections_done: sections_done as u32,
                 sections_total,
-                phrases_done: 0,
-                phrases_total: phrases.len() as u32,
+                phrases_done: (distinct.len() - unsaved.len()) as u32,
+                phrases_total: distinct.len() as u32,
                 waiting: false,
-            };
-            report(progress);
-            for phrase in &phrases {
-                let path = folder.join(clip_name(phrase));
-                if !path.exists() {
-                    while job.live.load(Ordering::Acquire) > 0 {
-                        if job.cancelled.load(Ordering::Relaxed) {
-                            return Ok(false);
-                        }
-                        if !progress.waiting {
-                            progress.waiting = true;
-                            report(progress);
-                        }
+            });
+            let next = AtomicUsize::new(0);
+            let saved = AtomicUsize::new(0);
+            let failed = AtomicBool::new(false);
+            let stopped =
+                || failed.load(Ordering::Relaxed) || job.cancelled.load(Ordering::Relaxed);
+            let work = || -> Result<()> {
+                while !stopped() {
+                    let Some(phrase) = unsaved.get(next.fetch_add(1, Ordering::Relaxed)) else {
+                        break;
+                    };
+                    while job.live.load(Ordering::Acquire) > 0 && !stopped() {
+                        reporter.wait();
                         thread::sleep(WAIT);
                     }
-                    progress.waiting = false;
-                    if job.cancelled.load(Ordering::Relaxed) {
-                        return Ok(false);
+                    if stopped() {
+                        break;
                     }
-                    write_whole(&path, &speak(phrase)?)?;
+                    let path = folder.join(clip_name(phrase));
+                    speak(phrase)
+                        .and_then(|audio| Ok(write_whole(&path, &audio)?))
+                        .inspect_err(|_| failed.store(true, Ordering::Relaxed))?;
+                    saved.fetch_add(1, Ordering::Relaxed);
+                    reporter.phrase_done();
                 }
-                progress.phrases_done += 1;
-                report(progress);
+                Ok(())
+            };
+            let workers = job.workers.clamp(1, unsaved.len().max(1));
+            thread::scope(|scope| {
+                let running: Vec<_> = (0..workers).map(|_| scope.spawn(work)).collect();
+                running
+                    .into_iter()
+                    .map(|worker| {
+                        worker
+                            .join()
+                            .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
+                    })
+                    .collect::<Result<Vec<()>>>()
+            })?;
+            if saved.into_inner() == unsaved.len() {
+                write_whole(&marker, &[])?;
             }
-            write_whole(&marker, &[])?;
+            if job.cancelled.load(Ordering::Relaxed) {
+                return Ok(false);
+            }
         }
         Ok(true)
     }
@@ -237,6 +283,55 @@ impl BookAudio {
     }
 }
 
+/// Reports a job's progress from whichever worker moves it on.
+struct Reporter<R> {
+    state: Mutex<(PrepareProgress, R)>,
+}
+
+impl<R: FnMut(PrepareProgress)> Reporter<R> {
+    fn new(report: R) -> Self {
+        let progress = PrepareProgress {
+            section: 0,
+            sections_done: 0,
+            sections_total: 0,
+            phrases_done: 0,
+            phrases_total: 0,
+            waiting: false,
+        };
+        Self {
+            state: Mutex::new((progress, report)),
+        }
+    }
+
+    fn update(&self, change: impl FnOnce(&mut PrepareProgress) -> bool) {
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+        let (progress, report) = &mut *state;
+        if change(progress) {
+            report(*progress);
+        }
+    }
+
+    fn start(&self, progress: PrepareProgress) {
+        self.update(|current| {
+            *current = progress;
+            true
+        });
+    }
+
+    /// Reports waiting for live speech, once until the next phrase is done.
+    fn wait(&self) {
+        self.update(|progress| !std::mem::replace(&mut progress.waiting, true));
+    }
+
+    fn phrase_done(&self) {
+        self.update(|progress| {
+            progress.phrases_done += 1;
+            progress.waiting = false;
+            true
+        });
+    }
+}
+
 /// The entries of `dir`, or none when it does not exist.
 fn read_dir(dir: &Path) -> Result<Vec<PathBuf>> {
     match fs::read_dir(dir) {
@@ -274,8 +369,6 @@ fn remove_path(path: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-
     use super::*;
 
     const BOOK: i64 = 7;
@@ -294,6 +387,7 @@ mod tests {
             speaker: Speaker::Weiguo,
             from: 0,
             to: 2,
+            workers: 1,
             cancelled,
             live,
         }
@@ -304,7 +398,7 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let audio = BookAudio::new(root.path());
         let (cancelled, live) = (AtomicBool::new(false), AtomicUsize::new(0));
-        let spoken = RefCell::new(Vec::new());
+        let spoken = Mutex::new(Vec::new());
         let mut reports = Vec::new();
 
         let finished = audio
@@ -312,7 +406,7 @@ mod tests {
                 &job(&cancelled, &live),
                 |section| Ok(sections()[section as usize].clone()),
                 |text| {
-                    spoken.borrow_mut().push(text.to_owned());
+                    spoken.lock().unwrap().push(text.to_owned());
                     Ok(text.as_bytes().to_vec())
                 },
                 |progress| reports.push(progress),
@@ -320,7 +414,10 @@ mod tests {
             .unwrap();
 
         assert!(finished);
-        assert_eq!(*spoken.borrow(), ["第一句。", "第二句。", "第三句。"]);
+        assert_eq!(
+            *spoken.lock().unwrap(),
+            ["第一句。", "第二句。", "第三句。"]
+        );
         assert_eq!(
             audio.find("第三句。", Speaker::Weiguo),
             Some("第三句。".as_bytes().to_vec())
@@ -349,10 +446,9 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let audio = BookAudio::new(root.path());
         let (cancelled, live) = (AtomicBool::new(false), AtomicUsize::new(0));
-        let spoken = RefCell::new(0);
+        let spoken = AtomicUsize::new(0);
         let speak = |text: &str| {
-            *spoken.borrow_mut() += 1;
-            if *spoken.borrow() == 2 {
+            if spoken.fetch_add(1, Ordering::Relaxed) == 1 {
                 cancelled.store(true, Ordering::Relaxed);
             }
             Ok(text.as_bytes().to_vec())
@@ -367,22 +463,95 @@ mod tests {
             )
             .unwrap();
         assert!(!finished);
-        assert_eq!(audio.list().unwrap()[0].sections, [0, 1]);
+        assert_eq!(audio.list().unwrap()[0].sections, [0]);
 
         cancelled.store(false, Ordering::Relaxed);
-        let mut again = Vec::new();
+        let again = Mutex::new(Vec::new());
         audio
             .prepare(
                 &job(&cancelled, &live),
                 |section| Ok(sections()[section as usize].clone()),
                 |text| {
-                    again.push(text.to_owned());
+                    again.lock().unwrap().push(text.to_owned());
                     Ok(Vec::new())
                 },
                 |_| {},
             )
             .unwrap();
-        assert_eq!(again, ["第三句。"]);
+        assert_eq!(*again.lock().unwrap(), ["第三句。"]);
+    }
+
+    #[test]
+    fn speaks_phrases_on_several_workers_once_each() {
+        let root = tempfile::tempdir().unwrap();
+        let audio = BookAudio::new(root.path());
+        let (cancelled, live) = (AtomicBool::new(false), AtomicUsize::new(0));
+        let phrases: Vec<String> = (0..20).map(|n| format!("第{n}句。")).collect();
+        let spoken = Mutex::new(Vec::new());
+        let mut last = None;
+        let job = PrepareJob {
+            to: 0,
+            workers: 3,
+            ..job(&cancelled, &live)
+        };
+
+        let finished = audio
+            .prepare(
+                &job,
+                |_| Ok(phrases.clone()),
+                |text| {
+                    thread::sleep(Duration::from_millis(5));
+                    spoken.lock().unwrap().push(text.to_owned());
+                    Ok(text.as_bytes().to_vec())
+                },
+                |progress| last = Some(progress),
+            )
+            .unwrap();
+
+        assert!(finished);
+        let mut spoken = spoken.into_inner().unwrap();
+        spoken.sort();
+        let mut expected = phrases.clone();
+        expected.sort();
+        assert_eq!(spoken, expected);
+        assert!(
+            phrases
+                .iter()
+                .all(|phrase| audio.find(phrase, Speaker::Weiguo).is_some())
+        );
+        let last = last.unwrap();
+        assert_eq!((last.phrases_done, last.phrases_total), (20, 20));
+    }
+
+    #[test]
+    fn stops_every_worker_when_one_fails() {
+        let root = tempfile::tempdir().unwrap();
+        let audio = BookAudio::new(root.path());
+        let (cancelled, live) = (AtomicBool::new(false), AtomicUsize::new(0));
+        let phrases: Vec<String> = (0..20).map(|n| format!("第{n}句。")).collect();
+        let spoken = AtomicUsize::new(0);
+        let job = PrepareJob {
+            to: 0,
+            workers: 3,
+            ..job(&cancelled, &live)
+        };
+
+        let result = audio.prepare(
+            &job,
+            |_| Ok(phrases.clone()),
+            |_| {
+                if spoken.fetch_add(1, Ordering::Relaxed) == 2 {
+                    return Err(Error::Voice("broken".into()));
+                }
+                thread::sleep(Duration::from_millis(5));
+                Ok(Vec::new())
+            },
+            |_| {},
+        );
+
+        assert!(result.is_err());
+        assert!(spoken.load(Ordering::Relaxed) < 20);
+        assert!(audio.list().unwrap()[0].sections.is_empty());
     }
 
     #[test]
